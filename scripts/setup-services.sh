@@ -27,8 +27,8 @@ NC='\033[0m' # No Color
 APP_DIR="${APP_DIR:-/var/www/app.opensourcevillage.org}"
 APP_USER="${APP_USER:-www-data}"
 APP_GROUP="${APP_GROUP:-www-data}"
-BUN_PATH="${BUN_PATH:-/usr/local/bin/bun}"
 SERVICE_PREFIX="${SERVICE_PREFIX:-osv}"
+MIN_BUN_VERSION="1.1.0"
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Open Source Village - Service Setup${NC}"
@@ -41,18 +41,29 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# Check if bun is installed
-if [ ! -f "$BUN_PATH" ]; then
-    echo -e "${YELLOW}Warning: Bun not found at $BUN_PATH${NC}"
-    echo -e "${YELLOW}Attempting to find bun...${NC}"
-    BUN_PATH=$(which bun 2>/dev/null || echo "")
-    if [ -z "$BUN_PATH" ]; then
-        echo -e "${RED}Error: Bun is not installed. Please install bun first:${NC}"
-        echo -e "${RED}  curl -fsSL https://bun.sh/install | bash${NC}"
-        exit 1
-    fi
-    echo -e "${GREEN}Found bun at: $BUN_PATH${NC}"
+# Check if bun is installed and get its path
+BUN_PATH=$(which bun 2>/dev/null || echo "")
+if [ -z "$BUN_PATH" ]; then
+    echo -e "${RED}Error: Bun is not installed. Please install bun first:${NC}"
+    echo -e "${RED}  curl -fsSL https://bun.sh/install | bash${NC}"
+    exit 1
 fi
+
+# Check bun version
+BUN_VERSION=$(bun --version 2>/dev/null || echo "0.0.0")
+echo -e "${GREEN}Found bun version $BUN_VERSION at $BUN_PATH${NC}"
+
+# Compare versions (simple comparison - works for semver)
+version_ge() {
+    [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]
+}
+
+if ! version_ge "$BUN_VERSION" "$MIN_BUN_VERSION"; then
+    echo -e "${RED}Error: Bun version $BUN_VERSION is too old. Minimum required: $MIN_BUN_VERSION${NC}"
+    echo -e "${RED}Please update bun: bun upgrade${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ Bun version $BUN_VERSION meets minimum requirement ($MIN_BUN_VERSION)${NC}"
 
 # Check if app directory exists
 if [ ! -d "$APP_DIR" ]; then
@@ -66,10 +77,11 @@ if [ ! -d "$APP_DIR" ]; then
     fi
 fi
 
+echo ""
 echo -e "${GREEN}Configuration:${NC}"
 echo -e "  App Directory: ${BLUE}$APP_DIR${NC}"
 echo -e "  App User:      ${BLUE}$APP_USER${NC}"
-echo -e "  Bun Path:      ${BLUE}$BUN_PATH${NC}"
+echo -e "  Bun:           ${BLUE}$BUN_PATH (v$BUN_VERSION)${NC}"
 echo -e "  Service Name:  ${BLUE}$SERVICE_PREFIX${NC}"
 echo ""
 
