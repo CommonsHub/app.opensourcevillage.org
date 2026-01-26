@@ -32,33 +32,21 @@ export default function BadgePage() {
 
   const checkBadgeAndRedirect = async (serialNumber: string) => {
     try {
-      // Hash the serial number (badges are stored with hashed serials)
       setStatus('Looking up badge...');
       const hashedSerial = await hashSerialNumber(serialNumber);
-
-      // Check if the badge exists and is claimed (try hashed first, then raw for legacy)
-      let response = await fetch(`/api/profile/${hashedSerial}`);
-      let data = await response.json();
-
-      // If not found with hash, try raw serial for legacy badges
-      if (!data.success) {
-        response = await fetch(`/api/profile/${serialNumber}`);
-        data = await response.json();
-      }
+      const response = await fetch(`/api/profile/${hashedSerial}`);
+      const data = await response.json();
 
       if (data.success && data.profile?.username) {
-        // Badge is claimed - redirect to owner's profile
         setStatus(`Redirecting to ${data.profile.username}'s profile...`);
         router.replace(`/profile/${data.profile.username}`);
         return;
       }
 
-      // Badge not claimed - redirect to claim page (with raw serial, setup page will hash it)
       setStatus('Badge available! Redirecting to claim...');
       router.replace(`/claim#${serialNumber}`);
     } catch (err) {
       console.error('[Badge] Error checking badge:', err);
-      // On error, try to claim anyway
       router.replace(`/claim#${serialNumber}`);
     }
   };
