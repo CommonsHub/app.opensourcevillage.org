@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSerialNumberFromURL } from '@/lib/nostr-client';
+import { getSerialNumberFromURL, hashSerialNumber } from '@/lib/nostr-client';
 
 export default function BadgePage() {
   const router = useRouter();
@@ -32,10 +32,19 @@ export default function BadgePage() {
 
   const checkBadgeAndRedirect = async (serialNumber: string) => {
     try {
-      // First, check if the badge exists and is claimed
+      // Hash the serial number (badges are stored with hashed serials)
       setStatus('Looking up badge...');
-      const response = await fetch(`/api/profile/${serialNumber}`);
-      const data = await response.json();
+      const hashedSerial = await hashSerialNumber(serialNumber);
+
+      // Check if the badge exists and is claimed (try hashed first, then raw for legacy)
+      let response = await fetch(`/api/profile/${hashedSerial}`);
+      let data = await response.json();
+
+      // If not found with hash, try raw serial for legacy badges
+      if (!data.success) {
+        response = await fetch(`/api/profile/${serialNumber}`);
+        data = await response.json();
+      }
 
       if (data.success && data.profile?.username) {
         // Badge is claimed - redirect to owner's profile
@@ -44,7 +53,7 @@ export default function BadgePage() {
         return;
       }
 
-      // Badge not claimed - redirect to claim page
+      // Badge not claimed - redirect to claim page (with raw serial, setup page will hash it)
       setStatus('Badge available! Redirecting to claim...');
       router.replace(`/claim#${serialNumber}`);
     } catch (err) {
