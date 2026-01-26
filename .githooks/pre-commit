@@ -1,0 +1,29 @@
+#!/bin/bash
+#
+# Pre-commit hook to update setup-services.sh metadata
+#
+
+SCRIPT_PATH="scripts/setup-services.sh"
+
+# Only proceed if the setup script exists and is being committed
+if [ -f "$SCRIPT_PATH" ]; then
+    # Get current values
+    GIT_SHA=$(git rev-parse --short HEAD)
+    BUILD_DATE=$(date -u +"%Y-%m-%d %H:%M UTC")
+
+    # Update the script with new values
+    if [[ "$OSTYPE" == "darwin"* ]]; then
+        # macOS sed requires different syntax
+        sed -i '' "s/^SCRIPT_GIT_SHA=.*/SCRIPT_GIT_SHA=\"${GIT_SHA}\"/" "$SCRIPT_PATH"
+        sed -i '' "s/^SCRIPT_BUILD_DATE=.*/SCRIPT_BUILD_DATE=\"${BUILD_DATE}\"/" "$SCRIPT_PATH"
+    else
+        # Linux sed
+        sed -i "s/^SCRIPT_GIT_SHA=.*/SCRIPT_GIT_SHA=\"${GIT_SHA}\"/" "$SCRIPT_PATH"
+        sed -i "s/^SCRIPT_BUILD_DATE=.*/SCRIPT_BUILD_DATE=\"${BUILD_DATE}\"/" "$SCRIPT_PATH"
+    fi
+
+    # Add the updated file to the commit
+    git add "$SCRIPT_PATH"
+
+    echo "Updated setup-services.sh: SHA=${GIT_SHA}, Date=${BUILD_DATE}"
+fi
