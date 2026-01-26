@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="e9893f0"
-SCRIPT_BUILD_DATE="2026-01-26 16:38 UTC"
+SCRIPT_GIT_SHA="2de45aa"
+SCRIPT_BUILD_DATE="2026-01-26 16:53 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -486,7 +486,14 @@ echo -e "${GREEN}✓ Services enabled to start on boot${NC}"
 
 echo ""
 echo -e "${BLUE}Step 9: Configuring Nginx...${NC}"
-cat > /etc/nginx/sites-available/${DOMAIN} << EOF
+
+# Check if nginx config already exists with SSL
+NGINX_CONFIG="/etc/nginx/sites-available/${DOMAIN}"
+if [ -f "$NGINX_CONFIG" ] && grep -q "ssl_certificate" "$NGINX_CONFIG"; then
+    echo -e "${GREEN}✓ Nginx config with SSL already exists, preserving it${NC}"
+else
+    # Create new HTTP config (certbot will add SSL)
+    cat > "$NGINX_CONFIG" << EOF
 server {
     listen 80;
     server_name ${DOMAIN};
@@ -505,9 +512,11 @@ server {
     }
 }
 EOF
+    echo -e "${GREEN}✓ Created nginx config${NC}"
+fi
 
 # Enable the site
-ln -sf /etc/nginx/sites-available/${DOMAIN} /etc/nginx/sites-enabled/
+ln -sf "$NGINX_CONFIG" /etc/nginx/sites-enabled/
 # Remove default site if exists
 rm -f /etc/nginx/sites-enabled/default
 
@@ -525,10 +534,22 @@ echo -e "${GREEN}✓ Services started${NC}"
 
 echo ""
 echo -e "${BLUE}Step 11: Obtaining SSL certificate with Certbot...${NC}"
-certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --register-unsafely-without-email || {
-    echo -e "${YELLOW}⚠ Certbot failed. You may need to run it manually:${NC}"
-    echo -e "${YELLOW}  sudo certbot --nginx -d ${DOMAIN}${NC}"
-}
+# Check if SSL cert already exists
+if [ -f "/etc/letsencrypt/live/${DOMAIN}/fullchain.pem" ]; then
+    echo -e "${GREEN}✓ SSL certificate already exists${NC}"
+    # Make sure nginx config has SSL (in case it was reset)
+    if ! grep -q "ssl_certificate" "$NGINX_CONFIG"; then
+        echo -e "${YELLOW}Re-running certbot to restore SSL config...${NC}"
+        certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --register-unsafely-without-email || {
+            echo -e "${YELLOW}⚠ Certbot failed. Run manually: sudo certbot --nginx -d ${DOMAIN}${NC}"
+        }
+    fi
+else
+    certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --register-unsafely-without-email || {
+        echo -e "${YELLOW}⚠ Certbot failed. You may need to run it manually:${NC}"
+        echo -e "${YELLOW}  sudo certbot --nginx -d ${DOMAIN}${NC}"
+    }
+fi
 echo -e "${GREEN}✓ SSL certificate configured${NC}"
 
 echo ""
