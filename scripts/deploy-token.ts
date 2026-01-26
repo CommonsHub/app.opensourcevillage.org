@@ -155,11 +155,19 @@ async function main() {
     console.log(`Symbol:  ${result.symbol}`);
     console.log(`Chain:   ${result.chain}`);
     console.log('');
-    console.log('The token address has been saved to settings.json');
+    console.log('The token address has been saved to .env.local');
     console.log('');
-    console.log('Next steps:');
-    console.log('  1. Restart the payment processor to enable payments:');
-    console.log('     sudo systemctl restart osv-payment-processor');
+
+    // Restart payment processor if running as root or with sudo available
+    try {
+      const { execSync } = await import('child_process');
+      const serviceName = process.env.SERVICE_NAME || 'osv';
+      console.log('Restarting payment processor...');
+      execSync(`sudo systemctl restart ${serviceName}-payment-processor 2>/dev/null || true`, { stdio: 'inherit' });
+      console.log('Payment processor restarted.');
+    } catch {
+      console.log('Note: Run "sudo systemctl restart osv-payment-processor" to enable payments.');
+    }
     console.log('');
   } catch (error) {
     console.error('');

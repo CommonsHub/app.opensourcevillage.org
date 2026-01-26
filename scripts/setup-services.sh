@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="dd588bd"
-SCRIPT_BUILD_DATE="2026-01-26 15:57 UTC"
+SCRIPT_GIT_SHA="e9893f0"
+SCRIPT_BUILD_DATE="2026-01-26 16:38 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -698,13 +698,10 @@ SETTINGSEOF
         echo ""
 
         cd "$APP_DIR"
-        if sudo -u $APP_USER "$BUN_PATH" run deploy-token "$TOKEN_NAME" "$TOKEN_SYMBOL"; then
+        export SERVICE_NAME="${SERVICE_PREFIX}"
+        if sudo -u $APP_USER -E "$BUN_PATH" run deploy-token "$TOKEN_NAME" "$TOKEN_SYMBOL"; then
             echo ""
             echo -e "${GREEN}✓ Token deployed successfully${NC}"
-            echo ""
-            echo -e "${YELLOW}Restarting payment processor...${NC}"
-            systemctl restart ${SERVICE_PREFIX}-payment-processor
-            echo -e "${GREEN}✓ Payment processor restarted${NC}"
         else
             echo ""
             echo -e "${RED}Token deployment failed.${NC}"
@@ -721,8 +718,6 @@ SETTINGSEOF
         echo -e "  1. Fund the wallet address shown above"
         echo -e "  2. Deploy a token:"
         echo -e "     ${BLUE}cd $APP_DIR && bun run deploy-token${NC}"
-        echo -e "  3. Restart the payment processor:"
-        echo -e "     ${BLUE}sudo systemctl restart ${SERVICE_PREFIX}-payment-processor${NC}"
         ;;
 esac
 
