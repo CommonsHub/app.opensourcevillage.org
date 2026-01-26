@@ -11,10 +11,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { nip19, getPublicKey, finalizeEvent, type EventTemplate } from 'nostr-tools';
 import WebSocket from 'ws';
 import https from 'https';
-import settings from '../../../../settings.json';
 import { getProfileByNpub } from '@/lib/storage';
 
-const RELAY_URL = settings.nostrRelays?.[0] || 'ws://localhost:3334';
+const DEFAULT_RELAY = 'wss://relay.damus.io';
+
+function getRelayUrl(): string {
+  const envRelays = process.env.NOSTR_RELAYS;
+  if (envRelays) {
+    const relays = envRelays.split(',').map(r => r.trim()).filter(Boolean);
+    if (relays.length > 0) return relays[0];
+  }
+  return DEFAULT_RELAY;
+}
+
+const RELAY_URL = getRelayUrl();
 
 // For local testing without a real relay, we can generate a simple invite code
 // based on the user's pubkey. In production, this should use the relay.

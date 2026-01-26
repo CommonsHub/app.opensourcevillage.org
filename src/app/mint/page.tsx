@@ -8,7 +8,25 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import settings from '../../../settings.json';
+
+const DEFAULT_RELAYS = ['wss://relay.damus.io', 'wss://nos.lol'];
+
+function getRelayUrls(): string[] {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('osv_relay_urls');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch {
+        // Fall through
+      }
+    }
+  }
+  return DEFAULT_RELAYS;
+}
 
 interface MintResult {
   success: boolean;
@@ -60,7 +78,7 @@ export default function MintPage() {
 
   // Connect to NOSTR relay for debug events
   useEffect(() => {
-    const relayUrl = settings.nostrRelays?.[0];
+    const relayUrl = getRelayUrls()[0];
     if (!relayUrl) return;
 
     let ws: WebSocket | null = null;

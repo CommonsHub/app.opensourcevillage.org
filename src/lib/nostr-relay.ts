@@ -6,7 +6,6 @@
  */
 
 import { type NostrEvent } from './nostr-events';
-import settings from '../../settings.json';
 
 interface RelayConnection {
   url: string;
@@ -42,7 +41,7 @@ const relayConnections: Map<string, RelayConnection> = new Map();
 const DEFAULT_RELAYS = ['wss://relay.damus.io', 'wss://nos.lol'];
 
 /**
- * Get relay URLs from environment variable or defaults
+ * Get relay URLs from NOSTR_RELAYS env variable (comma-separated)
  */
 export function getRelayUrls(): string[] {
   // In the browser, try localStorage first
@@ -52,7 +51,6 @@ export function getRelayUrls(): string[] {
       try {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          console.log('[NOSTR Relay] Using stored relay URLs:', parsed);
           return parsed;
         }
       } catch {
@@ -61,7 +59,7 @@ export function getRelayUrls(): string[] {
     }
   }
 
-  // Server-side: check environment variable first
+  // Server-side: check environment variable
   if (typeof process !== 'undefined' && process.env?.NOSTR_RELAYS) {
     const envRelays = process.env.NOSTR_RELAYS
       .split(',')
@@ -69,20 +67,11 @@ export function getRelayUrls(): string[] {
       .filter(r => r.length > 0);
 
     if (envRelays.length > 0) {
-      console.log('[NOSTR Relay] Using relay URLs from NOSTR_RELAYS env:', envRelays);
       return envRelays;
     }
   }
 
-  // Fall back to settings.json for backwards compatibility
-  const settingsRelays = (settings as { nostrRelays?: string[] }).nostrRelays;
-  if (settingsRelays && settingsRelays.length > 0) {
-    console.log('[NOSTR Relay] Using relay URLs from settings.json:', settingsRelays);
-    return settingsRelays;
-  }
-
   // Use defaults as last resort
-  console.log('[NOSTR Relay] Using default relay URLs:', DEFAULT_RELAYS);
   return DEFAULT_RELAYS;
 }
 

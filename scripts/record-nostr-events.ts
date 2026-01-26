@@ -511,10 +511,13 @@ async function main(): Promise<void> {
   log(`[NostrRecorder] Data directory: ${DATA_DIR}`);
   log('[NostrRecorder] ------------------------------------');
 
-  // Get relay URLs from settings
-  const relayUrls = settings.nostrRelays || [];
+  // Get relay URLs from environment variable
+  const envRelays = process.env.NOSTR_RELAYS;
+  const relayUrls = envRelays
+    ? envRelays.split(',').map(r => r.trim()).filter(Boolean)
+    : [];
   if (relayUrls.length === 0) {
-    logError('[NostrRecorder] ERROR: No relay URLs configured in settings.json');
+    logError('[NostrRecorder] ERROR: No relay URLs configured. Set NOSTR_RELAYS env variable (comma-separated)');
     process.exit(1);
   }
 

@@ -6,9 +6,25 @@
  */
 
 import { finalizeEvent, getPublicKey, type EventTemplate } from 'nostr-tools';
-import settings from '../../settings.json';
 
-const RELAY_URLS = settings.nostrRelays || ['wss://localhost'];
+const DEFAULT_RELAYS = ['wss://relay.damus.io', 'wss://nos.lol'];
+
+function getRelayUrls(): string[] {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('osv_relay_urls');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch {
+        // Fall through to defaults
+      }
+    }
+  }
+  return DEFAULT_RELAYS;
+}
 const CONNECTION_TIMEOUT = 10_000;
 const RESPONSE_TIMEOUT = 15_000;
 
@@ -33,7 +49,7 @@ export async function redeemInviteCode(
   inviteCode: string,
   secretKey: Uint8Array
 ): Promise<RedeemResult> {
-  const relayUrl = RELAY_URLS[0];
+  const relayUrl = getRelayUrls()[0];
 
   return new Promise((resolve) => {
     let ws: WebSocket | null = null;
@@ -136,7 +152,7 @@ export async function redeemInviteCode(
  * @param secretKey - The user's secret key for authentication
  */
 export async function requestInviteCode(secretKey: Uint8Array): Promise<InviteCodeResult> {
-  const relayUrl = RELAY_URLS[0];
+  const relayUrl = getRelayUrls()[0];
   const pubkeyHex = getPublicKey(secretKey);
 
   return new Promise((resolve) => {

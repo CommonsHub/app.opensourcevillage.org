@@ -6,7 +6,6 @@
 
 import { finalizeEvent, type EventTemplate } from 'nostr-tools';
 import { type NostrEvent } from './nostr-events';
-import settings from '../../settings.json';
 
 // Dynamic import of ws to avoid webpack bundling issues with native bindings
 async function getWebSocket(): Promise<typeof import('ws').default> {
@@ -399,8 +398,12 @@ async function publishToSingleRelay(
 }
 
 /**
- * Get relay URLs from settings.json
+ * Get relay URLs from NOSTR_RELAYS env variable (comma-separated)
  */
 function getRelayUrls(): string[] {
-  return settings.nostrRelays || [];
+  const envRelays = process.env.NOSTR_RELAYS;
+  if (envRelays) {
+    return envRelays.split(',').map(r => r.trim()).filter(Boolean);
+  }
+  return [];
 }

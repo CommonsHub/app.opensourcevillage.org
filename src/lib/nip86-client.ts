@@ -257,8 +257,10 @@ export async function addUserToAllRelays(npub: string): Promise<{
   successful: string[];
   failed: Array<{ url: string; error: string }>;
 }> {
-  const settings = await import('../../settings.json');
-  const relayUrls = settings.nostrRelays || [];
+  const envRelays = process.env.NOSTR_RELAYS;
+  const relayUrls = envRelays
+    ? envRelays.split(',').map(r => r.trim()).filter(Boolean)
+    : [];
 
   console.log(`[NIP-86] Adding user to ${relayUrls.length} relays`);
 

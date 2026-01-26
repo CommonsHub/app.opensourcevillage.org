@@ -9,9 +9,25 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { nip19 } from 'nostr-tools';
-import settings from '../../settings.json';
 
-const RELAY_URLS = settings.nostrRelays || ['wss://localhost'];
+const DEFAULT_RELAYS = ['wss://relay.damus.io', 'wss://nos.lol'];
+
+function getRelayUrls(): string[] {
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('osv_relay_urls');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch {
+        // Fall through
+      }
+    }
+  }
+  return DEFAULT_RELAYS;
+}
 
 export interface NostrEvent {
   id: string;
@@ -99,7 +115,7 @@ export function useNostrEvents(options: UseNostrEventsOptions): UseNostrEventsRe
       return;
     }
 
-    const relayUrl = RELAY_URLS[0];
+    const relayUrl = getRelayUrls()[0];
     if (!relayUrl) {
       setError('No relay URL configured');
       setIsLoading(false);

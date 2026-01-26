@@ -148,34 +148,18 @@ export async function register() {
     // ─────────────────────────────────────────────────────────────────
     // CRITICAL CHECK 2: Nostr Relay Connectivity
     // ─────────────────────────────────────────────────────────────────
-    let relays: string[] = [];
-
-    try {
-      const fs = await import('fs');
-      const path = await import('path');
-      const settingsPath = path.join(process.cwd(), 'settings.json');
-      const settingsContent = fs.readFileSync(settingsPath, 'utf-8');
-      const settings = JSON.parse(settingsContent);
-      relays = settings.nostrRelays || [];
-    } catch (err) {
-      exitWithError(
-        'Nostr Relays',
-        `Failed to load settings.json: ${err instanceof Error ? err.message : String(err)}`,
-        [
-          'Ensure settings.json exists in the project root',
-          'Check that settings.json is valid JSON',
-          'Add a "nostrRelays" array with relay URLs',
-        ]
-      );
-    }
+    const envRelays = process.env.NOSTR_RELAYS;
+    const relays = envRelays
+      ? envRelays.split(',').map(r => r.trim()).filter(Boolean)
+      : [];
 
     if (relays.length === 0) {
       exitWithError(
         'Nostr Relays',
-        'No Nostr relays configured in settings.json',
+        'No Nostr relays configured',
         [
-          'Add relay URLs to settings.json under "nostrRelays" array',
-          'Example: "nostrRelays": ["wss://relay.damus.io", "wss://nos.lol"]',
+          'Set NOSTR_RELAYS environment variable',
+          'Example: NOSTR_RELAYS=wss://relay.damus.io,wss://nos.lol',
         ]
       );
     }
@@ -205,11 +189,11 @@ export async function register() {
         ? [
             'Start a local Nostr relay (e.g., strfry, nostream)',
             'Run: docker run -p 80:80 -e REAL_IP_HEADER="" scsibug/nostr-rs-relay',
-            'Or update settings.json to use public relays: ["wss://relay.damus.io", "wss://nos.lol"]',
+            'Or set NOSTR_RELAYS to public relays: NOSTR_RELAYS=wss://relay.damus.io,wss://nos.lol',
           ]
         : [
             'Check if the configured relays are online',
-            'Update settings.json with different relays: wss://relay.damus.io, wss://nos.lol, wss://relay.snort.social',
+            'Update NOSTR_RELAYS with different relays: wss://relay.damus.io,wss://nos.lol,wss://relay.snort.social',
             'Check your internet connection',
             'Some relays may require authentication or be rate-limited',
           ];
