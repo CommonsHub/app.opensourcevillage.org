@@ -13,6 +13,7 @@
     "payment-processor": "tsx scripts/payment-processor.ts",
     "record-nostr-events": "tsx scripts/record-nostr-events.ts",
     "deploy-token": "bun scripts/deploy-token.ts",
+    "mint": "bun scripts/mint.ts",
     "refresh-calendars": "tsx scripts/refresh-calendars.ts",
     "sync-calendars": "tsx scripts/sync-calendars.ts",
     "reset": "tsx scripts/reset-data.ts"
