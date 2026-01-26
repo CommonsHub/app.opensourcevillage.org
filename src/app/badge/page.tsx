@@ -34,10 +34,26 @@ export default function BadgePage() {
     try {
       setStatus('Looking up badge...');
       const hashedSerial = await hashSerialNumber(serialNumber);
-      const response = await fetch(`/api/profile/${hashedSerial}`);
+
+      // Check localStorage first for cached username
+      const cacheKey = `badge_${hashedSerial}`;
+      const cachedUsername = localStorage.getItem(cacheKey);
+      if (cachedUsername) {
+        setStatus(`Redirecting to ${cachedUsername}'s profile...`);
+        router.replace(`/profile/${cachedUsername}`);
+        return;
+      }
+
+      // Fetch with no-cache to always get fresh data
+      const response = await fetch(`/api/profile/${hashedSerial}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+      });
       const data = await response.json();
 
       if (data.success && data.profile?.username) {
+        // Save username to localStorage for future lookups
+        localStorage.setItem(cacheKey, data.profile.username);
         setStatus(`Redirecting to ${data.profile.username}'s profile...`);
         router.replace(`/profile/${data.profile.username}`);
         return;
