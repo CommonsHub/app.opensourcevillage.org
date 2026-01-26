@@ -9,6 +9,12 @@ import { type NostrEvent } from './nostr-events';
 
 // Dynamic import of ws to avoid webpack bundling issues with native bindings
 async function getWebSocket(): Promise<typeof import('ws').default> {
+  // @ts-expect-error - Bun global
+  if (typeof Bun !== 'undefined') {
+    // Running in Bun - use ws directly
+    const ws = require('ws');
+    return ws.default || ws;
+  }
   const wsModule = await import('ws');
   return wsModule.default;
 }
@@ -203,8 +209,8 @@ async function publishToSingleRelay(
   console.log(`[NOSTR Publisher] Connecting to ${url}...`);
 
   const WebSocket = await getWebSocket();
-  // eslint-disable-next-line @typescript-eslint/no-require-imports
-  const https = eval('require')('https');
+  // @ts-expect-error - Bun global check
+  const https = typeof Bun !== 'undefined' ? require('https') : eval('require')('https');
   const timeout = options.timeout || 15000;
 
   // Create agent that forces HTTP/1.1 (WebSocket doesn't work with HTTP/2)
