@@ -14,7 +14,8 @@
     "record-nostr-events": "tsx scripts/record-nostr-events.ts",
     "mint": "tsx scripts/mint.ts",
     "refresh-calendars": "tsx scripts/refresh-calendars.ts",
-    "sync-calendars": "tsx scripts/sync-calendars.ts"
+    "sync-calendars": "tsx scripts/sync-calendars.ts",
+    "reset": "tsx scripts/reset-data.ts"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
