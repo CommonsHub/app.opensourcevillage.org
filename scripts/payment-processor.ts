@@ -90,8 +90,25 @@ function getRelayAuthUrl(relayUrl: string): string {
   }
 }
 
-// Load settings
-import settings from '../settings.json';
+// Load settings with type that allows optional token
+interface TokenConfig {
+  address: string;
+  name: string;
+  symbol: string;
+  chain: string;
+  deployedAt?: string;
+}
+
+interface Settings {
+  eventName: string;
+  timezone: string;
+  nostrRelays?: string[];
+  token?: TokenConfig;
+  [key: string]: unknown;
+}
+
+import settingsJson from '../settings.json';
+const settings = settingsJson as Settings;
 
 // ============================================================================
 // Configuration
@@ -482,6 +499,15 @@ async function main(): Promise<void> {
   if (!nostrNsec) {
     console.error('[PaymentProcessor] ERROR: NOSTR_NSEC environment variable is required');
     process.exit(1);
+  }
+
+  // Check if token is configured in settings.json
+  if (!settings.token) {
+    console.log('[PaymentProcessor] No token configured in settings.json');
+    console.log('[PaymentProcessor] Payment processor will not start.');
+    console.log('[PaymentProcessor] To enable payments, add token configuration to settings.json and restart the service.');
+    console.log('[PaymentProcessor] Exiting gracefully...');
+    process.exit(0);
   }
 
   // Decode NOSTR secret key

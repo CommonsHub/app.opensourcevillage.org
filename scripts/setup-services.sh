@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="f6c86d2"
-SCRIPT_BUILD_DATE="2026-01-26 15:16 UTC"
+SCRIPT_GIT_SHA="969085b"
+SCRIPT_BUILD_DATE="2026-01-26 15:22 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -620,6 +620,21 @@ if [ -f /tmp/osv_npub ]; then
 
     # Clean up temp files
     rm -f /tmp/osv_npub /tmp/osv_address /tmp/osv_backup_address /tmp/osv_webhook_secret
+
+    echo -e "${CYAN}========================================${NC}"
+    echo -e "${CYAN}  Deploy Token${NC}"
+    echo -e "${CYAN}========================================${NC}"
+    echo ""
+    echo -e "After funding the addresses above, deploy your token:"
+    echo ""
+    echo -e "1. SSH into the server and run:"
+    echo -e "   ${BLUE}cd $APP_DIR && bun run mint${NC}"
+    echo ""
+    echo -e "2. This will update settings.json with the token address"
+    echo ""
+    echo -e "3. Restart the payment processor to enable payments:"
+    echo -e "   ${BLUE}sudo systemctl restart ${SERVICE_PREFIX}-payment-processor${NC}"
+    echo ""
 fi
 
 echo -e "${GREEN}Useful commands:${NC}"
