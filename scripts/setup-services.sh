@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="419c2e8"
-SCRIPT_BUILD_DATE="2026-01-26 09:46 UTC"
+SCRIPT_GIT_SHA="49fc3c5"
+SCRIPT_BUILD_DATE="2026-01-26 09:55 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -101,7 +101,9 @@ find_bun() {
 
 BUN_PATH=$(find_bun)
 if [ -z "$BUN_PATH" ]; then
-    echo -e "${YELLOW}Bun not found. Installing bun...${NC}"
+    echo -e "${YELLOW}Bun not found. Installing dependencies and bun...${NC}"
+    apt-get update -qq
+    apt-get install -y -qq unzip > /dev/null
     curl -fsSL https://bun.sh/install | bash
 
     # Source the updated PATH
