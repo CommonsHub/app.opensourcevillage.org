@@ -47,21 +47,10 @@ async function isBlockchainReachable(): Promise<boolean> {
 }
 
 /**
- * Get token address from environment or settings
+ * Get token address from environment
  */
-async function getTokenAddress(): Promise<string | null> {
-  // First check env var
-  if (process.env.TOKEN_ADDRESS) {
-    return process.env.TOKEN_ADDRESS;
-  }
-
-  // Then check settings.json
-  try {
-    const settings = await import('../settings.json');
-    return settings.token?.address || null;
-  } catch {
-    return null;
-  }
+function getTokenAddress(): string | null {
+  return process.env.TOKEN_ADDRESS || null;
 }
 
 // Check prerequisites
@@ -84,7 +73,7 @@ testSuite('Payment Processor Token Operations', () => {
   beforeAll(async () => {
     // Check blockchain connectivity
     BLOCKCHAIN_REACHABLE = await isBlockchainReachable();
-    TOKEN_ADDRESS = await getTokenAddress();
+    TOKEN_ADDRESS = getTokenAddress();
 
     SHOULD_RUN_TESTS = HAS_PRIVATE_KEY && BLOCKCHAIN_REACHABLE && !!TOKEN_ADDRESS;
 

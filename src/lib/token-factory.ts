@@ -278,39 +278,20 @@ export async function updateEnvLocal(key: string, value: string): Promise<void> 
 }
 
 /**
- * Get token info from environment variable or settings (fallback)
+ * Get token info from environment variables (TOKEN_ADDRESS, TOKEN_NAME, TOKEN_SYMBOL, CHAIN)
  */
 export async function getTokenInfo(): Promise<TokenInfo | null> {
-  // First check environment variable
   const envTokenAddress = process.env.TOKEN_ADDRESS;
 
-  if (envTokenAddress && envTokenAddress.startsWith('0x') && envTokenAddress.length === 42) {
-    // Load name/symbol from settings if available
-    const settings = await loadSettings();
-    const token = settings.token as { name?: string; symbol?: string } | undefined;
-
-    return {
-      address: envTokenAddress,
-      name: token?.name || 'Community Token',
-      symbol: token?.symbol || 'OSV',
-      chain: getChain(),
-      deployed: true,
-    };
-  }
-
-  // Fall back to settings.json for backwards compatibility
-  const settings = await loadSettings();
-  const token = settings.token as { address?: string; name?: string; symbol?: string; chain?: string } | undefined;
-
-  if (!token?.address) {
+  if (!envTokenAddress || !envTokenAddress.startsWith('0x') || envTokenAddress.length !== 42) {
     return null;
   }
 
   return {
-    address: token.address,
-    name: token.name || 'Community Token',
-    symbol: token.symbol || 'COMM',
-    chain: (token.chain as SupportedChain) || getChain(),
+    address: envTokenAddress,
+    name: process.env.TOKEN_NAME || 'Community Token',
+    symbol: process.env.TOKEN_SYMBOL || 'OSV',
+    chain: getChain(),
     deployed: true,
   };
 }
@@ -341,22 +322,15 @@ export async function deployToken(
 
   console.log(`[TokenFactory] Token deployed at: ${tokenAddress}`);
 
-  // Save TOKEN_ADDRESS to .env.local
+  // Save all token info to .env.local
   await updateEnvLocal('TOKEN_ADDRESS', tokenAddress);
+  await updateEnvLocal('TOKEN_NAME', name);
+  await updateEnvLocal('TOKEN_SYMBOL', symbol);
 
   // If chain was overridden, also save CHAIN to .env.local
   if (chainOverride) {
     await updateEnvLocal('CHAIN', chainOverride);
   }
-
-  // Also save token name/symbol to settings.json for reference
-  const settings = await loadSettings();
-  settings.token = {
-    name,
-    symbol,
-    deployedAt: new Date().toISOString(),
-  };
-  await saveSettings(settings);
 
   return {
     address: tokenAddress,

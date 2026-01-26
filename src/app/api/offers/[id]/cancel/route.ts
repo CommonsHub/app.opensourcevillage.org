@@ -20,24 +20,19 @@ import path from 'path';
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 
-// Get token info from settings
-async function getTokenInfo(): Promise<{ address: string; symbol: string; chainId: number } | null> {
-  try {
-    const settingsPath = path.join(process.cwd(), 'settings.json');
-    const settings = JSON.parse(await fs.readFile(settingsPath, 'utf-8'));
-    if (settings.token?.address) {
-      const chainName = settings.token.chain || 'gnosis_chiado';
-      const chainId = CHAIN_IDS[chainName] || CHAIN_IDS.gnosis_chiado;
-      return {
-        address: settings.token.address,
-        symbol: settings.token.symbol || 'OSV',
-        chainId,
-      };
-    }
-    return null;
-  } catch {
-    return null;
-  }
+// Get token info from environment variables
+function getTokenInfo(): { address: string; symbol: string; chainId: number } | null {
+  const address = process.env.TOKEN_ADDRESS;
+  if (!address) return null;
+
+  const chainName = process.env.CHAIN || 'gnosis';
+  const chainId = CHAIN_IDS[chainName] || CHAIN_IDS.gnosis;
+
+  return {
+    address,
+    symbol: process.env.TOKEN_SYMBOL || 'OSV',
+    chainId,
+  };
 }
 
 /**
@@ -146,7 +141,7 @@ export async function POST(
 
     // Publish refund NOSTR events (mint tokens)
     const nsec = process.env.NOSTR_NSEC;
-    const tokenInfo = await getTokenInfo();
+    const tokenInfo = getTokenInfo();
 
     if (nsec && tokenInfo) {
       try {

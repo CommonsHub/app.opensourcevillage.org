@@ -20,22 +20,6 @@
       }
     }
   },
-  "token": {
-    "address": "0xA241150B16Aa6d1E83F3309E9d9F7C53BdE2DeA4",
-    "name": "Open Source Village Token",
-    "symbol": "OSV",
-    "chain": "gnosis_chiado",
-    "deployedAt": "2026-01-24T10:46:26.477Z"
-  },
-  "nostrRelays": [
-    "wss://relay.opensourcevillage.org"
-  ],
-  "notificationRelays": [
-    "ws://localhost:3334",
-    "wss://relay.damus.io",
-    "wss://nos.lol",
-    "wss://relay.primal.net"
-  ],
   "suggestedTags": [
     "web3",
     "ai",

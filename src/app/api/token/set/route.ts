@@ -1,11 +1,11 @@
 /**
  * POST /api/token/set - Set an existing token address
  *
- * Saves a token address to settings.json for an already deployed token.
+ * Saves a token address to .env.local for an already deployed token.
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { loadSettings, saveSettings, getChain } from '@/lib/token-factory';
+import { updateEnvLocal, getChain } from '@/lib/token-factory';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,22 +22,21 @@ export async function POST(request: NextRequest) {
 
     const chain = getChain();
 
-    // Save to settings.json
-    const settings = await loadSettings();
-    settings.token = {
-      address: tokenAddress,
-      name: name || 'Community Token',
-      symbol: symbol || 'TOKEN',
-      chain,
-      setAt: new Date().toISOString(),
-    };
-    await saveSettings(settings);
+    // Save to .env.local
+    await updateEnvLocal('TOKEN_ADDRESS', tokenAddress);
+    await updateEnvLocal('TOKEN_NAME', name || 'Community Token');
+    await updateEnvLocal('TOKEN_SYMBOL', symbol || 'TOKEN');
 
     console.log(`[TokenSet] Token address set to ${tokenAddress} on ${chain}`);
 
     return NextResponse.json({
       success: true,
-      token: settings.token,
+      token: {
+        address: tokenAddress,
+        name: name || 'Community Token',
+        symbol: symbol || 'TOKEN',
+        chain,
+      },
     });
   } catch (error) {
     console.error('Error setting token:', error);

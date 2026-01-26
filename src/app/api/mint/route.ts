@@ -16,12 +16,6 @@ import {
 } from '@/lib/nostr-events';
 import { publishNostrEvent } from '@/lib/nostr-publisher';
 import { getWalletAddressForNpub } from '@/lib/token-factory';
-import settingsJson from '../../../../settings.json';
-
-// Cast settings to include optional token config
-const settings = settingsJson as typeof settingsJson & {
-  token?: { address?: string; chain?: string; symbol?: string };
-};
 
 // Block explorer URLs for each chain
 const CHAIN_EXPLORERS: Record<number, string> = {
@@ -123,8 +117,7 @@ export async function POST(request: NextRequest) {
 
     // Check required environment variables
     const nostrNsec = process.env.NOSTR_NSEC;
-    // Use TOKEN_ADDRESS env var or fall back to settings.json
-    const tokenAddress = process.env.TOKEN_ADDRESS || settings.token?.address;
+    const tokenAddress = process.env.TOKEN_ADDRESS;
 
     if (!nostrNsec) {
       return NextResponse.json(
@@ -135,13 +128,13 @@ export async function POST(request: NextRequest) {
 
     if (!tokenAddress) {
       return NextResponse.json(
-        { success: false, error: 'Token address not configured (set TOKEN_ADDRESS env var or token.address in settings.json)' },
+        { success: false, error: 'TOKEN_ADDRESS environment variable is not set' },
         { status: 500 }
       );
     }
 
-    // Get chain configuration - use settings.json or env var
-    const chainName = process.env.CHAIN || settings.token?.chain || 'gnosis';
+    // Get chain configuration from env var
+    const chainName = process.env.CHAIN || 'gnosis';
     const chainId = CHAIN_NAME_TO_ID[chainName];
 
     if (!chainId) {
@@ -151,7 +144,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const tokenSymbol = process.env.TOKEN_SYMBOL || settings.token?.symbol || 'CHT';
+    const tokenSymbol = process.env.TOKEN_SYMBOL || 'OSV';
 
     // Decode NOSTR secret key
     let secretKey: Uint8Array;

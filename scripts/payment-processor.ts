@@ -99,16 +99,17 @@ interface TokenConfig {
   deployedAt?: string;
 }
 
-interface Settings {
-  eventName: string;
-  timezone: string;
-  nostrRelays?: string[];
-  token?: TokenConfig;
-  [key: string]: unknown;
+// Token config from environment variables
+function getTokenConfig(): TokenConfig | null {
+  const address = process.env.TOKEN_ADDRESS;
+  if (!address) return null;
+  return {
+    address,
+    name: process.env.TOKEN_NAME || 'Community Token',
+    symbol: process.env.TOKEN_SYMBOL || 'OSV',
+    chain: process.env.CHAIN || 'gnosis',
+  };
 }
-
-import settingsJson from '../settings.json';
-const settings = settingsJson as Settings;
 
 // ============================================================================
 // Configuration
@@ -501,11 +502,12 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  // Check if token is configured in settings.json
-  if (!settings.token) {
-    console.log('[PaymentProcessor] No token configured in settings.json');
+  // Check if token is configured via environment variables
+  const tokenConfig = getTokenConfig();
+  if (!tokenConfig) {
+    console.log('[PaymentProcessor] No token configured (TOKEN_ADDRESS env var not set)');
     console.log('[PaymentProcessor] Payment processor will not start.');
-    console.log('[PaymentProcessor] To enable payments, add token configuration to settings.json and restart the service.');
+    console.log('[PaymentProcessor] To enable payments, set TOKEN_ADDRESS in .env.local and restart the service.');
     console.log('[PaymentProcessor] Exiting gracefully...');
     process.exit(0);
   }
@@ -526,19 +528,20 @@ async function main(): Promise<void> {
   // Display startup information
   console.log('[PaymentProcessor] ------------------------------------');
   console.log(`[PaymentProcessor] npub: ${npub}`);
-  if (settings.token) {
-    console.log(`[PaymentProcessor] Chain: ${settings.token.chain}`);
-    console.log(`[PaymentProcessor] Token: ${settings.token.symbol} (${settings.token.address})`);
-  }
+  console.log(`[PaymentProcessor] Chain: ${tokenConfig.chain}`);
+  console.log(`[PaymentProcessor] Token: ${tokenConfig.symbol} (${tokenConfig.address})`);
   console.log('[PaymentProcessor] ------------------------------------');
 
   // Load processed events
   loadProcessedEvents();
 
-  // Get relay URLs from settings
-  const relayUrls = settings.nostrRelays || [];
+  // Get relay URLs from environment variable
+  const envRelays = process.env.NOSTR_RELAYS;
+  const relayUrls = envRelays
+    ? envRelays.split(',').map(r => r.trim()).filter(Boolean)
+    : [];
   if (relayUrls.length === 0) {
-    console.error('[PaymentProcessor] ERROR: No relay URLs configured in settings.json');
+    console.error('[PaymentProcessor] ERROR: No relay URLs configured. Set NOSTR_RELAYS env variable (comma-separated)');
     process.exit(1);
   }
 
