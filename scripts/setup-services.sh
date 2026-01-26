@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="969085b"
-SCRIPT_BUILD_DATE="2026-01-26 15:22 UTC"
+SCRIPT_GIT_SHA="4fddc12"
+SCRIPT_BUILD_DATE="2026-01-26 15:31 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -621,21 +621,112 @@ if [ -f /tmp/osv_npub ]; then
     # Clean up temp files
     rm -f /tmp/osv_npub /tmp/osv_address /tmp/osv_backup_address /tmp/osv_webhook_secret
 
-    echo -e "${CYAN}========================================${NC}"
-    echo -e "${CYAN}  Deploy Token${NC}"
-    echo -e "${CYAN}========================================${NC}"
-    echo ""
-    echo -e "After funding the addresses above, deploy your token:"
-    echo ""
-    echo -e "1. SSH into the server and run:"
-    echo -e "   ${BLUE}cd $APP_DIR && bun run mint${NC}"
-    echo ""
-    echo -e "2. This will update settings.json with the token address"
-    echo ""
-    echo -e "3. Restart the payment processor to enable payments:"
-    echo -e "   ${BLUE}sudo systemctl restart ${SERVICE_PREFIX}-payment-processor${NC}"
-    echo ""
 fi
+
+# ============================================================================
+# Token Configuration
+# ============================================================================
+echo -e "${CYAN}========================================${NC}"
+echo -e "${CYAN}  Token Configuration${NC}"
+echo -e "${CYAN}========================================${NC}"
+echo ""
+echo -e "${YELLOW}Do you want to configure a token now?${NC}"
+echo -e "  1) ${BLUE}Enter existing token address${NC}"
+echo -e "  2) ${BLUE}Deploy a new token${NC} (requires funded wallet)"
+echo -e "  3) ${BLUE}Skip for now${NC}"
+echo ""
+echo -e "${YELLOW}Enter choice (1-3, default: 3):${NC}"
+read -r TOKEN_CHOICE </dev/tty || TOKEN_CHOICE=""
+
+case "$TOKEN_CHOICE" in
+    1)
+        # Enter existing token address
+        echo ""
+        echo -e "${YELLOW}Enter token contract address (0x...):${NC}"
+        read -r TOKEN_ADDRESS </dev/tty || TOKEN_ADDRESS=""
+        if [[ "$TOKEN_ADDRESS" =~ ^0x[a-fA-F0-9]{40}$ ]]; then
+            # Load existing settings or create new
+            SETTINGS_FILE="$APP_DIR/settings.json"
+            if [ -f "$SETTINGS_FILE" ]; then
+                # Update existing settings.json with token address
+                cd "$APP_DIR"
+                sudo -u $APP_USER "$BUN_PATH" -e "
+                    const fs = require('fs');
+                    const settings = JSON.parse(fs.readFileSync('settings.json', 'utf8'));
+                    settings.token = settings.token || {};
+                    settings.token.address = '$TOKEN_ADDRESS';
+                    settings.token.chain = '$CHAIN';
+                    fs.writeFileSync('settings.json', JSON.stringify(settings, null, 2));
+                    console.log('Updated settings.json');
+                "
+            else
+                # Create new settings.json
+                cat > "$SETTINGS_FILE" << SETTINGSEOF
+{
+  "eventName": "Open Source Village",
+  "timezone": "Europe/Brussels",
+  "token": {
+    "address": "$TOKEN_ADDRESS",
+    "chain": "$CHAIN"
+  }
+}
+SETTINGSEOF
+                chown $APP_USER:$APP_GROUP "$SETTINGS_FILE"
+            fi
+            echo -e "${GREEN}✓ Token address saved to settings.json${NC}"
+            echo ""
+            echo -e "${YELLOW}Restarting payment processor...${NC}"
+            systemctl restart ${SERVICE_PREFIX}-payment-processor
+            echo -e "${GREEN}✓ Payment processor restarted${NC}"
+        else
+            echo -e "${RED}Invalid token address format. Skipping.${NC}"
+        fi
+        ;;
+    2)
+        # Deploy new token
+        echo ""
+        echo -e "${YELLOW}Enter token name [Open Source Village Token]:${NC}"
+        read -r TOKEN_NAME </dev/tty || TOKEN_NAME=""
+        TOKEN_NAME="${TOKEN_NAME:-Open Source Village Token}"
+
+        echo -e "${YELLOW}Enter token symbol [OSV]:${NC}"
+        read -r TOKEN_SYMBOL </dev/tty || TOKEN_SYMBOL=""
+        TOKEN_SYMBOL="${TOKEN_SYMBOL:-OSV}"
+
+        echo ""
+        echo -e "${YELLOW}Deploying token: ${TOKEN_NAME} (${TOKEN_SYMBOL})...${NC}"
+        echo ""
+
+        cd "$APP_DIR"
+        if sudo -u $APP_USER "$BUN_PATH" run deploy-token "$TOKEN_NAME" "$TOKEN_SYMBOL"; then
+            echo ""
+            echo -e "${GREEN}✓ Token deployed successfully${NC}"
+            echo ""
+            echo -e "${YELLOW}Restarting payment processor...${NC}"
+            systemctl restart ${SERVICE_PREFIX}-payment-processor
+            echo -e "${GREEN}✓ Payment processor restarted${NC}"
+        else
+            echo ""
+            echo -e "${RED}Token deployment failed.${NC}"
+            echo -e "${YELLOW}Make sure the wallet is funded with native tokens for gas.${NC}"
+            echo -e "${YELLOW}You can deploy later with:${NC}"
+            echo -e "   ${BLUE}cd $APP_DIR && bun run deploy-token${NC}"
+        fi
+        ;;
+    3|"")
+        echo ""
+        echo -e "${YELLOW}Skipping token configuration.${NC}"
+        echo -e "You can configure a token later by:"
+        echo ""
+        echo -e "  1. Fund the wallet address shown above"
+        echo -e "  2. Deploy a token:"
+        echo -e "     ${BLUE}cd $APP_DIR && bun run deploy-token${NC}"
+        echo -e "  3. Restart the payment processor:"
+        echo -e "     ${BLUE}sudo systemctl restart ${SERVICE_PREFIX}-payment-processor${NC}"
+        ;;
+esac
+
+echo ""
 
 echo -e "${GREEN}Useful commands:${NC}"
 echo -e "  Check status:  sudo systemctl status ${SERVICE_PREFIX}"

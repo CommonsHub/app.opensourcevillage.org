@@ -10,7 +10,6 @@ import { useRouter } from "next/navigation";
 import { getStoredCredentials } from "@/lib/nostr-client";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useNostrPublisher } from "@/hooks/useNostrPublisher";
-import TokenSetup from "@/components/TokenSetup";
 import RoomDetailDrawer, { RoomInfo } from "@/components/RoomDetailDrawer";
 import settings from "../../settings.json";
 
@@ -110,7 +109,6 @@ export default function CalendarView({
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateRangeError, setDateRangeError] = useState<string | null>(null);
-  const [showTokenSetup, setShowTokenSetup] = useState(false);
   const [expandedEventId, setExpandedEventId] = useState<string | null>(null);
   const [rsvpLoading, setRsvpLoading] = useState<string | null>(null);
   const [rsvpError, setRsvpError] = useState<string | null>(null);
@@ -130,8 +128,6 @@ export default function CalendarView({
   // Token balance hook
   const {
     balance,
-    tokenNotConfigured,
-    chain,
     refresh: refreshBalance,
   } = useTokenBalance(credentials?.npub || null);
 
@@ -209,12 +205,6 @@ export default function CalendarView({
     }
   }, [initialDate, isDateInRange, eventDates]);
 
-  // Show token setup when token is not configured
-  useEffect(() => {
-    if (tokenNotConfigured) {
-      setShowTokenSetup(true);
-    }
-  }, [tokenNotConfigured]);
 
   // Load events when date or rooms change
   useEffect(() => {
@@ -535,17 +525,6 @@ export default function CalendarView({
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Token Setup Modal */}
-      {showTokenSetup && (
-        <TokenSetup
-          chain={chain}
-          onComplete={() => {
-            setShowTokenSetup(false);
-            refreshBalance();
-          }}
-        />
-      )}
-
       {/* Date Range Error Banner */}
       {dateRangeError && (
         <div className="bg-amber-50 border-b border-amber-200">
