@@ -12,7 +12,7 @@
  * 5. Redirect to /onboarding for community values
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   deriveNostrKeypair,
@@ -22,6 +22,8 @@ import {
 } from '@/lib/nostr-client';
 import { storeSecretKey } from '@/lib/nostr-events';
 import { redeemInviteCode } from '@/lib/nostr-relay-client';
+
+const QRScanner = lazy(() => import('@/components/QRScanner'));
 
 type Step = 'loading' | 1 | 2 | 3 | 4;
 
@@ -38,6 +40,7 @@ export default function ClaimPage() {
   const [password, setPassword] = useState('');
   const [usePinMode, setUsePinMode] = useState(false);
   const [inviteCode, setInviteCode] = useState('');
+  const [showPasteInput, setShowPasteInput] = useState(false);
 
   // Validation state
   const [usernameError, setUsernameError] = useState('');
@@ -547,7 +550,7 @@ export default function ClaimPage() {
 
               <div className="bg-blue-50 rounded-xl p-4 text-sm text-blue-800">
                 <p>
-                  Go find someone in the village and ask them to share their invitation code with you.
+                  Go find someone in the village and ask them to show you their invitation QR code.
                   They&apos;ll find it on their profile page.
                 </p>
                 <p className="mt-2 text-xs text-blue-600">
@@ -555,16 +558,46 @@ export default function ClaimPage() {
                 </p>
               </div>
 
-              <div>
+              <Suspense fallback={
+                <div className="w-full bg-gray-100 rounded-xl p-8 text-center text-gray-500">
+                  Loading camera...
+                </div>
+              }>
+                <QRScanner
+                  onScan={(result) => setInviteCode(result)}
+                  onError={(err) => setError(err)}
+                />
+              </Suspense>
+
+              <div className="text-center">
+                <button
+                  type="button"
+                  onClick={() => setShowPasteInput(!showPasteInput)}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  {showPasteInput ? 'Hide paste input' : 'or paste the invitation code'}
+                </button>
+              </div>
+
+              {showPasteInput && (
                 <textarea
                   placeholder="Paste the invitation code here..."
                   value={inviteCode}
                   onChange={(e) => setInviteCode(e.target.value)}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400 font-mono text-sm resize-none"
                   rows={3}
+                  autoFocus
                 />
-                {/* TODO: Add camera activation component for QR scanning */}
-              </div>
+              )}
+
+              {inviteCode && (
+                <div className="bg-green-50 border border-green-200 rounded-xl p-3">
+                  <p className="text-sm text-green-800 flex items-center gap-2">
+                    <span>✓</span>
+                    <span>Invitation code received</span>
+                  </p>
+                </div>
+              )}
 
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-xl p-3">
