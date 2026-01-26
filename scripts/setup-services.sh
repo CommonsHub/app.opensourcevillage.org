@@ -103,16 +103,21 @@ if ! version_ge "$BUN_VERSION" "$MIN_BUN_VERSION"; then
 fi
 echo -e "${GREEN}✓ Bun version $BUN_VERSION meets minimum requirement ($MIN_BUN_VERSION)${NC}"
 
-# Check if app directory exists
+# Create app directory if it doesn't exist
 if [ ! -d "$APP_DIR" ]; then
-    echo -e "${YELLOW}Warning: App directory not found at $APP_DIR${NC}"
-    echo -e "${YELLOW}Please set APP_DIR environment variable to your app location${NC}"
-    echo -e "${YELLOW}Example: APP_DIR=/home/user/app.opensourcevillage.org sudo ./setup-services.sh${NC}"
-    read -p "Enter app directory path: " APP_DIR
-    if [ ! -d "$APP_DIR" ]; then
-        echo -e "${RED}Error: Directory $APP_DIR does not exist${NC}"
-        exit 1
-    fi
+    echo -e "${YELLOW}App directory not found at $APP_DIR, creating it...${NC}"
+    mkdir -p "$APP_DIR"
+    chown $APP_USER:$APP_GROUP "$APP_DIR"
+    echo -e "${GREEN}✓ Created app directory: $APP_DIR${NC}"
+fi
+
+# Create data directory
+DATA_DIR="$APP_DIR/data"
+if [ ! -d "$DATA_DIR" ]; then
+    echo -e "${YELLOW}Creating data directories...${NC}"
+    mkdir -p "$DATA_DIR/badges" "$DATA_DIR/usernames" "$DATA_DIR/offers" "$DATA_DIR/calendars" "$DATA_DIR/logs"
+    chown -R $APP_USER:$APP_GROUP "$DATA_DIR"
+    echo -e "${GREEN}✓ Created data directories in $DATA_DIR${NC}"
 fi
 
 echo ""
