@@ -407,6 +407,8 @@ export default function ClaimPage() {
                 <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-lg">@</span>
                 <input
                   type="text"
+                  name="username"
+                  autoComplete="username"
                   placeholder="username"
                   value={username}
                   onChange={(e) => {
@@ -464,6 +466,8 @@ export default function ClaimPage() {
               {!usePinMode ? (
                 <input
                   type="password"
+                  name="password"
+                  autoComplete="new-password"
                   placeholder="Password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
