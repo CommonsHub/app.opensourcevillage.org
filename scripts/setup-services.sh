@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="d51fbd0"
-SCRIPT_BUILD_DATE="2026-01-26 14:27 UTC"
+SCRIPT_GIT_SHA="5d2c116"
+SCRIPT_BUILD_DATE="2026-01-26 14:29 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -105,6 +105,49 @@ case "$CHAIN" in
     base) FAUCET_URL="N/A (mainnet - use real ETH)" ;;
     base_sepolia) FAUCET_URL="https://www.alchemy.com/faucets/base-sepolia" ;;
 esac
+
+# ============================================================================
+# Install nvm and Node.js
+# ============================================================================
+echo -e "${YELLOW}Checking Node.js installation...${NC}"
+
+# Check if node is installed and get version
+NODE_VERSION=$(node --version 2>/dev/null || echo "")
+if [ -z "$NODE_VERSION" ]; then
+    echo -e "${YELLOW}Node.js not found. Installing nvm and Node.js...${NC}"
+
+    # Install nvm
+    export NVM_DIR="$HOME/.nvm"
+    if [ ! -d "$NVM_DIR" ]; then
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+    fi
+
+    # Load nvm
+    [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+    # Install latest LTS version of Node.js
+    nvm install --lts
+    nvm use --lts
+    nvm alias default 'lts/*'
+
+    # Verify installation
+    NODE_VERSION=$(node --version 2>/dev/null || echo "")
+    if [ -z "$NODE_VERSION" ]; then
+        echo -e "${RED}Error: Failed to install Node.js${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Node.js $NODE_VERSION installed successfully${NC}"
+else
+    echo -e "${GREEN}✓ Found Node.js $NODE_VERSION${NC}"
+fi
+
+# Show npm version
+NPM_VERSION=$(npm --version 2>/dev/null || echo "unknown")
+echo -e "${GREEN}✓ Found npm $NPM_VERSION${NC}"
+
+# ============================================================================
+# Install Bun
+# ============================================================================
 
 # Find bun - check common locations since sudo resets PATH
 find_bun() {
