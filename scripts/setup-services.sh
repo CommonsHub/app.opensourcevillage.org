@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="741033c"
-SCRIPT_BUILD_DATE="2026-01-26 09:42 UTC"
+SCRIPT_GIT_SHA="419c2e8"
+SCRIPT_BUILD_DATE="2026-01-26 09:46 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -101,12 +101,20 @@ find_bun() {
 
 BUN_PATH=$(find_bun)
 if [ -z "$BUN_PATH" ]; then
-    echo -e "${RED}Error: Bun is not installed or not found.${NC}"
-    echo -e "${RED}Please install bun first:${NC}"
-    echo -e "${RED}  curl -fsSL https://bun.sh/install | bash${NC}"
-    echo -e "${YELLOW}Or specify the path manually:${NC}"
-    echo -e "${YELLOW}  sudo BUN_PATH=/path/to/bun ./setup-services.sh${NC}"
-    exit 1
+    echo -e "${YELLOW}Bun not found. Installing bun...${NC}"
+    curl -fsSL https://bun.sh/install | bash
+
+    # Source the updated PATH
+    export BUN_INSTALL="/root/.bun"
+    export PATH="$BUN_INSTALL/bin:$PATH"
+
+    # Find bun again after installation
+    BUN_PATH=$(find_bun)
+    if [ -z "$BUN_PATH" ]; then
+        echo -e "${RED}Error: Failed to install bun.${NC}"
+        exit 1
+    fi
+    echo -e "${GREEN}✓ Bun installed successfully${NC}"
 fi
 
 # Check bun version
