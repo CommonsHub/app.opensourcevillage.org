@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="21f428e"
-SCRIPT_BUILD_DATE="2026-01-26 02:00 UTC"
+SCRIPT_GIT_SHA="741033c"
+SCRIPT_BUILD_DATE="2026-01-26 09:42 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -357,16 +357,6 @@ certbot --nginx -d ${DOMAIN} --non-interactive --agree-tos --register-unsafely-w
 echo -e "${GREEN}✓ SSL certificate configured${NC}"
 
 echo ""
-echo -e "${BLUE}Step 12: Installing Pyramid NOSTR relay...${NC}"
-if systemctl list-unit-files | grep -q "pyramid.service"; then
-    echo -e "${GREEN}✓ Pyramid is already installed${NC}"
-else
-    echo -e "${YELLOW}Installing Pyramid NOSTR relay...${NC}"
-    curl -s https://raw.githubusercontent.com/fiatjaf/pyramid/refs/heads/master/easy.sh | bash
-    echo -e "${GREEN}✓ Pyramid NOSTR relay installed${NC}"
-fi
-
-echo ""
 echo -e "${BLUE}Step 13: Creating login message (MOTD)...${NC}"
 cat > /etc/update-motd.d/99-osv << 'MOTD_EOF'
 #!/bin/bash
@@ -379,7 +369,6 @@ echo "Services:"
 echo "  osv                      - Main Next.js app (port 3000)"
 echo "  osv-payment-processor    - Payment processor"
 echo "  osv-nostr-recorder       - NOSTR event recorder"
-echo "  pyramid                  - NOSTR relay"
 echo ""
 echo "Useful commands:"
 echo "  Status:   sudo systemctl status osv"
