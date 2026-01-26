@@ -41,16 +41,54 @@ if [ "$EUID" -ne 0 ]; then
     exit 1
 fi
 
-# Check if bun is installed and get its path
-BUN_PATH=$(which bun 2>/dev/null || echo "")
+# Find bun - check common locations since sudo resets PATH
+find_bun() {
+    # If BUN_PATH is set, use it
+    if [ -n "$BUN_PATH" ] && [ -x "$BUN_PATH" ]; then
+        echo "$BUN_PATH"
+        return
+    fi
+
+    # Check PATH first
+    local bun_in_path=$(which bun 2>/dev/null || echo "")
+    if [ -n "$bun_in_path" ]; then
+        echo "$bun_in_path"
+        return
+    fi
+
+    # Check common installation locations
+    local locations=(
+        "/root/.bun/bin/bun"
+        "/home/*/.bun/bin/bun"
+        "/usr/local/bin/bun"
+        "/usr/bin/bun"
+        "$HOME/.bun/bin/bun"
+    )
+
+    for pattern in "${locations[@]}"; do
+        for path in $pattern; do
+            if [ -x "$path" ]; then
+                echo "$path"
+                return
+            fi
+        done
+    done
+
+    echo ""
+}
+
+BUN_PATH=$(find_bun)
 if [ -z "$BUN_PATH" ]; then
-    echo -e "${RED}Error: Bun is not installed. Please install bun first:${NC}"
+    echo -e "${RED}Error: Bun is not installed or not found.${NC}"
+    echo -e "${RED}Please install bun first:${NC}"
     echo -e "${RED}  curl -fsSL https://bun.sh/install | bash${NC}"
+    echo -e "${YELLOW}Or specify the path manually:${NC}"
+    echo -e "${YELLOW}  sudo BUN_PATH=/path/to/bun ./setup-services.sh${NC}"
     exit 1
 fi
 
 # Check bun version
-BUN_VERSION=$(bun --version 2>/dev/null || echo "0.0.0")
+BUN_VERSION=$("$BUN_PATH" --version 2>/dev/null || echo "0.0.0")
 echo -e "${GREEN}Found bun version $BUN_VERSION at $BUN_PATH${NC}"
 
 # Compare versions (simple comparison - works for semver)
