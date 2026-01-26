@@ -5,6 +5,7 @@ import WalletSetup from "@/components/WalletSetup";
 import NostrStatus from "@/components/NostrStatus";
 import DebugInfo from "@/components/DebugInfo";
 import TopBar from "@/components/TopBar";
+import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "Open Source Village",
@@ -24,13 +25,16 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className="antialiased bg-gray-50">
+      <body className="antialiased bg-gray-50 min-h-screen flex flex-col">
         <EnvSetup />
         <WalletSetup />
         <NostrStatus />
         <TopBar />
         <DebugInfo />
-        {children}
+        <main className="flex-1">
+          {children}
+        </main>
+        <Footer />
       </body>
     </html>
   );
