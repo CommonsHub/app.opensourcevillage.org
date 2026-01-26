@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="8fd174e"
-SCRIPT_BUILD_DATE="2026-01-26 01:58 UTC"
+SCRIPT_GIT_SHA="21f428e"
+SCRIPT_BUILD_DATE="2026-01-26 02:00 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -168,9 +168,14 @@ if [ ! -d "$DATA_DIR" ]; then
     echo -e "${GREEN}✓ Created data directories in $DATA_DIR${NC}"
 fi
 
+# Pull latest code
+echo -e "${YELLOW}Pulling latest code...${NC}"
+cd "$APP_DIR"
+sudo -u $APP_USER git pull origin main
+echo -e "${GREEN}✓ Code updated${NC}"
+
 # Install dependencies
 echo -e "${YELLOW}Installing dependencies...${NC}"
-cd "$APP_DIR"
 sudo -u $APP_USER "$BUN_PATH" install
 echo -e "${GREEN}✓ Dependencies installed${NC}"
 
