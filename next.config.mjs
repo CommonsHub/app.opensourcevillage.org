@@ -22,12 +22,32 @@ const nextConfig = {
   reactStrictMode: true,
   // Enable MDX pages
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
+  // Include content directory for MDX processing
+  transpilePackages: [],
   // Turbopack configuration (Next.js 16 default)
   turbopack: {},
   // Webpack configuration
   webpack: (config, { isServer }) => {
     console.log('Webpack config - setting alias for @opencollective/token-factory to:', tokenFactoryDist);
     config.resolve.alias['@opencollective/token-factory'] = tokenFactoryDist;
+
+    // Ensure content directory is included in MDX processing
+    const contentDir = path.resolve(__dirname, 'content');
+    config.module.rules.forEach((rule) => {
+      if (rule.oneOf) {
+        rule.oneOf.forEach((oneOfRule) => {
+          if (oneOfRule.test?.toString().includes('mdx')) {
+            if (oneOfRule.include) {
+              if (Array.isArray(oneOfRule.include)) {
+                oneOfRule.include.push(contentDir);
+              } else {
+                oneOfRule.include = [oneOfRule.include, contentDir];
+              }
+            }
+          }
+        });
+      }
+    });
 
     // Fix for ws package native bindings in server-side code
     if (isServer) {

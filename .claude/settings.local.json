@@ -47,7 +47,9 @@
       "Bash(npx ts-node --transpileOnly -e \"require\\(''''./scripts/record-nostr-events.ts''''\\)\")",
       "Bash(timeout 5 npm run record-nostr-events:*)",
       "Bash(chmod:*)",
-      "Bash(bash:*)"
+      "Bash(bash:*)",
+      "Bash(bun run tsc:*)",
+      "Bash(bun run build:*)"
     ]
   }
 }
