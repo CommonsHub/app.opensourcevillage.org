@@ -16,11 +16,17 @@
 
 set -e
 
+# Script metadata (updated on each commit)
+SCRIPT_VERSION="1.0.0"
+SCRIPT_GIT_SHA="0ca8c6d"
+SCRIPT_BUILD_DATE="2026-01-26 01:50 UTC"
+
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
@@ -34,6 +40,10 @@ MIN_BUN_VERSION="1.1.0"
 
 echo -e "${BLUE}========================================${NC}"
 echo -e "${BLUE}  Open Source Village - Service Setup${NC}"
+echo -e "${BLUE}========================================${NC}"
+echo -e "${CYAN}  Version: ${SCRIPT_VERSION}${NC}"
+echo -e "${CYAN}  Commit:  ${SCRIPT_GIT_SHA}${NC}"
+echo -e "${CYAN}  Date:    ${SCRIPT_BUILD_DATE}${NC}"
 echo -e "${BLUE}========================================${NC}"
 echo ""
 

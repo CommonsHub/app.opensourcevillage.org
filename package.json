@@ -20,7 +20,7 @@
     "@mdx-js/loader": "^3.1.1",
     "@mdx-js/react": "^3.1.1",
     "@next/mdx": "^16.1.4",
-    "@opencollective/token-factory": "file:../../opencollective/token-factory",
+    "@opencollective/token-factory": "^0.1.0",
     "ethers": "^6.13.0",
     "googleapis": "^144.0.0",
     "next": "^16.1.4",
