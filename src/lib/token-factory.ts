@@ -7,7 +7,6 @@
 
 import { promises as fs } from 'fs';
 import path from 'path';
-import crypto from 'crypto';
 
 export type SupportedChain = 'localhost' | 'gnosis' | 'gnosis_chiado' | 'base' | 'base_sepolia';
 
@@ -112,14 +111,6 @@ function privateKeyToAddress(privateKey: string): string {
 }
 
 /**
- * Generate a random private key
- */
-function generatePrivateKey(): `0x${string}` {
-  const bytes = crypto.randomBytes(32);
-  return `0x${bytes.toString('hex')}` as `0x${string}`;
-}
-
-/**
  * Format wei to ether string
  */
 function formatEther(wei: bigint): string {
@@ -128,21 +119,23 @@ function formatEther(wei: bigint): string {
 }
 
 /**
- * Get or generate a private key
+ * Get the private key from environment
+ * Throws an error if PRIVATE_KEY is not set
  */
-export function getOrGeneratePrivateKey(): `0x${string}` {
+export function getPrivateKey(): `0x${string}` {
   const existingKey = process.env.PRIVATE_KEY;
 
-  if (existingKey) {
-    return existingKey.startsWith('0x')
-      ? existingKey as `0x${string}`
-      : `0x${existingKey}` as `0x${string}`;
+  if (!existingKey) {
+    throw new Error(
+      'PRIVATE_KEY environment variable is not set. ' +
+      'Please configure your .env.local file with a valid private key. ' +
+      'Generate one with: openssl rand -hex 32'
+    );
   }
 
-  const newKey = generatePrivateKey();
-  console.log('[TokenFactory] Generated new PRIVATE_KEY - add this to your .env file:');
-  console.log(`PRIVATE_KEY=${newKey}`);
-  return newKey;
+  return existingKey.startsWith('0x')
+    ? existingKey as `0x${string}`
+    : `0x${existingKey}` as `0x${string}`;
 }
 
 /**
@@ -199,7 +192,7 @@ async function getAddressFromPrivateKey(privateKey: `0x${string}`): Promise<stri
  * Get wallet information including address and balance
  */
 export async function getWalletInfo(): Promise<WalletInfo> {
-  const privateKey = getOrGeneratePrivateKey();
+  const privateKey = getPrivateKey();
   const chain = getChain();
   const chainInfo = CHAIN_INFO[chain];
 
@@ -333,7 +326,7 @@ export async function deployToken(
   const { Token } = await import('@opencollective/token-factory');
 
   const chain = chainOverride || getChain();
-  const privateKey = getOrGeneratePrivateKey();
+  const privateKey = getPrivateKey();
 
   console.log(`[TokenFactory] Deploying token "${name}" (${symbol}) on ${chain}...`);
 
@@ -401,7 +394,7 @@ export async function getTokenInstance() {
 
   const tokenInfo = await getTokenInfo();
   const chain = getChain();
-  const privateKey = getOrGeneratePrivateKey();
+  const privateKey = getPrivateKey();
 
   return new Token({
     name: tokenInfo?.name || 'Open Source Village Token',
