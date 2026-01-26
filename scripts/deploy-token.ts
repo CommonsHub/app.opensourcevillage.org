@@ -1,4 +1,4 @@
-#!/usr/bin/env npx tsx
+#!/usr/bin/env bun
 /**
  * Deploy Token Script
  *
@@ -51,7 +51,7 @@ if (!loadEnvFile('.env.local')) {
   loadEnvFile('.env');
 }
 
-import { deployToken, getChain } from '../src/lib/token-factory';
+import { deployToken, getChain, getWalletInfo } from '../src/lib/token-factory';
 
 function ask(question: string, defaultValue?: string): Promise<string> {
   const rl = readline.createInterface({
@@ -67,6 +67,39 @@ function ask(question: string, defaultValue?: string): Promise<string> {
       resolve(answer.trim() || defaultValue || '');
     });
   });
+}
+
+async function waitForFunding(): Promise<boolean> {
+  while (true) {
+    const walletInfo = await getWalletInfo();
+
+    console.log('');
+    console.log('Wallet Information:');
+    console.log(`  Address: ${walletInfo.address}`);
+    console.log(`  Balance: ${walletInfo.balanceFormatted} ${walletInfo.nativeCurrency}`);
+    console.log(`  Chain:   ${walletInfo.chainName} (${walletInfo.chain})`);
+    console.log(`  Explorer: ${walletInfo.explorerUrl}`);
+    console.log('');
+
+    if (walletInfo.hasEnoughBalance) {
+      console.log('Wallet has sufficient balance for deployment.');
+      return true;
+    }
+
+    console.log(`Insufficient balance. Minimum required: 0.001 ${walletInfo.nativeCurrency}`);
+    console.log('');
+    console.log(`Please send ${walletInfo.nativeCurrency} to: ${walletInfo.address}`);
+    console.log('');
+
+    const choice = await ask('Options: (c)heck again, (s)kip token deployment', 'c');
+
+    if (choice.toLowerCase() === 's' || choice.toLowerCase() === 'skip') {
+      console.log('Skipping token deployment.');
+      return false;
+    }
+
+    console.log('Checking balance again...');
+  }
 }
 
 async function main() {
@@ -86,7 +119,12 @@ async function main() {
   }
 
   console.log(`Chain: ${chain}`);
-  console.log('');
+
+  // Check wallet balance before proceeding
+  const canDeploy = await waitForFunding();
+  if (!canDeploy) {
+    process.exit(0);
+  }
 
   // Get token name and symbol from args or prompt
   let tokenName = process.argv[2];

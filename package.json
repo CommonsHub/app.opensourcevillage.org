@@ -12,7 +12,7 @@
     "test:coverage": "jest --coverage",
     "payment-processor": "tsx scripts/payment-processor.ts",
     "record-nostr-events": "tsx scripts/record-nostr-events.ts",
-    "deploy-token": "tsx scripts/deploy-token.ts",
+    "deploy-token": "bun scripts/deploy-token.ts",
     "refresh-calendars": "tsx scripts/refresh-calendars.ts",
     "sync-calendars": "tsx scripts/sync-calendars.ts",
     "reset": "tsx scripts/reset-data.ts"
