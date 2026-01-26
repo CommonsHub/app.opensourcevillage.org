@@ -23,8 +23,22 @@ interface NFCReadingEvent extends Event {
 
 interface NDEFReader {
   scan: (options?: { signal?: AbortSignal }) => Promise<void>;
+  write: (message: NDEFMessageInit, options?: { signal?: AbortSignal }) => Promise<void>;
   addEventListener: (type: string, callback: (event: NFCReadingEvent) => void) => void;
   removeEventListener: (type: string, callback: (event: NFCReadingEvent) => void) => void;
+}
+
+interface NDEFMessageInit {
+  records: NDEFRecordInit[];
+}
+
+interface NDEFRecordInit {
+  recordType: string;
+  data?: string | BufferSource;
+  mediaType?: string;
+  id?: string;
+  lang?: string;
+  encoding?: string;
 }
 
 declare global {
@@ -37,6 +51,8 @@ interface SetupResult {
   serialNumber: string;
   success: boolean;
   alreadyExists?: boolean;
+  nfcWritten?: boolean;
+  nfcWriteError?: string;
   error?: string;
   timestamp: string;
 }
@@ -56,8 +72,48 @@ export default function SetupPage() {
     }
   }, []);
 
-  // Setup a badge via API
-  const setupBadge = useCallback(async (serialNumber: string) => {
+  // Get the base URL for NFC tags
+  const getBaseUrl = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      return `${window.location.protocol}//${window.location.host}`;
+    }
+    return 'https://app.opensourcevillage.org';
+  }, []);
+
+  // Write URL to NFC tag
+  const writeToNfc = useCallback(async (serialNumber: string): Promise<{ success: boolean; error?: string }> => {
+    if (!window.NDEFReader) {
+      return { success: false, error: 'NFC not supported' };
+    }
+
+    try {
+      const ndef = new window.NDEFReader();
+      const url = `${getBaseUrl()}/badge#${serialNumber}`;
+
+      console.log('[NFC] Writing URL to tag:', url);
+
+      await ndef.write({
+        records: [
+          {
+            recordType: 'url',
+            data: url,
+          },
+        ],
+      });
+
+      console.log('[NFC] URL written successfully');
+      return { success: true };
+    } catch (err) {
+      console.error('[NFC] Write error:', err);
+      return {
+        success: false,
+        error: err instanceof Error ? err.message : 'Failed to write to NFC tag',
+      };
+    }
+  }, [getBaseUrl]);
+
+  // Setup a badge via API and write to NFC
+  const setupBadge = useCallback(async (serialNumber: string, writeNfc: boolean = false) => {
     try {
       const response = await fetch('/api/badge/setup', {
         method: 'POST',
@@ -67,10 +123,22 @@ export default function SetupPage() {
 
       const data = await response.json();
 
+      let nfcWritten = false;
+      let nfcWriteError: string | undefined;
+
+      // Write to NFC if requested and API call succeeded
+      if (writeNfc && data.success) {
+        const writeResult = await writeToNfc(serialNumber);
+        nfcWritten = writeResult.success;
+        nfcWriteError = writeResult.error;
+      }
+
       const result: SetupResult = {
         serialNumber,
         success: data.success,
         alreadyExists: data.alreadyExists,
+        nfcWritten,
+        nfcWriteError,
         error: data.error,
         timestamp: new Date().toISOString(),
       };
@@ -90,7 +158,7 @@ export default function SetupPage() {
       setSetupResults((prev) => [result, ...prev].slice(0, 50));
       return result;
     }
-  }, []);
+  }, [writeToNfc]);
 
   // Start NFC scanning
   const startScanning = useCallback(async () => {
@@ -113,7 +181,8 @@ export default function SetupPage() {
         console.log('[NFC] Tag read:', serialNumber);
 
         if (serialNumber) {
-          await setupBadge(serialNumber);
+          // Setup badge and write URL to NFC tag
+          await setupBadge(serialNumber, true);
         }
       });
 
@@ -301,10 +370,24 @@ export default function SetupPage() {
                             : 'Created'
                           : 'Failed'}
                       </span>
+                      {result.success && result.nfcWritten !== undefined && (
+                        <span
+                          className={`text-xs font-medium px-2 py-1 rounded ${
+                            result.nfcWritten
+                              ? 'bg-purple-200 text-purple-800'
+                              : 'bg-orange-200 text-orange-800'
+                          }`}
+                        >
+                          {result.nfcWritten ? 'NFC Written' : 'NFC Failed'}
+                        </span>
+                      )}
                     </div>
                   </div>
                   {result.error && (
                     <p className="text-red-600 text-sm mt-1">{result.error}</p>
+                  )}
+                  {result.nfcWriteError && (
+                    <p className="text-orange-600 text-sm mt-1">NFC: {result.nfcWriteError}</p>
                   )}
                   <p className="text-gray-500 text-xs mt-1">
                     {new Date(result.timestamp).toLocaleTimeString()}

@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="054fa52"
-SCRIPT_BUILD_DATE="2026-01-26 10:38 UTC"
+SCRIPT_GIT_SHA="4f65017"
+SCRIPT_BUILD_DATE="2026-01-26 11:01 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -63,9 +63,22 @@ if [ -z "${DOMAIN_SET:-}" ]; then
 fi
 echo -e "${GREEN}Using domain: $DOMAIN${NC}"
 
-# Ask for blockchain if not set via environment variable
+# Check if .env.local already exists
+ENV_FILE="$APP_DIR/.env.local"
+ENV_EXISTS=false
+if [ -f "$ENV_FILE" ]; then
+    ENV_EXISTS=true
+    echo -e "${GREEN}✓ Found existing .env.local - will not override${NC}"
+    # Read chain from existing .env.local
+    EXISTING_CHAIN=$(grep "^CHAIN=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2)
+    if [ -n "$EXISTING_CHAIN" ]; then
+        CHAIN="$EXISTING_CHAIN"
+    fi
+fi
+
+# Ask for blockchain only if .env.local doesn't exist and not set via environment variable
 CHAIN="${CHAIN:-gnosis_chiado}"
-if [ -z "${CHAIN_SET:-}" ]; then
+if [ "$ENV_EXISTS" = false ] && [ -z "${CHAIN_SET:-}" ]; then
     echo ""
     echo -e "${YELLOW}Select blockchain for token operations:${NC}"
     echo -e "  1) ${BLUE}gnosis${NC}         - Gnosis Chain (mainnet, real money)"
@@ -235,8 +248,7 @@ sudo -u $APP_USER "$BUN_PATH" install
 echo -e "${GREEN}✓ Dependencies installed${NC}"
 
 # Generate .env.local if it doesn't exist
-ENV_FILE="$APP_DIR/.env.local"
-if [ ! -f "$ENV_FILE" ]; then
+if [ "$ENV_EXISTS" = false ]; then
     echo -e "${YELLOW}Generating cryptographic keys and .env.local...${NC}"
 
     # Generate keys using the TypeScript script
