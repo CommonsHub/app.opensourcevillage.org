@@ -103,6 +103,15 @@ fi
 BUN_VERSION=$("$BUN_PATH" --version 2>/dev/null || echo "0.0.0")
 echo -e "${GREEN}Found bun version $BUN_VERSION at $BUN_PATH${NC}"
 
+# If bun is in a user's home directory, copy it to /usr/local/bin for shared access
+if [[ "$BUN_PATH" == /root/* ]] || [[ "$BUN_PATH" == /home/* ]]; then
+    echo -e "${YELLOW}Copying bun to /usr/local/bin for shared access...${NC}"
+    cp "$BUN_PATH" /usr/local/bin/bun
+    chmod +x /usr/local/bin/bun
+    BUN_PATH="/usr/local/bin/bun"
+    echo -e "${GREEN}✓ Bun copied to $BUN_PATH${NC}"
+fi
+
 # Compare versions (simple comparison - works for semver)
 version_ge() {
     [ "$(printf '%s\n' "$1" "$2" | sort -V | head -n1)" = "$2" ]
