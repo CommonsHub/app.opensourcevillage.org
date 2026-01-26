@@ -79,7 +79,13 @@ async function testRelayConnection(relayUrl: string): Promise<{ success: boolean
 
       ws.on('error', (err: Error) => {
         clearTimeout(timeout);
-        resolve({ success: false, error: err.message });
+        // "Unexpected server response: 101" means the server responded correctly
+        // but ws library had issues with the handshake (common with Bun)
+        if (err.message.includes('Unexpected server response: 101')) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error: err.message });
+        }
       });
     } catch (err) {
       const error = err instanceof Error ? err.message : String(err);

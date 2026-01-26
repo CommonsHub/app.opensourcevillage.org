@@ -342,7 +342,13 @@ async function checkRelayConnection(url: string): Promise<RelayStatus> {
 
       ws.on('error', (err: Error) => {
         clearTimeout(timeout);
-        resolve({ url, connected: false, error: err.message });
+        // "Unexpected server response: 101" means the server responded correctly
+        // but ws library had issues with the handshake (common with Bun)
+        if (err.message.includes('Unexpected server response: 101')) {
+          resolve({ url, connected: true });
+        } else {
+          resolve({ url, connected: false, error: err.message });
+        }
       });
     } catch (err) {
       resolve({ url, connected: false, error: err instanceof Error ? err.message : 'unknown error' });
