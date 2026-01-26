@@ -5,9 +5,6 @@ import createMDX from '@next/mdx';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Resolve the actual path to token-factory
-const tokenFactoryDist = path.resolve(__dirname, '../../opencollective/token-factory/dist');
-
 // MDX configuration
 const withMDX = createMDX({
   extension: /\.mdx?$/,
@@ -28,9 +25,6 @@ const nextConfig = {
   turbopack: {},
   // Webpack configuration
   webpack: (config, { isServer }) => {
-    console.log('Webpack config - setting alias for @opencollective/token-factory to:', tokenFactoryDist);
-    config.resolve.alias['@opencollective/token-factory'] = tokenFactoryDist;
-
     // Ensure content directory is included in MDX processing
     const contentDir = path.resolve(__dirname, 'content');
     config.module.rules.forEach((rule) => {
