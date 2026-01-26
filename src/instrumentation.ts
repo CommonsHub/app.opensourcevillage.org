@@ -58,9 +58,14 @@ async function testRelayConnection(relayUrl: string): Promise<{ success: boolean
   return new Promise(async (resolve) => {
     try {
       const wsModule = await import('ws');
+      const https = await import('https');
       const WebSocket = wsModule.default || wsModule.WebSocket;
 
-      const ws = new WebSocket(relayUrl);
+      // Force HTTP/1.1 via ALPN (WebSocket doesn't work with HTTP/2)
+      const agent = relayUrl.startsWith('wss://')
+        ? new https.Agent({ ALPNProtocols: ['http/1.1'] })
+        : undefined;
+      const ws = new WebSocket(relayUrl, { agent });
       const timeout = setTimeout(() => {
         ws.close();
         resolve({ success: false, error: 'Connection timeout (10s)' });

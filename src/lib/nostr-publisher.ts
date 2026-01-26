@@ -204,10 +204,19 @@ async function publishToSingleRelay(
   console.log(`[NOSTR Publisher] Connecting to ${url}...`);
 
   const WebSocket = await getWebSocket();
+  const https = await import('https');
   const timeout = options.timeout || 15000;
 
+  // Create agent that forces HTTP/1.1 (WebSocket doesn't work with HTTP/2)
+  const agent = url.startsWith('wss://')
+    ? new https.Agent({ ALPNProtocols: ['http/1.1'] })
+    : undefined;
+
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(url, { skipUTF8Validation: true });
+    const ws = new WebSocket(url, {
+      skipUTF8Validation: true,
+      agent,
+    });
     let resolved = false;
     let authenticated = false;
     let eventSentCount = 0;

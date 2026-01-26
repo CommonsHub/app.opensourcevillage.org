@@ -10,6 +10,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { nip19, getPublicKey, finalizeEvent, type EventTemplate } from 'nostr-tools';
 import WebSocket from 'ws';
+import https from 'https';
 import settings from '../../../../settings.json';
 import { getProfileByNpub } from '@/lib/storage';
 
@@ -111,7 +112,11 @@ export async function POST(request: NextRequest) {
  */
 async function requestInviteCodeFromRelay(pubkeyHex: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    const ws = new WebSocket(RELAY_URL, { handshakeTimeout: 10_000 });
+    // Force HTTP/1.1 via ALPN (WebSocket doesn't work with HTTP/2)
+    const agent = RELAY_URL.startsWith('wss://')
+      ? new https.Agent({ ALPNProtocols: ['http/1.1'] })
+      : undefined;
+    const ws = new WebSocket(RELAY_URL, { handshakeTimeout: 10_000, agent });
     const timeout = setTimeout(() => {
       ws.close();
       reject(new Error('Relay connection timeout'));

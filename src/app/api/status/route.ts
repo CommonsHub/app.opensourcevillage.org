@@ -308,7 +308,12 @@ async function checkRelayConnection(url: string): Promise<RelayStatus> {
   return new Promise((resolve) => {
     try {
       const WebSocket = require('ws');
-      const ws = new WebSocket(url);
+      const https = require('https');
+      // Force HTTP/1.1 via ALPN (WebSocket doesn't work with HTTP/2)
+      const agent = url.startsWith('wss://')
+        ? new https.Agent({ ALPNProtocols: ['http/1.1'] })
+        : undefined;
+      const ws = new WebSocket(url, { agent });
       const timeout = setTimeout(() => {
         ws.close();
         resolve({ url, connected: false, error: 'timeout' });
