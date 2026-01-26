@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import EnvSetup from "@/components/EnvSetup";
 import WalletSetup from "@/components/WalletSetup";
 import NostrStatus from "@/components/NostrStatus";
 import DebugInfo from "@/components/DebugInfo";
@@ -26,7 +25,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased bg-gray-50 min-h-screen flex flex-col">
-        <EnvSetup />
         <WalletSetup />
         <NostrStatus />
         <TopBar />

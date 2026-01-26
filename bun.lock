@@ -8,9 +8,10 @@
         "@mdx-js/loader": "^3.1.1",
         "@mdx-js/react": "^3.1.1",
         "@next/mdx": "^16.1.4",
-        "@opencollective/token-factory": "^0.1.0",
+        "@opencollective/token-factory": "^0.1.1",
         "ethers": "^6.13.0",
         "googleapis": "^144.0.0",
+        "html5-qrcode": "^2.3.8",
         "next": "^16.1.4",
         "nostr-tools": "^2.7.0",
         "qrcode.react": "^4.2.0",
@@ -335,7 +336,7 @@
 
     "@nolyfill/is-core-module": ["@nolyfill/is-core-module@1.0.39", "", {}, "sha512-nn5ozdjYQpUCZlWGuxcJY/KpxkWQs4DcbMCmKojjyrYDEAGy4Ce19NN4v5MduafTwJlbKc99UA8YhSVqq9yPZA=="],
 
-    "@opencollective/token-factory": ["@opencollective/token-factory@0.1.0", "", { "dependencies": { "@safe-global/api-kit": "^4.0.0", "@safe-global/protocol-kit": "^6.1.1", "@safe-global/types-kit": "^3.0.0", "ethers": "^6.13.5", "viem": "^2.39.0" } }, "sha512-WUecnV8wjkHFM6W8AyhJHNWtGs6FrSxTP+AmItEB9mYRUq9AQ5aErabbQYezvGIMhY2eXweyzGoORVyzJO89mQ=="],
+    "@opencollective/token-factory": ["@opencollective/token-factory@0.1.1", "", { "dependencies": { "@safe-global/api-kit": "^4.0.0", "@safe-global/protocol-kit": "^6.1.1", "@safe-global/types-kit": "^3.0.0", "ethers": "^6.13.5", "viem": "^2.39.0" } }, "sha512-vSRZHbpZ+mQb/h3+07MXbCfaIAZJOd1ViRklNVtfKga83qWe9UPyCsCCdodHKrXqYhhlNOP9gLPs2vWBdH8apQ=="],
 
     "@peculiar/asn1-schema": ["@peculiar/asn1-schema@2.6.0", "", { "dependencies": { "asn1js": "^3.0.6", "pvtsutils": "^1.3.6", "tslib": "^2.8.1" } }, "sha512-xNLYLBFTBKkCzEZIw842BxytQQATQv+lDTCEMZ8C196iJcJJMBUZxrhSTxLaohMyKK8QlzRNTRkUmanucnDSqg=="],
 
@@ -932,6 +933,8 @@
     "html-encoding-sniffer": ["html-encoding-sniffer@3.0.0", "", { "dependencies": { "whatwg-encoding": "^2.0.0" } }, "sha512-oWv4T4yJ52iKrufjnyZPkrN0CH3QnrUqdB6In1g5Fe1mia8GmF36gnfNySxoZtxD5+NmYw1EElVXiBk93UeskA=="],
 
     "html-escaper": ["html-escaper@2.0.2", "", {}, "sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg=="],
+
+    "html5-qrcode": ["html5-qrcode@2.3.8", "", {}, "sha512-jsr4vafJhwoLVEDW3n1KvPnCCXWaQfRng0/EEYk1vNcQGcG/htAdhJX0be8YyqMoSz7+hZvOZSTAepsabiuhiQ=="],
 
     "http-proxy-agent": ["http-proxy-agent@5.0.0", "", { "dependencies": { "@tootallnate/once": "2", "agent-base": "6", "debug": "4" } }, "sha512-n2hY8YdoRE1i7r6M0w9DIw5GgZN0G25P8zLCRQ8rjXtTU3vsNFBI/vWK/UIeE6g5MUUz6avwAPXmL6Fy9D/90w=="],
 
