@@ -5,17 +5,19 @@
  * Accessed via URL fragment: /badge#{serialNumber}
  *
  * Behavior:
- * - No localStorage: redirect to /claim#{serialNumber}
- * - Has localStorage: fetch username for this serial and redirect to profile
+ * 1. Check if badge is already claimed
+ * 2. If claimed: redirect to owner's profile
+ * 3. If not claimed: redirect to /claim#{serialNumber}
  */
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getStoredCredentials, getSerialNumberFromURL } from '@/lib/nostr-client';
+import { getSerialNumberFromURL } from '@/lib/nostr-client';
 
 export default function BadgePage() {
   const router = useRouter();
   const [error, setError] = useState('');
+  const [status, setStatus] = useState('Checking badge...');
 
   useEffect(() => {
     const serialNumber = getSerialNumberFromURL();
@@ -25,33 +27,30 @@ export default function BadgePage() {
       return;
     }
 
-    const credentials = getStoredCredentials();
-
-    if (!credentials) {
-      // New user - redirect to claim page
-      router.replace(`/claim#${serialNumber}`);
-      return;
-    }
-
-    // Existing user - fetch profile for this serial and redirect
-    fetchProfileAndRedirect(serialNumber, credentials.username);
+    checkBadgeAndRedirect(serialNumber);
   }, [router]);
 
-  const fetchProfileAndRedirect = async (serialNumber: string, fallbackUsername: string) => {
+  const checkBadgeAndRedirect = async (serialNumber: string) => {
     try {
-      // Try to get the profile associated with this serial number
+      // First, check if the badge exists and is claimed
+      setStatus('Looking up badge...');
       const response = await fetch(`/api/profile/${serialNumber}`);
       const data = await response.json();
 
       if (data.success && data.profile?.username) {
+        // Badge is claimed - redirect to owner's profile
+        setStatus(`Redirecting to ${data.profile.username}'s profile...`);
         router.replace(`/profile/${data.profile.username}`);
-      } else {
-        // Fallback to stored username
-        router.replace(`/profile/${fallbackUsername}`);
+        return;
       }
-    } catch {
-      // On error, redirect to stored username
-      router.replace(`/profile/${fallbackUsername}`);
+
+      // Badge not claimed - redirect to claim page
+      setStatus('Badge available! Redirecting to claim...');
+      router.replace(`/claim#${serialNumber}`);
+    } catch (err) {
+      console.error('[Badge] Error checking badge:', err);
+      // On error, try to claim anyway
+      router.replace(`/claim#${serialNumber}`);
     }
   };
 
@@ -75,7 +74,10 @@ export default function BadgePage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="text-gray-500">Loading...</div>
+      <div className="text-center">
+        <div className="animate-pulse text-4xl mb-4">🏷️</div>
+        <p className="text-gray-500">{status}</p>
+      </div>
     </div>
   );
 }
