@@ -1,0 +1,131 @@
+# Frequently Asked Questions
+
+Common questions about Open Source Village.
+
+## General
+
+### What is Open Source Village?
+
+Open Source Village is an application for community gatherings where participants can create offers (workshops, talks, 1:1s), RSVP to events, and exchange tokens. It uses NFC badges for identity and NOSTR for decentralized messaging.
+
+### What is NOSTR?
+
+NOSTR (Notes and Other Stuff Transmitted by Relays) is a simple, open protocol for decentralized social networking. It uses cryptographic keys for identity and relays for message distribution.
+
+### Do I need cryptocurrency to use this?
+
+No. The tokens are managed server-side and don't require any crypto wallets or transactions from users. The blockchain integration is optional and primarily for token accounting.
+
+## Badges
+
+### How do I get a badge?
+
+Badges are distributed at the event. Each badge has a unique NFC chip with a serial number that links to your account.
+
+### What if my badge doesn't work?
+
+1. Make sure NFC is enabled on your phone
+2. Hold the phone directly against the badge
+3. Try different positions (NFC antenna location varies)
+4. Contact an organizer if issues persist
+
+### Can I transfer my badge to someone else?
+
+No. Once a badge is claimed, it's permanently linked to your NOSTR identity.
+
+## Tokens
+
+### How do tokens work?
+
+- You receive 50 tokens when claiming your badge
+- Creating an offer costs 1 token
+- RSVPing to an offer costs 1 token
+- Tokens are used to prevent spam and encourage participation
+
+### What happens if I run out of tokens?
+
+You won't be able to create new offers or RSVP to events. Participate in the community to earn more tokens (coming soon).
+
+### Are tokens real cryptocurrency?
+
+The tokens can be backed by real ERC20 tokens on a blockchain, but users don't need wallets or gas fees. The server handles all blockchain interactions.
+
+## Profile
+
+### How do I update my profile?
+
+1. Go to `/profile/edit`
+2. Update your name, bio, and avatar
+3. Sign the update with your NOSTR key
+4. Changes are saved and published to NOSTR
+
+### Can I change my username?
+
+Currently, usernames cannot be changed after claiming. Choose wisely!
+
+### How do I add an avatar?
+
+1. Go to profile edit page
+2. Click on the avatar placeholder
+3. Upload an image (max 1MB)
+4. Save your profile
+
+## Offers & RSVPs
+
+### What types of offers can I create?
+
+- Workshops (hands-on learning sessions)
+- Talks (presentations)
+- 1:1 sessions (mentoring, pairing)
+- Services (anything you can offer)
+
+### How do I cancel an RSVP?
+
+1. Go to the offer page
+2. Click "Cancel RSVP"
+3. Confirm the cancellation
+4. Your token is refunded
+
+### Why can't I RSVP to an offer?
+
+Common reasons:
+- The offer is at capacity
+- You've already RSVPed
+- You don't have enough tokens
+- The offer has ended
+
+## Technical
+
+### Where is my data stored?
+
+Profile and activity data is stored on the server in `data/npubs/:npub/`. Events are also published to configured NOSTR relays.
+
+### Is my data private?
+
+- Profile data is public (published to NOSTR)
+- Tokens and balances are stored server-side
+- Group messages are only visible to group members (NIP-29)
+
+### Can I self-host this?
+
+Yes! The app is open source. See the [Installation guide](/docs/installation) for setup instructions.
+
+## Troubleshooting
+
+### The app is slow
+
+- Check your internet connection
+- Try refreshing the page
+- Clear browser cache
+
+### Events aren't showing up
+
+- Verify relay connections in settings
+- Check browser console for errors
+- Events may take a few seconds to propagate
+
+### Login/signature issues
+
+- Make sure you're using a compatible NOSTR extension
+- Try refreshing the page
+- Check that your nsec is correct

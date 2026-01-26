@@ -1,0 +1,126 @@
+# RSVP API
+
+Endpoints for managing RSVPs to offers.
+
+## POST /api/rsvp
+
+Create an RSVP to an offer.
+
+### Request
+
+```json
+{
+  "offerId": "offer-123",
+  "npub": "npub1...",
+  "event": {
+    "id": "...",
+    "pubkey": "...",
+    "kind": 31925,
+    "content": "",
+    "tags": [
+      ["a", "31923:npub1author...:offer-123"],
+      ["d", "rsvp-uuid"]
+    ],
+    "created_at": 1706000000,
+    "sig": "..."
+  }
+}
+```
+
+### Parameters
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `offerId` | string | Yes | Offer ID to RSVP to |
+| `npub` | string | Yes | Attendee's npub |
+| `event` | NostrEvent | Yes | Signed kind:31925 event |
+
+### Response
+
+```json
+{
+  "success": true,
+  "rsvp": {
+    "id": "rsvp-456",
+    "offerId": "offer-123",
+    "npub": "npub1...",
+    "createdAt": "2026-01-22T11:00:00Z"
+  }
+}
+```
+
+### Errors
+
+| Status | Error | Description |
+|--------|-------|-------------|
+| 400 | Missing required fields | offerId, npub, or event missing |
+| 400 | Insufficient balance | Not enough tokens |
+| 400 | Already RSVPed | User already has RSVP |
+| 400 | Offer at capacity | No spots available |
+| 404 | Offer not found | Invalid offer ID |
+
+## DELETE /api/rsvp
+
+Cancel an RSVP.
+
+### Request
+
+```json
+{
+  "offerId": "offer-123",
+  "npub": "npub1...",
+  "event": {
+    "id": "...",
+    "pubkey": "...",
+    "kind": 31925,
+    "content": "",
+    "tags": [
+      ["a", "31923:npub1author...:offer-123"],
+      ["d", "rsvp-uuid"],
+      ["status", "cancelled"]
+    ],
+    "created_at": 1706000000,
+    "sig": "..."
+  }
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "message": "RSVP cancelled"
+}
+```
+
+### Errors
+
+| Status | Error | Description |
+|--------|-------|-------------|
+| 404 | RSVP not found | No RSVP to cancel |
+| 403 | Not authorized | Can't cancel others' RSVPs |
+
+## GET /api/calendar/rsvp/:npub
+
+Get all RSVPs for a user.
+
+### Response
+
+```json
+{
+  "success": true,
+  "rsvps": [
+    {
+      "id": "rsvp-456",
+      "offer": {
+        "id": "offer-123",
+        "title": "Introduction to NOSTR",
+        "startTime": "2026-01-26T14:00:00Z"
+      },
+      "status": "confirmed",
+      "createdAt": "2026-01-22T11:00:00Z"
+    }
+  ]
+}
+```

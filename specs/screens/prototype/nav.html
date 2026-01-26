@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prototype Navigation - Open Source Village</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen p-6">
+    <div class="max-w-4xl mx-auto">
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg shadow-lg p-8 mb-8 text-white">
+            <h1 class="text-3xl font-bold mb-2">Open Source Village</h1>
+            <p class="text-blue-100">HTML/Tailwind Prototypes - Screen Navigation</p>
+        </div>
+
+        <!-- Authentication & Onboarding -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span>🔐</span>
+                <span>Authentication & Onboarding</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <a href="index.html" class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <h3 class="font-semibold text-gray-900 mb-1">Badge Claiming</h3>
+                    <p class="text-sm text-gray-600">First-time NFC scan with username/password setup</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Profile Screens -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span>👤</span>
+                <span>Profile Screens</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <a href="profile-public.html" class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <h3 class="font-semibold text-gray-900 mb-1">Public Profile</h3>
+                    <p class="text-sm text-gray-600">View another user's profile</p>
+                </a>
+                <a href="profile-edit.html" class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <h3 class="font-semibold text-gray-900 mb-1">Edit Profile</h3>
+                    <p class="text-sm text-gray-600">Edit your own profile with avatar upload</p>
+                </a>
+                <a href="send-tokens.html" class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <h3 class="font-semibold text-gray-900 mb-1">Send Tokens Modal</h3>
+                    <p class="text-sm text-gray-600">Bottom sheet for token transfers</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Schedule & Workshops -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span>📅</span>
+                <span>Schedule & Workshops</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <a href="calendar.html" class="block p-4 border-2 border-blue-500 bg-blue-50 rounded-lg hover:bg-blue-100 transition">
+                    <h3 class="font-semibold text-blue-900 mb-1">Schedule (Main Screen) ⭐</h3>
+                    <p class="text-sm text-blue-700">Combined calendar with filters - Start here!</p>
+                </a>
+                <a href="create-offer.html" class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <h3 class="font-semibold text-gray-900 mb-1">Create Offer</h3>
+                    <p class="text-sm text-gray-600">Smart form for workshops/offers</p>
+                </a>
+                <a href="workshop-detail.html" class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <h3 class="font-semibold text-gray-900 mb-1">Workshop Detail</h3>
+                    <p class="text-sm text-gray-600">Full workshop info with RSVP</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Marketplace -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span>🛍️</span>
+                <span>Marketplace</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <a href="marketplace.html" class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <h3 class="font-semibold text-gray-900 mb-1">Marketplace</h3>
+                    <p class="text-sm text-gray-600">Generic offers with tag search</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Notifications & Transactions -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span>🔔</span>
+                <span>Notifications & Transactions</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <a href="notifications.html" class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <h3 class="font-semibold text-gray-900 mb-1">Notifications</h3>
+                    <p class="text-sm text-gray-600">Token receipts, workshop updates, RSVPs</p>
+                </a>
+                <a href="transactions.html" class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <h3 class="font-semibold text-gray-900 mb-1">Pending Transactions</h3>
+                    <p class="text-sm text-gray-600">Blockchain queue management</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- Settings & Admin -->
+        <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                <span>⚙️</span>
+                <span>Settings & Admin</span>
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <a href="settings.html" class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <h3 class="font-semibold text-gray-900 mb-1">Settings</h3>
+                    <p class="text-sm text-gray-600">Account, preferences, logout</p>
+                </a>
+                <a href="setup.html" class="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition">
+                    <h3 class="font-semibold text-gray-900 mb-1">NFC Setup Tool</h3>
+                    <p class="text-sm text-gray-600">Generate URLs for badges (organizers)</p>
+                </a>
+            </div>
+        </div>
+
+        <!-- User Flows -->
+        <div class="bg-blue-50 border-2 border-blue-200 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">🎯 Recommended User Flows</h2>
+            <div class="space-y-4">
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">1. First-Time User Journey</h3>
+                    <p class="text-sm text-gray-700">
+                        <a href="index.html" class="text-blue-600 hover:underline">Claim Badge</a> →
+                        <a href="profile-edit.html" class="text-blue-600 hover:underline">Edit Profile</a> →
+                        <a href="calendar.html" class="text-blue-600 hover:underline">View Schedule</a> →
+                        <a href="workshop-detail.html" class="text-blue-600 hover:underline">RSVP to Workshop</a>
+                    </p>
+                </div>
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">2. Create & Manage Workshop</h3>
+                    <p class="text-sm text-gray-700">
+                        <a href="calendar.html" class="text-blue-600 hover:underline">Schedule</a> →
+                        <a href="create-offer.html" class="text-blue-600 hover:underline">Create Workshop</a> →
+                        <a href="notifications.html" class="text-blue-600 hover:underline">Watch RSVPs</a> →
+                        <a href="workshop-detail.html" class="text-blue-600 hover:underline">View Confirmed Workshop</a>
+                    </p>
+                </div>
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">3. Send Tokens Flow</h3>
+                    <p class="text-sm text-gray-700">
+                        <a href="profile-public.html" class="text-blue-600 hover:underline">View Profile</a> →
+                        <a href="send-tokens.html" class="text-blue-600 hover:underline">Send Tokens</a> →
+                        <a href="transactions.html" class="text-blue-600 hover:underline">Check Status</a> →
+                        <a href="notifications.html" class="text-blue-600 hover:underline">Confirmation</a>
+                    </p>
+                </div>
+                <div class="bg-white rounded-lg p-4">
+                    <h3 class="font-semibold text-gray-900 mb-2">4. Browse Marketplace</h3>
+                    <p class="text-sm text-gray-700">
+                        <a href="marketplace.html" class="text-blue-600 hover:underline">Marketplace</a> →
+                        <a href="marketplace.html" class="text-blue-600 hover:underline">Claim Offer</a> →
+                        <a href="transactions.html" class="text-blue-600 hover:underline">Pending Transaction</a>
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documentation -->
+        <div class="bg-gray-100 rounded-lg p-6 text-center">
+            <p class="text-sm text-gray-600 mb-2">
+                📖 For detailed documentation, see
+                <a href="README.md" class="text-blue-600 hover:underline font-medium">README.md</a>
+            </p>
+            <p class="text-xs text-gray-500">
+                Prototypes use Tailwind CSS (CDN) • No build step required • All screens are standalone
+            </p>
+        </div>
+    </div>
+</body>
+</html>

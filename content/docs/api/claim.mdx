@@ -1,0 +1,106 @@
+# Badge Claim API
+
+Endpoints for claiming NFC badges.
+
+## POST /api/claim
+
+Claim a badge and create a user profile.
+
+### Request
+
+```json
+{
+  "serialNumber": "BADGE-001",
+  "username": "alice",
+  "npub": "npub1..."
+}
+```
+
+### Parameters
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `serialNumber` | string | Yes | Badge serial number |
+| `username` | string | Yes | Desired username (3-20 chars) |
+| `npub` | string | Yes | NOSTR public key |
+
+### Response
+
+**Success (200):**
+
+```json
+{
+  "success": true,
+  "profile": {
+    "npub": "npub1...",
+    "username": "alice",
+    "createdAt": "2026-01-22T10:00:00Z"
+  }
+}
+```
+
+**Errors:**
+
+| Status | Error | Description |
+|--------|-------|-------------|
+| 400 | Missing required fields | Username, serialNumber, or npub missing |
+| 400 | Invalid username format | Username doesn't match pattern |
+| 400 | Invalid npub format | npub doesn't start with "npub1" |
+| 400 | Badge already claimed | Badge was already claimed |
+| 404 | Unknown badge | Serial number not in whitelist |
+| 500 | Username already taken | Username exists |
+
+### Example
+
+```bash
+curl -X POST http://localhost:3000/api/claim \
+  -H "Content-Type: application/json" \
+  -d '{
+    "serialNumber": "BADGE-001",
+    "username": "alice",
+    "npub": "npub1abc123..."
+  }'
+```
+
+## POST /api/badge/setup
+
+Add a badge to the whitelist (admin only).
+
+### Request
+
+```json
+{
+  "serialNumber": "BADGE-001"
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "serialNumber": "BADGE-001",
+  "alreadyExists": false
+}
+```
+
+## GET /api/badge/setup
+
+Check if a badge is set up.
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `serialNumber` | string | Badge serial number |
+
+### Response
+
+```json
+{
+  "success": true,
+  "exists": true,
+  "serialNumber": "BADGE-001",
+  "claimed": false
+}
+```

@@ -1,0 +1,64 @@
+# API Reference
+
+REST API endpoints for Open Source Village.
+
+## Base URL
+
+```
+http://localhost:3000/api
+```
+
+## Authentication
+
+Most endpoints require a valid NOSTR signature for authentication. The signature proves ownership of the npub making the request.
+
+## Response Format
+
+All responses follow a consistent format:
+
+```json
+{
+  "success": true,
+  "data": { ... }
+}
+```
+
+Error responses:
+
+```json
+{
+  "success": false,
+  "error": "Error message"
+}
+```
+
+## Endpoints Overview
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/claim` | POST | Claim a badge |
+| `/api/profile/:identifier` | GET | Get profile |
+| `/api/profile/:identifier` | PUT | Update profile |
+| `/api/offers` | GET | List offers |
+| `/api/offers` | POST | Create offer |
+| `/api/offers/:id` | GET | Get offer details |
+| `/api/rsvp` | POST | Create RSVP |
+| `/api/rsvp` | DELETE | Cancel RSVP |
+| `/api/wallet/status` | GET | Get wallet info |
+| `/api/balance/:npub` | GET | Get token balance |
+
+## Rate Limiting
+
+API endpoints are rate-limited to prevent abuse:
+
+- **Default**: 100 requests per minute
+- **Auth endpoints**: 10 requests per minute
+- **Write operations**: 20 requests per minute
+
+Rate limit headers are included in responses:
+
+```
+X-RateLimit-Limit: 100
+X-RateLimit-Remaining: 95
+X-RateLimit-Reset: 1706000000
+```

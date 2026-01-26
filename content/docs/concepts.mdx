@@ -1,0 +1,117 @@
+# Core Concepts
+
+Understanding the key concepts behind Open Source Village.
+
+## Badge-based Identity
+
+Each participant receives an NFC badge with a unique serial number. When scanned, the badge links to a NOSTR identity (npub).
+
+### Claim Flow
+
+1. **Badge Setup**: Admin adds serial number to whitelist (`data/badges/whitelist.txt`)
+2. **Badge Scan**: Participant scans NFC badge, arriving at `/badge#serialNumber`
+3. **Claim**: Participant enters username and connects NOSTR wallet
+4. **Profile Creation**: System creates profile at `data/npubs/:npub/`
+
+### Storage Structure
+
+```
+data/
+├── badges/
+│   └── whitelist.txt       # Allowed badge serial numbers
+├── npubs/
+│   └── :npub/
+│       ├── profile.json    # User profile data
+│       ├── metadata.json   # Badge/account metadata
+│       └── nostr_events.jsonl  # Event log
+└── usernames/
+    └── :username -> ../npubs/:npub  # Symlink
+```
+
+## Token Economy
+
+The app uses ERC20 tokens for community interactions.
+
+### Token Actions
+
+| Action | Cost | Description |
+|--------|------|-------------|
+| Badge Claim | +50 tokens | Initial mint on claim |
+| Create Offer | -1 token | Post a workshop/talk |
+| RSVP | -1 token | Reserve a spot |
+
+### Payment Flow (NIP-9734)
+
+```
+User Action → kind:9734 Event → Payment Processor → Blockchain TX → kind:9735 Receipt
+```
+
+1. User triggers action (RSVP, offer creation)
+2. Server creates kind:9734 payment request event
+3. Payment processor listens and executes transfer
+4. kind:9735 receipt event confirms completion
+
+## NOSTR Integration
+
+The app uses NOSTR for decentralized data and messaging.
+
+### NIPs Implemented
+
+| NIP | Purpose |
+|-----|---------|
+| NIP-01 | Basic protocol (events, signatures) |
+| NIP-19 | bech32 encoding (npub, nsec) |
+| NIP-29 | Closed groups for attendees |
+| NIP-52 | Calendar events |
+| NIP-86 | Relay management API |
+
+### Event Kinds Used
+
+| Kind | Purpose |
+|------|---------|
+| 0 | Metadata (profile) |
+| 1 | Short text note |
+| 9734 | Payment request |
+| 9735 | Payment receipt |
+| 9000-9030 | Group management (NIP-29) |
+| 31922-31923 | Calendar events (NIP-52) |
+
+## Offers & RSVPs
+
+### Offers
+
+Offers are things participants can provide:
+- Workshops
+- Talks
+- 1:1 sessions
+- Services
+
+Each offer has:
+- Title and description
+- Time slot (optional)
+- Capacity (optional)
+- Tags for categorization
+
+### RSVPs
+
+Participants can RSVP to offers:
+- Costs 1 token
+- Creates a reservation
+- Published as NIP-52 calendar RSVP
+
+## NIP-29 Groups
+
+Attendees are added to a closed NOSTR group upon badge claim.
+
+### Group Features
+
+- **Private**: Only members can see content
+- **Closed**: Only admins can add members
+- **Moderated**: Admins can remove content/members
+
+### Group Events
+
+- `9000`: Add user to group
+- `9001`: Remove user from group
+- `9005`: Delete event from group
+- `9021`: Group metadata

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Send Tokens - Open Source Village</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-black bg-opacity-50 min-h-screen flex items-end justify-center p-4">
+    <!-- Bottom Sheet Modal -->
+    <div class="bg-white rounded-t-2xl w-full max-w-md shadow-2xl animate-slide-up">
+        <!-- Handle -->
+        <div class="flex justify-center pt-3 pb-2">
+            <div class="w-12 h-1 bg-gray-300 rounded-full"></div>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6">
+            <div class="flex items-center justify-between mb-6">
+                <h2 class="text-xl font-bold text-gray-900">Send Tokens to @alice</h2>
+                <button class="text-gray-400 hover:text-gray-600" onclick="window.location.href='profile-public.html'">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Recipient Info -->
+            <div class="flex items-center gap-3 mb-6 p-3 bg-gray-50 rounded-lg">
+                <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold">A</div>
+                <div>
+                    <p class="font-medium text-gray-900">Alice Smith</p>
+                    <p class="text-sm text-gray-600">@alice</p>
+                </div>
+            </div>
+
+            <!-- Amount Input -->
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Amount</label>
+                <div class="flex items-center gap-3 justify-center mb-3">
+                    <button class="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center text-gray-700 font-bold text-xl" onclick="decrementAmount()">
+                        −
+                    </button>
+                    <input
+                        type="number"
+                        id="amount"
+                        value="5"
+                        min="1"
+                        class="w-24 text-center text-3xl font-bold text-gray-900 border-b-2 border-blue-500 focus:outline-none"
+                    >
+                    <button class="w-12 h-12 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center text-gray-700 font-bold text-xl" onclick="incrementAmount()">
+                        +
+                    </button>
+                </div>
+
+                <!-- Quick Amounts -->
+                <div class="flex gap-2 justify-center mb-4">
+                    <button class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium text-sm" onclick="setAmount(1)">1</button>
+                    <button class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium text-sm" onclick="setAmount(2)">2</button>
+                    <button class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium text-sm" onclick="setAmount(5)">5</button>
+                    <button class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg font-medium text-sm" onclick="setAmount(10)">10</button>
+                </div>
+            </div>
+
+            <!-- Message -->
+            <div class="mb-6">
+                <label for="message" class="block text-sm font-medium text-gray-700 mb-2">Message (optional)</label>
+                <textarea
+                    id="message"
+                    rows="3"
+                    maxlength="280"
+                    placeholder="Great workshop, thanks!"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                ></textarea>
+                <p class="text-xs text-gray-500 mt-1">0/280 characters</p>
+            </div>
+
+            <!-- Balance Info -->
+            <div class="border-t border-gray-200 pt-4 mb-6">
+                <div class="flex justify-between text-sm mb-2">
+                    <span class="text-gray-600">Your balance:</span>
+                    <span class="font-medium text-gray-900">47 tokens</span>
+                </div>
+                <div class="flex justify-between text-sm">
+                    <span class="text-gray-600">After:</span>
+                    <span class="font-medium text-gray-900">42 tokens <span class="text-gray-500">(5 pending)</span></span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex gap-3">
+                <button
+                    class="flex-1 bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 transition"
+                    onclick="window.location.href='profile-public.html'"
+                >
+                    Cancel
+                </button>
+                <button
+                    class="flex-1 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
+                    onclick="sendTokens()"
+                >
+                    Send Tokens
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function incrementAmount() {
+            const input = document.getElementById('amount');
+            const max = 47; // user's balance
+            if (parseInt(input.value) < max) {
+                input.value = parseInt(input.value) + 1;
+            }
+        }
+
+        function decrementAmount() {
+            const input = document.getElementById('amount');
+            if (parseInt(input.value) > 1) {
+                input.value = parseInt(input.value) - 1;
+            }
+        }
+
+        function setAmount(value) {
+            document.getElementById('amount').value = value;
+        }
+
+        function sendTokens() {
+            const amount = document.getElementById('amount').value;
+            alert(`Sent ${amount} tokens to @alice (pending)`);
+            window.location.href = 'profile-public.html';
+        }
+    </script>
+
+    <style>
+        @keyframes slide-up {
+            from {
+                transform: translateY(100%);
+            }
+            to {
+                transform: translateY(0);
+            }
+        }
+        .animate-slide-up {
+            animation: slide-up 0.3s ease-out;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace - Open Source Village</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen pb-20">
+    <!-- Top App Bar -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <button class="text-gray-600 hover:text-gray-900" onclick="document.getElementById('menu').classList.toggle('hidden')">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                <h1 class="font-semibold text-gray-900">Marketplace</h1>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- Balance & Avatar -->
+                <a href="profile-edit.html" class="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1 transition">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs font-semibold text-gray-900">47</p>
+                        <p class="text-xs text-gray-500 -mt-0.5">tokens</p>
+                    </div>
+                    <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                        A
+                    </div>
+                </a>
+
+                <!-- Notification Bell -->
+                <button class="relative" onclick="window.location.href='notifications.html'">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hamburger Menu (hidden by default) -->
+    <div id="menu" class="hidden fixed inset-0 bg-black bg-opacity-50 z-20" onclick="this.classList.add('hidden')">
+        <div class="bg-white w-64 h-full p-6" onclick="event.stopPropagation()">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Menu</h2>
+            <nav class="space-y-3">
+                <a href="profile-edit.html" class="block text-gray-700 hover:text-blue-600">Profile</a>
+                <a href="calendar.html" class="block text-gray-700 hover:text-blue-600">Schedule</a>
+                <a href="marketplace.html" class="block font-semibold text-blue-600">Marketplace</a>
+                <a href="notifications.html" class="block text-gray-700 hover:text-blue-600">Notifications</a>
+                <a href="settings.html" class="block text-gray-700 hover:text-blue-600">Settings</a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Tag Filter -->
+    <div class="bg-white border-b border-gray-200 sticky top-14 z-10">
+        <div class="max-w-2xl mx-auto px-4 py-3">
+            <p class="text-sm font-medium text-gray-700 mb-2">Filter by topics:</p>
+
+            <!-- All Tags (clickable to filter) -->
+            <div class="flex flex-wrap gap-2">
+                <button
+                    class="tag-filter bg-blue-100 text-blue-800 border-2 border-blue-500 px-3 py-1.5 rounded-full text-sm font-medium hover:bg-blue-200 transition"
+                    data-tag="web3"
+                    onclick="toggleTag(this)"
+                >
+                    web3 ✓
+                </button>
+                <button
+                    class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition"
+                    data-tag="ai"
+                    onclick="toggleTag(this)"
+                >
+                    ai
+                </button>
+                <button
+                    class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition"
+                    data-tag="design"
+                    onclick="toggleTag(this)"
+                >
+                    design
+                </button>
+                <button
+                    class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition"
+                    data-tag="ux"
+                    onclick="toggleTag(this)"
+                >
+                    ux
+                </button>
+                <button
+                    class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition"
+                    data-tag="1:1"
+                    onclick="toggleTag(this)"
+                >
+                    1:1
+                </button>
+                <button
+                    class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition"
+                    data-tag="mentorship"
+                    onclick="toggleTag(this)"
+                >
+                    mentorship
+                </button>
+                <button
+                    class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition"
+                    data-tag="review"
+                    onclick="toggleTag(this)"
+                >
+                    review
+                </button>
+                <button
+                    class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition"
+                    data-tag="security"
+                    onclick="toggleTag(this)"
+                >
+                    security
+                </button>
+                <button
+                    class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-sm font-medium hover:bg-gray-200 transition"
+                    data-tag="open-source"
+                    onclick="toggleTag(this)"
+                >
+                    open-source
+                </button>
+            </div>
+
+            <div class="flex items-center justify-between mt-2">
+                <p class="text-xs text-gray-500">
+                    <span id="filter-count">1</span> topic selected • Showing offers matching any selected topic
+                </p>
+                <button
+                    class="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    onclick="clearAllTags()"
+                >
+                    Clear filters
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Marketplace Content -->
+    <main class="max-w-2xl mx-auto px-4 py-4">
+        <!-- Call to Action -->
+        <div class="bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg shadow-lg p-6 mb-6 text-white">
+            <h2 class="text-xl font-bold mb-2">Have something to offer?</h2>
+            <p class="text-blue-100 mb-4">Share your skills, host a workshop, or offer 1:1 sessions with the community!</p>
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button
+                    class="flex-1 bg-white text-blue-600 font-semibold py-3 px-4 rounded-lg hover:bg-blue-50 transition"
+                    onclick="window.location.href='create-offer.html?type=other'"
+                >
+                    🎁 Make an Offer
+                </button>
+                <button
+                    class="flex-1 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition border-2 border-white"
+                    onclick="window.location.href='create-offer.html?type=workshop'"
+                >
+                    🎓 Propose a Workshop
+                </button>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <!-- Results header -->
+            <div class="flex items-center justify-between">
+                <p class="text-sm text-gray-600">Showing <span class="font-semibold">3 offers</span></p>
+            </div>
+
+            <!-- Empty state (hidden by default) -->
+            <div id="empty-state" class="bg-gray-100 rounded-lg p-8 text-center hidden">
+                <p class="text-gray-600 mb-4">No offers match your selected topics</p>
+                <button
+                    class="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    onclick="clearAllTags()"
+                >
+                    Clear all filters
+                </button>
+            </div>
+
+            <!-- Offer Card 1 -->
+            <div class="bg-white rounded-lg shadow-sm p-4" data-tags="web3,review">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="w-12 h-12 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white font-bold">A</div>
+                    <div class="flex-1">
+                        <a href="profile-public.html" class="text-sm text-blue-600 hover:text-blue-700">@alice</a>
+                        <h3 class="font-semibold text-gray-900 mt-1">Code Review Session</h3>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">web3</span>
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">review</span>
+                </div>
+
+                <p class="text-sm text-gray-700 mb-4">
+                    I'll review your smart contract code and provide detailed feedback on security, gas optimization, and best practices. 30-60 minute session...
+                </p>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-lg font-bold text-blue-600">💎 1 token</span>
+                    <button
+                        class="bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition text-sm"
+                        onclick="if(confirm('Claim \\'Code Review Session\\'? Costs 1 token')) { alert('Offer claimed! @alice will receive 1 token'); }"
+                    >
+                        Claim Offer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Offer Card 2 -->
+            <div class="bg-white rounded-lg shadow-sm p-4" data-tags="1:1,mentorship">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="flex -space-x-2">
+                        <div class="w-12 h-12 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full border-2 border-white flex items-center justify-center text-white font-bold">B</div>
+                        <div class="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-400 rounded-full border-2 border-white flex items-center justify-center text-white font-bold">C</div>
+                    </div>
+                    <div class="flex-1">
+                        <div class="text-sm">
+                            <a href="#" class="text-blue-600 hover:text-blue-700">@bob</a>
+                            <span class="text-gray-500">, </span>
+                            <a href="#" class="text-blue-600 hover:text-blue-700">@charlie</a>
+                        </div>
+                        <h3 class="font-semibold text-gray-900 mt-1">Office Hours</h3>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">1:1</span>
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">mentorship</span>
+                </div>
+
+                <p class="text-sm text-gray-700 mb-4">
+                    Book a 30-min session to discuss your project, get advice on technical decisions, or just chat about building in the open source space...
+                </p>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-lg font-bold text-blue-600">💎 2 tokens</span>
+                    <button
+                        class="bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition text-sm"
+                        onclick="if(confirm('Claim \\'Office Hours\\'? Costs 2 tokens')) { alert('Offer claimed! @bob and @charlie will each receive 1 token'); }"
+                    >
+                        Claim Offer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Offer Card 3 -->
+            <div class="bg-white rounded-lg shadow-sm p-4" data-tags="design,ux">
+                <div class="flex items-start gap-3 mb-3">
+                    <div class="w-12 h-12 bg-gradient-to-br from-green-400 to-emerald-400 rounded-full flex items-center justify-center text-white font-bold">D</div>
+                    <div class="flex-1">
+                        <a href="#" class="text-sm text-blue-600 hover:text-blue-700">@diana</a>
+                        <h3 class="font-semibold text-gray-900 mt-1">Design Feedback</h3>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 mb-3">
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">design</span>
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">ux</span>
+                </div>
+
+                <p class="text-sm text-gray-700 mb-4">
+                    Get UX feedback on your app or website. I'll provide actionable suggestions on usability, accessibility, and visual design improvements...
+                </p>
+
+                <div class="flex items-center justify-between">
+                    <span class="text-lg font-bold text-blue-600">💎 1 token</span>
+                    <button
+                        class="bg-blue-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-blue-700 transition text-sm"
+                    >
+                        Claim Offer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <button
+        class="fixed bottom-6 right-6 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-700 transition flex items-center justify-center"
+        onclick="window.location.href='create-offer.html?type=other'"
+    >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+    </button>
+
+    <script>
+        // Track active tags
+        let activeTags = new Set(['web3']);
+
+        function toggleTag(button) {
+            const tag = button.dataset.tag;
+
+            if (activeTags.has(tag)) {
+                // Deselect
+                activeTags.delete(tag);
+                button.classList.remove('bg-blue-100', 'text-blue-800', 'border-blue-500');
+                button.classList.add('bg-gray-100', 'text-gray-600', 'border-transparent');
+                button.textContent = tag;
+            } else {
+                // Select
+                activeTags.add(tag);
+                button.classList.remove('bg-gray-100', 'text-gray-600', 'border-transparent');
+                button.classList.add('bg-blue-100', 'text-blue-800', 'border-blue-500');
+                button.textContent = tag + ' ✓';
+            }
+
+            // Update filter count
+            document.getElementById('filter-count').textContent = activeTags.size;
+
+            // Filter offers (OR logic - show if matches ANY selected tag)
+            filterOffers();
+        }
+
+        function filterOffers() {
+            const offers = document.querySelectorAll('[data-tags]');
+            let visibleCount = 0;
+
+            offers.forEach(offer => {
+                const offerTags = offer.dataset.tags.split(',');
+
+                // Show if no tags selected OR if offer matches any active tag (OR logic)
+                const shouldShow = activeTags.size === 0 ||
+                                   offerTags.some(tag => activeTags.has(tag));
+
+                if (shouldShow) {
+                    offer.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    offer.style.display = 'none';
+                }
+            });
+
+            // Update results count
+            const resultsText = document.querySelector('.space-y-4 > div:first-child p');
+            if (resultsText) {
+                resultsText.innerHTML = `Showing <span class="font-semibold">${visibleCount} offer${visibleCount !== 1 ? 's' : ''}</span>`;
+            }
+
+            // Show/hide empty state
+            const emptyState = document.getElementById('empty-state');
+            if (visibleCount === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+            }
+        }
+
+        function clearAllTags() {
+            // Deselect all tags
+            const tagButtons = document.querySelectorAll('.tag-filter');
+            tagButtons.forEach(button => {
+                const tag = button.dataset.tag;
+                if (activeTags.has(tag)) {
+                    activeTags.delete(tag);
+                    button.classList.remove('bg-blue-100', 'text-blue-800', 'border-blue-500');
+                    button.classList.add('bg-gray-100', 'text-gray-600', 'border-transparent');
+                    button.textContent = tag;
+                }
+            });
+
+            // Update UI
+            document.getElementById('filter-count').textContent = '0';
+            filterOffers();
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Schedule - Open Source Village</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen pb-20">
+    <!-- Top App Bar -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <button class="text-gray-600 hover:text-gray-900" onclick="document.getElementById('menu').classList.toggle('hidden')">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                    </svg>
+                </button>
+                <h1 class="font-semibold text-gray-900">Schedule</h1>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- Balance & Avatar -->
+                <a href="profile-edit.html" class="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1 transition">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs font-semibold text-gray-900">47</p>
+                        <p class="text-xs text-gray-500 -mt-0.5">tokens</p>
+                    </div>
+                    <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                        A
+                    </div>
+                </a>
+
+                <!-- Notification Bell -->
+                <button class="relative" onclick="window.location.href='notifications.html'">
+                    <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/>
+                    </svg>
+                    <span class="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">3</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hamburger Menu (hidden by default) -->
+    <div id="menu" class="hidden fixed inset-0 bg-black bg-opacity-50 z-20" onclick="this.classList.add('hidden')">
+        <div class="bg-white w-64 h-full p-6" onclick="event.stopPropagation()">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">Menu</h2>
+            <nav class="space-y-3">
+                <a href="profile-edit.html" class="block text-gray-700 hover:text-blue-600">Profile</a>
+                <a href="calendar.html" class="block font-semibold text-blue-600">Schedule</a>
+                <a href="marketplace.html" class="block text-gray-700 hover:text-blue-600">Marketplace</a>
+                <a href="notifications.html" class="block text-gray-700 hover:text-blue-600">Notifications</a>
+                <a href="settings.html" class="block text-gray-700 hover:text-blue-600">Settings</a>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white border-b border-gray-200 sticky top-14 z-10">
+        <div class="max-w-2xl mx-auto px-4 py-3">
+            <!-- Room Filter -->
+            <div class="mb-3">
+                <select class="px-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option>All Rooms</option>
+                    <option>Main Hall</option>
+                    <option>Room A</option>
+                    <option>Room B</option>
+                </select>
+            </div>
+
+            <!-- Tag Filter -->
+            <div class="mb-3">
+                <p class="text-xs font-medium text-gray-600 mb-2">Filter by topics:</p>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
+                        data-tag="web3"
+                        onclick="toggleScheduleTag(this)"
+                    >
+                        web3
+                    </button>
+                    <button
+                        class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
+                        data-tag="ai"
+                        onclick="toggleScheduleTag(this)"
+                    >
+                        ai
+                    </button>
+                    <button
+                        class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
+                        data-tag="workshop"
+                        onclick="toggleScheduleTag(this)"
+                    >
+                        workshop
+                    </button>
+                    <button
+                        class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
+                        data-tag="talk"
+                        onclick="toggleScheduleTag(this)"
+                    >
+                        talk
+                    </button>
+                    <button
+                        class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
+                        data-tag="security"
+                        onclick="toggleScheduleTag(this)"
+                    >
+                        security
+                    </button>
+                    <button
+                        class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
+                        data-tag="1:1"
+                        onclick="toggleScheduleTag(this)"
+                    >
+                        1:1
+                    </button>
+                    <button
+                        class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
+                        data-tag="mentorship"
+                        onclick="toggleScheduleTag(this)"
+                    >
+                        mentorship
+                    </button>
+                    <button
+                        class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
+                        data-tag="design"
+                        onclick="toggleScheduleTag(this)"
+                    >
+                        design
+                    </button>
+                    <button
+                        class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
+                        data-tag="networking"
+                        onclick="toggleScheduleTag(this)"
+                    >
+                        networking
+                    </button>
+                    <button
+                        class="tag-filter bg-gray-100 text-gray-600 border-2 border-transparent px-3 py-1.5 rounded-full text-xs font-medium hover:bg-gray-200 transition"
+                        data-tag="open-source"
+                        onclick="toggleScheduleTag(this)"
+                    >
+                        open-source
+                    </button>
+                </div>
+                <div class="flex items-center justify-between mt-2">
+                    <p class="text-xs text-gray-500">
+                        <span id="tag-filter-count">0</span> topic selected
+                    </p>
+                    <button
+                        class="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                        onclick="clearAllScheduleTags()"
+                    >
+                        Clear filters
+                    </button>
+                </div>
+            </div>
+
+            <!-- View Switcher Buttons -->
+            <div class="flex gap-2">
+                <button
+                    id="all-events-btn"
+                    class="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-blue-600 text-white"
+                >
+                    All Events
+                </button>
+                <button
+                    id="my-rsvps-btn"
+                    class="flex-1 px-4 py-2 text-sm font-medium rounded-lg bg-gray-100 text-gray-600"
+                >
+                    My RSVPs <span id="rsvp-count" class="text-xs">(1)</span>
+                </button>
+            </div>
+
+            <!-- Subscribe to Calendar Link -->
+            <div class="mt-3 text-center">
+                <a href="#" class="text-xs text-blue-600 hover:text-blue-700 font-medium inline-flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    Subscribe to my RSVP calendar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Schedule Content -->
+    <main class="max-w-2xl mx-auto px-4 py-4">
+        <!-- Call to Action Banner -->
+        <div class="bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg shadow-lg p-6 mb-6 text-white">
+            <h2 class="text-xl font-bold mb-2">Want to share your knowledge?</h2>
+            <p class="text-sm opacity-90 mb-4">Propose a workshop and earn tokens from attendees</p>
+            <button
+                class="bg-white text-blue-600 font-semibold py-2 px-6 rounded-lg hover:bg-gray-100 transition text-sm"
+                onclick="window.location.href='create-offer.html?type=workshop'"
+            >
+                Propose a Workshop
+            </button>
+        </div>
+
+        <!-- Empty State (hidden by default) -->
+        <div id="empty-state" class="bg-gray-100 rounded-lg p-8 text-center hidden">
+            <p class="text-gray-600 mb-2" id="empty-state-title">No events found</p>
+            <p class="text-sm text-gray-500" id="empty-state-description">Try adjusting your filters</p>
+        </div>
+        <!-- Day Header -->
+        <h2 class="text-lg font-bold text-gray-900 mb-3 flex items-center">
+            <span class="flex-1 border-t border-gray-300"></span>
+            <span class="px-3">Monday, Jan 27</span>
+            <span class="flex-1 border-t border-gray-300"></span>
+        </h2>
+
+        <!-- Event Cards -->
+        <div class="space-y-3">
+            <!-- Official Event -->
+            <a href="#" class="block bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-500 hover:shadow-md transition" data-rsvped="false" data-tags="">
+                <div class="flex items-start justify-between mb-2">
+                    <div class="flex-1">
+                        <div class="text-sm text-gray-600 mb-1">09:00 - 10:00 • Main Hall</div>
+                        <h3 class="font-semibold text-gray-900">Opening Keynote</h3>
+                    </div>
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">Confirmed</span>
+                </div>
+            </a>
+
+            <!-- Pending Workshop -->
+            <a href="workshop-detail.html" class="block bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500 hover:shadow-md transition" data-rsvped="false" data-tags="web3">
+                <div class="flex items-start justify-between mb-2">
+                    <div class="flex-1">
+                        <div class="text-sm text-gray-600 mb-1">10:30 - 11:30 • Room A</div>
+                        <h3 class="font-semibold text-gray-900">Intro to NOSTR</h3>
+                        <div class="flex items-center gap-2 mt-1">
+                            <div class="flex -space-x-2">
+                                <div class="w-6 h-6 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full border-2 border-white"></div>
+                                <div class="w-6 h-6 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full border-2 border-white"></div>
+                            </div>
+                            <span class="text-xs text-gray-600">@alice, @bob</span>
+                        </div>
+                    </div>
+                    <span class="bg-yellow-100 text-yellow-800 text-xs font-medium px-2 py-1 rounded">Pending 4/5</span>
+                </div>
+                <div class="flex items-center gap-2 mt-3">
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">web3</span>
+                </div>
+                <p class="text-sm text-orange-600 font-medium mt-3">1 more RSVP required</p>
+            </a>
+
+            <!-- Confirmed Workshop (User Attending) -->
+            <a href="workshop-detail.html" class="block bg-white rounded-lg shadow-sm p-4 border-l-4 border-green-500 hover:shadow-md transition" data-rsvped="true" data-tags="security,web3">
+                <div class="flex items-start justify-between mb-2">
+                    <div class="flex-1">
+                        <div class="flex items-center gap-2 mb-1">
+                            <div class="text-sm text-gray-600">14:00 - 15:00 • Room B</div>
+                            <span class="bg-blue-600 text-white text-xs font-medium px-2 py-0.5 rounded">You're attending</span>
+                        </div>
+                        <h3 class="font-semibold text-gray-900">Smart Contract Security</h3>
+                        <div class="flex items-center gap-2 mt-1">
+                            <div class="w-6 h-6 bg-gradient-to-br from-orange-400 to-red-400 rounded-full"></div>
+                            <span class="text-xs text-gray-600">@charlie</span>
+                        </div>
+                    </div>
+                    <span class="bg-green-100 text-green-800 text-xs font-medium px-2 py-1 rounded">Confirmed</span>
+                </div>
+                <div class="flex items-center gap-2 mt-3">
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">security</span>
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">web3</span>
+                </div>
+                <p class="text-xs text-gray-600 mt-3">12 attending</p>
+            </a>
+
+            <!-- Official Event -->
+            <a href="#" class="block bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-500 hover:shadow-md transition" data-rsvped="false" data-tags="open-source,talk">
+                <div class="flex items-start justify-between mb-2">
+                    <div class="flex-1">
+                        <div class="text-sm text-gray-600 mb-1">16:00 - 17:00 • Main Hall</div>
+                        <h3 class="font-semibold text-gray-900">Panel: The Future of Open Source</h3>
+                    </div>
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">Confirmed</span>
+                </div>
+                <div class="flex items-center gap-2 mt-3">
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">open-source</span>
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">talk</span>
+                </div>
+            </a>
+        </div>
+
+        <!-- Day Header -->
+        <h2 class="text-lg font-bold text-gray-900 mb-3 mt-6 flex items-center">
+            <span class="flex-1 border-t border-gray-300"></span>
+            <span class="px-3">Tuesday, Jan 28</span>
+            <span class="flex-1 border-t border-gray-300"></span>
+        </h2>
+
+        <div class="space-y-3">
+            <a href="#" class="block bg-white rounded-lg shadow-sm p-4 border-l-4 border-blue-500 hover:shadow-md transition" data-rsvped="false" data-tags="ai,workshop">
+                <div class="flex items-start justify-between mb-2">
+                    <div class="flex-1">
+                        <div class="text-sm text-gray-600 mb-1">09:00 - 10:30 • Main Hall</div>
+                        <h3 class="font-semibold text-gray-900">Building with AI</h3>
+                    </div>
+                    <span class="bg-blue-100 text-blue-800 text-xs font-medium px-2 py-1 rounded">Confirmed</span>
+                </div>
+                <div class="flex items-center gap-2 mt-3">
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">ai</span>
+                    <span class="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded">workshop</span>
+                </div>
+            </a>
+        </div>
+    </main>
+
+    <!-- Floating Action Button -->
+    <button
+        class="fixed bottom-6 right-6 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-700 transition flex items-center justify-center"
+        onclick="window.location.href='create-offer.html'"
+    >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+        </svg>
+    </button>
+
+    <!-- Offline Indicator -->
+    <div class="fixed top-16 right-4 flex items-center gap-2 bg-white rounded-full shadow-lg px-3 py-2 text-sm hidden" id="offline-indicator">
+        <div class="w-2 h-2 bg-orange-500 rounded-full"></div>
+        <span class="text-gray-700">Offline</span>
+    </div>
+
+    <script>
+        // Track active tags
+        let activeScheduleTags = new Set();
+
+        function toggleScheduleTag(button) {
+            const tag = button.dataset.tag;
+
+            if (activeScheduleTags.has(tag)) {
+                // Deselect
+                activeScheduleTags.delete(tag);
+                button.classList.remove('bg-blue-100', 'text-blue-800', 'border-blue-500');
+                button.classList.add('bg-gray-100', 'text-gray-600', 'border-transparent');
+                button.textContent = tag;
+            } else {
+                // Select
+                activeScheduleTags.add(tag);
+                button.classList.remove('bg-gray-100', 'text-gray-600', 'border-transparent');
+                button.classList.add('bg-blue-100', 'text-blue-800', 'border-blue-500');
+                button.textContent = tag + ' ✓';
+            }
+
+            // Update filter count
+            document.getElementById('tag-filter-count').textContent = activeScheduleTags.size;
+
+            // Apply filters
+            applyFilters();
+        }
+
+        function clearAllScheduleTags() {
+            // Deselect all tags
+            const tagButtons = document.querySelectorAll('.tag-filter');
+            tagButtons.forEach(button => {
+                const tag = button.dataset.tag;
+                if (activeScheduleTags.has(tag)) {
+                    activeScheduleTags.delete(tag);
+                    button.classList.remove('bg-blue-100', 'text-blue-800', 'border-blue-500');
+                    button.classList.add('bg-gray-100', 'text-gray-600', 'border-transparent');
+                    button.textContent = tag;
+                }
+            });
+
+            // Update UI
+            document.getElementById('tag-filter-count').textContent = '0';
+            applyFilters();
+        }
+
+        function toggleRSVPFilter() {
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const toggle = document.getElementById('rsvp-toggle');
+            const events = document.querySelectorAll('[data-rsvped]');
+            const dayHeaders = document.querySelectorAll('h2.text-lg');
+            const emptyState = document.getElementById('empty-state');
+            let visibleCount = 0;
+
+            events.forEach(event => {
+                let shouldShow = true;
+
+                // RSVP filter
+                if (toggle.checked && event.dataset.rsvped !== 'true') {
+                    shouldShow = false;
+                }
+
+                // Tag filter (OR logic)
+                if (shouldShow && activeScheduleTags.size > 0) {
+                    const eventTags = event.dataset.tags ? event.dataset.tags.split(',') : [];
+                    const hasMatchingTag = eventTags.some(tag => activeScheduleTags.has(tag.trim()));
+                    if (!hasMatchingTag) {
+                        shouldShow = false;
+                    }
+                }
+
+                if (shouldShow) {
+                    event.style.display = 'block';
+                    visibleCount++;
+                } else {
+                    event.style.display = 'none';
+                }
+            });
+
+            // Hide day headers that have no visible events
+            dayHeaders.forEach(header => {
+                const nextElement = header.nextElementSibling;
+                if (nextElement && nextElement.classList.contains('space-y-3')) {
+                    const visibleEvents = Array.from(nextElement.children).filter(
+                        child => child.style.display !== 'none'
+                    );
+
+                    if (visibleEvents.length === 0) {
+                        header.style.display = 'none';
+                    } else {
+                        header.style.display = 'flex';
+                    }
+                }
+            });
+
+            // Show/hide empty state with contextual message
+            if (visibleCount === 0) {
+                emptyState.classList.remove('hidden');
+                const emptyTitle = document.getElementById('empty-state-title');
+                const emptyDesc = document.getElementById('empty-state-description');
+
+                if (toggle.checked && activeScheduleTags.size > 0) {
+                    emptyTitle.textContent = 'No RSVPed events match your filters';
+                    emptyDesc.textContent = 'Try clearing filters or RSVP to more events';
+                } else if (toggle.checked) {
+                    emptyTitle.textContent = 'No RSVPed events found';
+                    emptyDesc.textContent = 'RSVP to workshops to see them here';
+                } else if (activeScheduleTags.size > 0) {
+                    emptyTitle.textContent = 'No events match your selected topics';
+                    emptyDesc.textContent = 'Try selecting different topics or clear filters';
+                } else {
+                    emptyTitle.textContent = 'No events found';
+                    emptyDesc.textContent = 'Check back later for updates';
+                }
+            } else {
+                emptyState.classList.add('hidden');
+            }
+
+            // Hide FAB when filtering by RSVP only
+            const fab = document.querySelector('.fixed.bottom-6');
+            if (toggle.checked) {
+                fab.style.display = 'none';
+            } else {
+                fab.style.display = 'flex';
+            }
+        }
+
+        // Update RSVP count on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const rsvpedEvents = document.querySelectorAll('[data-rsvped="true"]');
+            document.getElementById('rsvp-count').textContent = `(${rsvpedEvents.length})`;
+        });
+    </script>
+</body>
+</html>

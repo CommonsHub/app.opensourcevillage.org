@@ -1,0 +1,142 @@
+'use client';
+
+/**
+ * TopBar Component
+ *
+ * Global navigation bar displayed at the top of all pages.
+ * - Left: Hamburger menu
+ * - Center: Dynamic page title (or site name on home)
+ * - Right: User balance and avatar (links to profile)
+ */
+
+import { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import UserHeader from './UserHeader';
+
+// Map routes to page titles
+const PAGE_TITLES: Record<string, string> = {
+  '/': 'Open Source Village',
+  '/calendar': 'Calendar',
+  '/marketplace': 'Marketplace',
+  '/offers/create': 'Propose Workshop',
+  '/notifications': 'Notifications',
+  '/settings': 'Settings',
+  '/profile/edit': 'Edit Profile',
+  '/badge': 'Claim Badge',
+  '/transactions': 'Transactions',
+  '/onboarding': 'Welcome',
+};
+
+// Get title for dynamic routes
+function getPageTitle(pathname: string): string {
+  // Check exact match first
+  if (PAGE_TITLES[pathname]) {
+    return PAGE_TITLES[pathname];
+  }
+
+  // Handle dynamic routes
+  if (pathname.startsWith('/calendar/')) {
+    return 'Calendar';
+  }
+  if (pathname.startsWith('/profile/')) {
+    return 'Profile';
+  }
+  if (pathname.startsWith('/offers/') && pathname.endsWith('/edit')) {
+    return 'Edit Workshop';
+  }
+  if (pathname.startsWith('/offers/')) {
+    return 'Workshop Details';
+  }
+  if (pathname.startsWith('/rooms/')) {
+    return 'Room Details';
+  }
+
+  // Default to site name
+  return 'Open Source Village';
+}
+
+export default function TopBar() {
+  const pathname = usePathname();
+  const [menuOpen, setMenuOpen] = useState(false);
+
+  const pageTitle = getPageTitle(pathname);
+  const isHome = pathname === '/';
+
+  const menuItems = [
+    { href: '/', label: 'Home' },
+    { href: '/calendar', label: 'Calendar' },
+    { href: '/marketplace', label: 'Marketplace' },
+    { href: '/offers/create', label: 'Propose Workshop' },
+    { href: '/notifications', label: 'Notifications' },
+    { href: '/settings', label: 'Settings' },
+  ];
+
+  return (
+    <>
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+          {/* Left: Hamburger menu */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors"
+            aria-label="Toggle menu"
+          >
+            <svg
+              className="w-6 h-6 text-gray-700"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              {menuOpen ? (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              ) : (
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              )}
+            </svg>
+          </button>
+
+          {/* Center: Page Title */}
+          {isHome ? (
+            <span className="text-lg font-semibold text-gray-900">{pageTitle}</span>
+          ) : (
+            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <span className="text-lg font-semibold text-gray-900">{pageTitle}</span>
+            </Link>
+          )}
+
+          {/* Right: User info */}
+          <UserHeader />
+        </div>
+      </header>
+
+      {/* Dropdown menu */}
+      {menuOpen && (
+        <nav className="bg-white border-b border-gray-200 shadow-lg">
+          <div className="max-w-4xl mx-auto px-4 py-2">
+            {menuItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={() => setMenuOpen(false)}
+                className="block py-3 px-2 text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </nav>
+      )}
+    </>
+  );
+}

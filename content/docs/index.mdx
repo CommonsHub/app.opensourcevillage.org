@@ -1,0 +1,46 @@
+# Open Source Village
+
+Welcome to the Open Source Village documentation. This application powers community gatherings where participants can create offers, RSVP to events, and exchange tokens.
+
+## Features
+
+- **Badge-based Identity**: NFC badges linked to NOSTR identities
+- **Token Economy**: Community tokens for offers and RSVPs
+- **NOSTR Integration**: Decentralized event publishing and messaging
+- **Calendar Events**: NIP-52 compliant calendar events
+- **Closed Groups**: NIP-29 private groups for attendees
+
+## Quick Links
+
+- [Installation Guide](/docs/installation) - Get started with development
+- [Core Concepts](/docs/concepts) - Understand how the app works
+- [API Reference](/docs/api) - Explore the API endpoints
+- [FAQ](/docs/faq) - Common questions answered
+
+## Architecture Overview
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    Next.js App                          │
+├─────────────────────────────────────────────────────────┤
+│  Pages        │  API Routes      │  Components          │
+│  - /badge     │  - /api/claim    │  - Avatar            │
+│  - /profile   │  - /api/profile  │  - DebugInfo         │
+│  - /calendar  │  - /api/offers   │  - ErrorBoundary     │
+│  - /settings  │  - /api/rsvp     │  - NotificationBadge │
+└───────┬───────┴────────┬─────────┴──────────────────────┘
+        │                │
+        ▼                ▼
+┌───────────────┐  ┌─────────────────┐  ┌──────────────────┐
+│  File Storage │  │  NOSTR Relays   │  │  Token Factory   │
+│  data/npubs/  │  │  (NIP-29/52)    │  │  (ERC20 tokens)  │
+└───────────────┘  └─────────────────┘  └──────────────────┘
+```
+
+## Technology Stack
+
+- **Frontend**: Next.js 16, React 18, TailwindCSS
+- **Backend**: Next.js API Routes, File-based storage
+- **Identity**: NOSTR protocol (nostr-tools)
+- **Tokens**: ERC20 via @opencollective/token-factory
+- **Styling**: TailwindCSS with custom components

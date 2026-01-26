@@ -1,0 +1,135 @@
+# Wallet API
+
+Endpoints for wallet and token operations.
+
+## GET /api/wallet/status
+
+Get server wallet status and token information.
+
+### Response
+
+```json
+{
+  "success": true,
+  "wallet": {
+    "address": "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
+    "balance": "9999926964917464155004",
+    "balanceFormatted": "9999.93",
+    "chain": "localhost",
+    "chainName": "Localhost",
+    "nativeCurrency": "ETH",
+    "explorerUrl": "https://etherscan.io/address/0x...",
+    "hasEnoughBalance": true
+  },
+  "token": {
+    "address": "0x5FbDB2315678afecb367f032d93F642f64180aa3",
+    "name": "OSV Token",
+    "symbol": "OSV",
+    "decimals": 18,
+    "chain": "localhost"
+  }
+}
+```
+
+## GET /api/balance/:npub
+
+Get token balance for a user.
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `npub` | string | User's NOSTR public key |
+
+### Response
+
+```json
+{
+  "success": true,
+  "balance": {
+    "confirmed": 45,
+    "pending": 5,
+    "total": 50
+  },
+  "walletAddress": "0x..."
+}
+```
+
+## GET /api/wallet/address/:npub
+
+Get the derived wallet address for an npub.
+
+### Response
+
+```json
+{
+  "success": true,
+  "npub": "npub1...",
+  "address": "0x...",
+  "chain": "localhost"
+}
+```
+
+## POST /api/wallet/deploy-token
+
+Deploy a new ERC20 token (admin only).
+
+### Request
+
+```json
+{
+  "name": "OSV Token",
+  "symbol": "OSV",
+  "initialSupply": 1000000
+}
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "token": {
+    "address": "0x...",
+    "name": "OSV Token",
+    "symbol": "OSV",
+    "transactionHash": "0x..."
+  }
+}
+```
+
+## Token Economics
+
+### Default Settings
+
+From `settings.json`:
+
+```json
+{
+  "tokenEconomics": {
+    "initialBalance": 50,
+    "offerCreationCost": 1,
+    "rsvpCost": 1,
+    "claimCost": 1
+  }
+}
+```
+
+### Token Flow
+
+| Action | Tokens |
+|--------|--------|
+| Badge claim | +50 (mint) |
+| Create offer | -1 (burn) |
+| RSVP to offer | -1 (transfer to author) |
+| Cancel RSVP | +1 (refund) |
+
+### Supported Chains
+
+| Chain | ID | Explorer |
+|-------|-----|----------|
+| localhost | 31337 | - |
+| gnosis | 100 | gnosisscan.io |
+| gnosis_chiado | 10200 | gnosis-chiado.blockscout.com |
+| base | 8453 | basescan.org |
+| base_sepolia | 84532 | sepolia.basescan.org |

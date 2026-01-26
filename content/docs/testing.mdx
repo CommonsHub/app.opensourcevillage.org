@@ -1,0 +1,209 @@
+# Testing
+
+Guide to running and writing tests for Open Source Village.
+
+## Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test file
+npm test -- src/lib/__tests__/storage.test.ts
+
+# Run tests in watch mode
+npm test -- --watch
+
+# Run with coverage
+npm test -- --coverage
+```
+
+## Test Structure
+
+Tests are organized by layer:
+
+```
+src/
+├── lib/__tests__/           # Library/utility tests
+│   ├── storage.test.ts      # Storage layer
+│   ├── nostr-events.test.ts # NOSTR event creation
+│   ├── nostr-validation.test.ts
+│   ├── api-utils.test.ts
+│   └── ...
+├── app/api/__tests__/       # API route tests
+│   ├── offers/route.test.ts
+│   ├── profile/route.test.ts
+│   └── ...
+└── ...
+tests/                       # Integration tests
+└── badge.claim.test.ts
+```
+
+## Test Categories
+
+### Storage Layer Tests
+
+Tests for file-based storage operations.
+
+```typescript
+// src/lib/__tests__/storage.test.ts
+describe('Storage Layer', () => {
+  describe('setupBadge', () => {
+    it('should add serial number to whitelist.txt', async () => {
+      const result = await setupBadge('BADGE-001');
+      expect(result.alreadyExists).toBe(false);
+      // Verify whitelist contains the serial
+    });
+  });
+});
+```
+
+**What's tested:**
+- Profile creation/retrieval
+- Username uniqueness
+- Badge whitelist operations
+- Symlink creation
+- Blockchain queue operations
+
+### NOSTR Event Tests
+
+Tests for NOSTR event creation and validation.
+
+```typescript
+// src/lib/__tests__/nostr-events.test.ts
+describe('NOSTR Events', () => {
+  it('should create valid profile event', () => {
+    const event = createProfileEvent(secretKey, {
+      name: 'Alice',
+      about: 'Developer',
+    });
+    expect(event.kind).toBe(0);
+    expect(verifyEvent(event)).toBe(true);
+  });
+});
+```
+
+**What's tested:**
+- Event creation (kinds 0, 1, 7, 9734, 9735)
+- Event signing
+- Signature verification
+- NIP compliance
+
+### API Route Tests
+
+Tests for HTTP API endpoints.
+
+```typescript
+// src/app/api/offers/__tests__/route.test.ts
+describe('Offers API', () => {
+  it('should create an offer', async () => {
+    const request = new NextRequest('/api/offers', {
+      method: 'POST',
+      body: JSON.stringify({ title: 'Workshop' }),
+    });
+    const response = await POST(request);
+    expect(response.status).toBe(200);
+  });
+});
+```
+
+### Integration Tests
+
+End-to-end tests for complete workflows.
+
+```typescript
+// tests/badge.claim.test.ts
+describe('Badge Claim Flow', () => {
+  it('should claim a badge and create profile', async () => {
+    // Setup badge
+    await setupBadge('TEST-001');
+
+    // Claim badge
+    const response = await claimBadge({
+      serialNumber: 'TEST-001',
+      username: 'alice',
+      npub: 'npub1...',
+    });
+
+    expect(response.success).toBe(true);
+    expect(response.profile.username).toBe('alice');
+  });
+});
+```
+
+## Writing Tests
+
+### Test Data Directory
+
+Tests use isolated data directories to avoid conflicts:
+
+```typescript
+const TEST_DATA_DIR = path.join(process.cwd(), 'test-data');
+process.env.DATA_DIR = TEST_DATA_DIR;
+
+beforeEach(async () => {
+  await fs.rm(TEST_DATA_DIR, { recursive: true, force: true });
+  await fs.mkdir(TEST_DATA_DIR, { recursive: true });
+});
+
+afterEach(async () => {
+  await fs.rm(TEST_DATA_DIR, { recursive: true, force: true });
+});
+```
+
+### Generating Test Keys
+
+```typescript
+import { generateSecretKey, getPublicKey, nip19 } from 'nostr-tools';
+
+function generateTestKeys() {
+  const secretKey = generateSecretKey();
+  const publicKey = getPublicKey(secretKey);
+  return {
+    secretKey,
+    publicKey,
+    nsec: nip19.nsecEncode(secretKey),
+    npub: nip19.npubEncode(publicKey),
+  };
+}
+```
+
+### Mocking NOSTR Relays
+
+For tests that don't need real relay connections:
+
+```typescript
+jest.mock('@/lib/nostr-publisher', () => ({
+  publishNostrEvent: jest.fn().mockResolvedValue({
+    published: ['wss://test.relay'],
+    failed: [],
+  }),
+}));
+```
+
+## Common Issues
+
+### Request not defined
+
+Some tests fail with "Request is not defined" in the test environment. This is a known issue with Next.js API route testing.
+
+**Workaround:** Use `@jest-environment node` directive or mock NextRequest.
+
+### WebSocket errors
+
+Tests involving WebSocket connections may fail. Mock the relay connections:
+
+```typescript
+jest.mock('ws', () => ({
+  WebSocket: jest.fn(),
+}));
+```
+
+## Coverage Goals
+
+| Area | Target |
+|------|--------|
+| Storage layer | 90%+ |
+| NOSTR events | 85%+ |
+| API routes | 80%+ |
+| Components | 70%+ |

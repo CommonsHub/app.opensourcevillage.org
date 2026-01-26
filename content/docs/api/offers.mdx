@@ -1,0 +1,125 @@
+# Offers API
+
+Endpoints for managing workshop and talk offers.
+
+## GET /api/offers
+
+List all offers.
+
+### Query Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `tag` | string | Filter by tag |
+| `author` | string | Filter by author npub |
+| `limit` | number | Max results (default: 50) |
+| `offset` | number | Pagination offset |
+
+### Response
+
+```json
+{
+  "success": true,
+  "offers": [
+    {
+      "id": "offer-123",
+      "title": "Introduction to NOSTR",
+      "description": "Learn the basics of the NOSTR protocol",
+      "authorNpub": "npub1...",
+      "authorUsername": "alice",
+      "tags": ["nostr", "workshop"],
+      "capacity": 20,
+      "rsvpCount": 5,
+      "startTime": "2026-01-26T14:00:00Z",
+      "endTime": "2026-01-26T15:00:00Z",
+      "createdAt": "2026-01-22T10:00:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+## POST /api/offers
+
+Create a new offer.
+
+### Request
+
+```json
+{
+  "title": "Introduction to NOSTR",
+  "description": "Learn the basics of the NOSTR protocol",
+  "tags": ["nostr", "workshop"],
+  "capacity": 20,
+  "startTime": "2026-01-26T14:00:00Z",
+  "endTime": "2026-01-26T15:00:00Z",
+  "event": {
+    "id": "...",
+    "pubkey": "...",
+    "kind": 31923,
+    "content": "...",
+    "tags": [...],
+    "created_at": 1706000000,
+    "sig": "..."
+  }
+}
+```
+
+### Parameters
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `title` | string | Yes | Offer title |
+| `description` | string | No | Detailed description |
+| `tags` | string[] | No | Categorization tags |
+| `capacity` | number | No | Max attendees |
+| `startTime` | string | No | ISO datetime |
+| `endTime` | string | No | ISO datetime |
+| `event` | NostrEvent | Yes | Signed kind:31923 event |
+
+### Response
+
+```json
+{
+  "success": true,
+  "offer": {
+    "id": "offer-123",
+    "title": "Introduction to NOSTR",
+    ...
+  }
+}
+```
+
+### Errors
+
+| Status | Error | Description |
+|--------|-------|-------------|
+| 400 | Missing required fields | Title or event missing |
+| 400 | Insufficient balance | Not enough tokens |
+| 403 | Not authorized | Invalid signature |
+
+## GET /api/offers/:id
+
+Get offer details.
+
+### Response
+
+```json
+{
+  "success": true,
+  "offer": {
+    "id": "offer-123",
+    "title": "Introduction to NOSTR",
+    "description": "...",
+    "authorNpub": "npub1...",
+    "authorUsername": "alice",
+    "rsvps": [
+      {
+        "npub": "npub1...",
+        "username": "bob",
+        "createdAt": "2026-01-22T11:00:00Z"
+      }
+    ]
+  }
+}
+```

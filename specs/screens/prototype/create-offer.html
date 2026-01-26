@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Offer - Open Source Village</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Top App Bar -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <button class="text-gray-600 hover:text-gray-900" onclick="window.location.href='calendar.html'">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+                <h1 class="font-semibold text-gray-900">Create Offer</h1>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Balance & Avatar -->
+                <a href="profile-edit.html" class="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1 transition">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs font-semibold text-gray-900">47</p>
+                        <p class="text-xs text-gray-500 -mt-0.5">tokens</p>
+                    </div>
+                    <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                        A
+                    </div>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Form Content -->
+    <main class="max-w-2xl mx-auto px-4 py-6">
+        <form class="bg-white rounded-lg shadow-sm p-6 space-y-6">
+            <!-- Type Selection -->
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-3">Type:</label>
+                <div class="flex gap-4">
+                    <label class="flex items-center">
+                        <input type="radio" name="type" value="workshop" class="mr-2" onchange="toggleScheduleSection(true)" checked>
+                        <span class="text-sm">Workshop</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="type" value="1:1" class="mr-2" onchange="toggleScheduleSection(true)">
+                        <span class="text-sm">1:1</span>
+                    </label>
+                    <label class="flex items-center">
+                        <input type="radio" name="type" value="other" class="mr-2" onchange="toggleScheduleSection(false)">
+                        <span class="text-sm">Other</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Title -->
+            <div>
+                <label for="title" class="block text-sm font-medium text-gray-700 mb-1">
+                    Title <span class="text-red-500">*</span>
+                </label>
+                <input
+                    type="text"
+                    id="title"
+                    maxlength="100"
+                    placeholder="Intro to NOSTR Protocol"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                >
+                <p class="text-xs text-gray-500 mt-1">0/100 characters</p>
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label for="description" class="block text-sm font-medium text-gray-700 mb-1">
+                    Description <span class="text-red-500">*</span>
+                </label>
+                <textarea
+                    id="description"
+                    rows="4"
+                    maxlength="1000"
+                    placeholder="Learn the basics of NOSTR protocol, how it works, and how to build applications..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                    required
+                ></textarea>
+                <p class="text-xs text-gray-500 mt-1">0/1000 characters</p>
+            </div>
+
+            <!-- Tags -->
+            <div>
+                <label for="tags" class="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                <input
+                    type="text"
+                    id="tags"
+                    placeholder="Start typing..."
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                <div class="flex flex-wrap gap-2 mt-2">
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">web3</span>
+                    <span class="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">workshop</span>
+                </div>
+                <p class="text-xs text-gray-500 mt-2">Suggested: workshop, talk, 1:1, ai, open-source</p>
+            </div>
+
+            <!-- Schedule Section (collapsible) -->
+            <div id="schedule-section">
+                <details open class="border border-gray-200 rounded-lg">
+                    <summary class="px-4 py-3 cursor-pointer font-medium text-gray-900 bg-gray-50 rounded-t-lg">
+                        Schedule
+                    </summary>
+                    <div class="p-4 space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label for="date" class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                                <input
+                                    type="date"
+                                    id="date"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                            </div>
+                            <div>
+                                <label for="time" class="block text-sm font-medium text-gray-700 mb-1">Time</label>
+                                <input
+                                    type="time"
+                                    id="time"
+                                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                >
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="duration" class="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                            <input
+                                type="number"
+                                id="duration"
+                                value="60"
+                                min="15"
+                                max="480"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                        </div>
+
+                        <div>
+                            <label for="location" class="block text-sm font-medium text-gray-700 mb-1">Location</label>
+                            <select
+                                id="location"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                                <option>Select a room</option>
+                                <option>Main Hall</option>
+                                <option>Room A</option>
+                                <option>Room B</option>
+                                <option>Room C</option>
+                            </select>
+                        </div>
+                    </div>
+                </details>
+            </div>
+
+            <!-- Attendance -->
+            <details class="border border-gray-200 rounded-lg">
+                <summary class="px-4 py-3 cursor-pointer font-medium text-gray-900 bg-gray-50 rounded-t-lg">
+                    Attendance
+                </summary>
+                <div class="p-4 space-y-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label for="min" class="block text-sm font-medium text-gray-700 mb-1">Min (optional)</label>
+                            <input
+                                type="number"
+                                id="min"
+                                placeholder="5"
+                                min="1"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                        </div>
+                        <div>
+                            <label for="max" class="block text-sm font-medium text-gray-700 mb-1">Max (optional)</label>
+                            <input
+                                type="number"
+                                id="max"
+                                placeholder="20"
+                                min="1"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            >
+                        </div>
+                    </div>
+                </div>
+            </details>
+
+            <!-- Co-authors -->
+            <details class="border border-gray-200 rounded-lg">
+                <summary class="px-4 py-3 cursor-pointer font-medium text-gray-900 bg-gray-50 rounded-t-lg">
+                    Co-authors
+                </summary>
+                <div class="p-4 space-y-4">
+                    <input
+                        type="text"
+                        placeholder="Search users..."
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                    <div class="flex items-center gap-2">
+                        <div class="w-8 h-8 bg-gradient-to-br from-blue-400 to-cyan-400 rounded-full"></div>
+                        <span class="text-sm text-gray-700">@bob</span>
+                        <button class="ml-auto text-red-600 hover:text-red-700">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500">Tokens will be split equally among all authors</p>
+                </div>
+            </details>
+
+            <!-- Price -->
+            <div>
+                <label for="price" class="block text-sm font-medium text-gray-700 mb-1">Price (tokens per person)</label>
+                <input
+                    type="number"
+                    id="price"
+                    value="1"
+                    min="0"
+                    max="100"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+            </div>
+
+            <!-- Cost Summary -->
+            <div class="border-t border-gray-200 pt-4">
+                <div class="bg-blue-50 rounded-lg p-4 mb-4">
+                    <p class="text-sm text-gray-700">
+                        <span class="font-semibold">Creating costs:</span>
+                        <span class="text-lg font-bold text-blue-600">1 token</span>
+                    </p>
+                    <p class="text-sm text-gray-600 mt-1">
+                        Your balance: <span class="font-medium">47 tokens</span>
+                    </p>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-3">
+                    <button
+                        type="button"
+                        class="flex-1 bg-gray-200 text-gray-700 font-semibold py-3 px-4 rounded-lg hover:bg-gray-300 transition"
+                        onclick="window.location.href='calendar.html'"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        type="submit"
+                        class="flex-1 bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
+                        onclick="alert('Offer created! Status: Pending'); window.location.href='calendar.html'; return false;"
+                    >
+                        Create Offer
+                    </button>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <script>
+        function toggleScheduleSection(show) {
+            const section = document.getElementById('schedule-section');
+            if (show) {
+                section.classList.remove('hidden');
+            } else {
+                section.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>

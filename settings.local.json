@@ -1,0 +1,40 @@
+{
+  "eventName": "Open Source Village 2026",
+  "eventDates": {
+    "start": "2026-01-26",
+    "end": "2026-02-06"
+  },
+  "tokenEconomics": {
+    "initialBalance": 50,
+    "offerCreationCost": 1,
+    "rsvpCost": 1,
+    "claimCost": 1
+  },
+  "nostrRelays": [
+    "ws://localhost:3334"
+  ],
+  "suggestedTags": [
+    "web3",
+    "ai",
+    "open-source",
+    "community",
+    "workshop",
+    "talk",
+    "1:1"
+  ],
+  "nip29Group": {
+    "id": "osv-2026-dev",
+    "name": "Open Source Village 2026 (dev)",
+    "description": "Closed group for Open Source Village 2026 attendees (development environment)",
+    "isPrivate": true,
+    "isClosed": true
+  },
+  "rooms": [],
+  "token": {
+    "address": "0x2E70c02060Fc87009Be2f5C94591f6df4Bc4873e",
+    "name": "Open Source Village Token",
+    "symbol": "OSV",
+    "chain": "localhost",
+    "deployedAt": "2026-01-22T21:55:33.008Z"
+  }
+}

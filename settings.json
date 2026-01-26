@@ -1,0 +1,108 @@
+{
+  "eventName": "Open Source Village 2026",
+  "timezone": "Europe/Brussels",
+  "eventDates": {
+    "start": "2026-01-26",
+    "end": "2026-02-06"
+  },
+  "tokenEconomics": {
+    "initialBalance": 50,
+    "offerCreationCost": 1,
+    "proposalBurnCost": 1,
+    "rsvpCost": 1,
+    "claimCost": 1
+  },
+  "defaults": {
+    "workshops": {
+      "attendees": {
+        "min": 1,
+        "max": 10
+      }
+    }
+  },
+  "token": {
+    "address": "0xA241150B16Aa6d1E83F3309E9d9F7C53BdE2DeA4",
+    "name": "Open Source Village Token",
+    "symbol": "OSV",
+    "chain": "gnosis_chiado",
+    "deployedAt": "2026-01-24T10:46:26.477Z"
+  },
+  "nostrRelays": [
+    "wss://relay.opensourcevillage.org"
+  ],
+  "notificationRelays": [
+    "ws://localhost:3334",
+    "wss://relay.damus.io",
+    "wss://nos.lol",
+    "wss://relay.primal.net"
+  ],
+  "suggestedTags": [
+    "web3",
+    "ai",
+    "open-source",
+    "community",
+    "workshop",
+    "talk",
+    "1:1"
+  ],
+  "nip29Group": {
+    "id": "osv-2026-dev",
+    "name": "Open Source Village 2026 (dev)",
+    "description": "Closed group for Open Source Village 2026 attendees (development environment)",
+    "isPrivate": true,
+    "isClosed": true
+  },
+  "rooms": [
+    {
+      "name": "Ostrom Room",
+      "slug": "ostrom",
+      "hourlyCost": 3,
+      "calendarId": "c_72861dcac23416de3fe708f857f5c74f2e2578fe7da94dcee0a55922734417ef@group.calendar.google.com",
+      "capacity": 80,
+      "location": "2nd floor, main room",
+      "furniture": "chairs, podium, large TV, sound system, microphones, boxes",
+      "image": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=lg&w=3840",
+      "thumbnail": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=sm"
+    },
+    {
+      "name": "Satoshi Room",
+      "hourlyCost": 2,
+      "slug": "satoshi",
+      "calendarId": "c_fce54b1bddc311791897f8a8723d0b10d7e3b69ea520baee0d267ce9d3266068@group.calendar.google.com",
+      "capacity": 15,
+      "location": "2nd floor, across the bridge",
+      "furniture": "3 tables, 15 chairs, flipchart",
+      "image": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=lg&w=3840",
+      "thumbnail": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=sm"
+    },
+    {
+      "name": "Angel Room",
+      "slug": "angel",
+      "hourlyCost": 1,
+      "calendarId": "c_3950a43f7dcd7c13415ca8d85ec6f96daffa9baf952ea653a063d03f22a5a6fe@group.calendar.google.com",
+      "capacity": 12,
+      "location": "2nd floor, in the back",
+      "image": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=lg&w=3840",
+      "thumbnail": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=sm"
+    },
+    {
+      "name": "Mush Room",
+      "slug": "mushroom",
+      "calendarId": "c_928d7621e14426ed508df906a7881dafc079757b44cea074d2434b405f86df7a@group.calendar.google.com",
+      "hourlyCost": 1,
+      "capacity": 10,
+      "location": "1st floor in the back (mezzanine)",
+      "furniture": "8 chairs",
+      "image": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=lg&w=3840",
+      "thumbnail": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=sm"
+    },
+    {
+      "name": "Phone Booth",
+      "slug": "phonebooth",
+      "calendarId": "c_d85b07cd944c033724c8b4adbea66840619181e445e2e6c8062cc0f761f15218@group.calendar.google.com",
+      "hourlyCost": 1,
+      "capacity": 1,
+      "location": "Various"
+    }
+  ]
+}

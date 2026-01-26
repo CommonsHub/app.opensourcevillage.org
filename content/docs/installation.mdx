@@ -1,0 +1,146 @@
+# Installation
+
+Get started with Open Source Village development.
+
+## Prerequisites
+
+- Node.js 18+ (recommended: 20+)
+- npm or bun
+- A NOSTR relay (or use public relays)
+- Optional: Local blockchain node for token features
+
+## Quick Start
+
+```bash
+# Clone the repository
+git clone https://github.com/commonshub/app.opensourcevillage.org.git
+cd app.opensourcevillage.org
+
+# Install dependencies
+npm install
+
+# Copy environment template
+cp .env.example .env
+
+# Start development server
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000) to see the app.
+
+## Environment Variables
+
+### Required
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `NOSTR_NSEC` | Server's NOSTR secret key | `nsec1...` |
+| `PRIVATE_KEY` | Ethereum private key for token operations | `0x...` |
+
+### Optional
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `DATA_DIR` | Directory for file storage | `./data` |
+| `CHAIN` | Blockchain network | `localhost` |
+
+### Generating Keys
+
+**NOSTR Key:**
+```bash
+# Using nostr-tools or any NOSTR key generator
+npx nostr-tools generate-key
+```
+
+**Ethereum Key:**
+```bash
+# For development, use Anvil's default key
+PRIVATE_KEY=0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80
+```
+
+## Configuration
+
+### settings.json
+
+The app reads configuration from `settings.json`:
+
+```json
+{
+  "eventName": "Open Source Village 2026",
+  "eventDates": {
+    "start": "2026-01-26",
+    "end": "2026-02-06"
+  },
+  "tokenEconomics": {
+    "initialBalance": 50,
+    "offerCreationCost": 1,
+    "rsvpCost": 1
+  },
+  "nostrRelays": [
+    "wss://nostr.commonshub.brussels"
+  ],
+  "nip29Group": {
+    "id": "osv-2026",
+    "name": "Open Source Village 2026",
+    "isPrivate": true,
+    "isClosed": true
+  }
+}
+```
+
+## Running with Token Features
+
+For full token functionality, you need a local blockchain node:
+
+```bash
+# Terminal 1: Start local node (using Anvil from Foundry)
+anvil
+
+# Terminal 2: Start the app
+npm run dev
+```
+
+The app will automatically detect the local node and use it for token operations.
+
+## Project Structure
+
+```
+├── content/docs/       # Documentation (MDX)
+├── docs/generated/     # Auto-generated docs
+├── src/
+│   ├── app/           # Next.js App Router pages
+│   │   ├── api/       # API routes
+│   │   ├── badge/     # Badge claim page
+│   │   ├── calendar/  # Calendar page
+│   │   ├── profile/   # Profile pages
+│   │   └── ...
+│   ├── components/    # React components
+│   ├── hooks/         # Custom React hooks
+│   ├── lib/           # Utility libraries
+│   └── types/         # TypeScript types
+├── data/              # File storage (gitignored)
+├── scripts/           # CLI scripts
+└── settings.json      # App configuration
+```
+
+## Troubleshooting
+
+### Port already in use
+
+```bash
+# Find and kill the process
+lsof -i :3000
+kill -9 <PID>
+```
+
+### Environment variables not loading
+
+1. Ensure `.env` exists in project root
+2. Restart the dev server after changes
+3. Check file is not in `.gitignore` (`.env.local` is preferred)
+
+### NOSTR connection issues
+
+- Verify relay URL is correct (wss://, not https://)
+- Check relay is online and accepting connections
+- Review console logs for connection errors

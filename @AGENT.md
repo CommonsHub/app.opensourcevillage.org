@@ -1,49 +1,65 @@
 # Agent Build Instructions
 
+## Project Overview
+Open Source Village is a Next.js 14 application with TypeScript, using Bun as the package manager.
+- **Frontend**: Next.js 14 with React 18, Tailwind CSS
+- **Backend**: Next.js API routes
+- **Package Manager**: Bun (fast alternative to npm/yarn)
+- **Storage**: File-based with JSON/JSONL files
+- **Testing**: Jest with React Testing Library
+
 ## Project Setup
 ```bash
-# Install dependencies (example for Node.js project)
-npm install
+# Install Bun (if not already installed)
+curl -fsSL https://bun.sh/install | bash
 
-# Or for Python project
-pip install -r requirements.txt
+# Install dependencies
+bun install
 
-# Or for Rust project  
-cargo build
+# Initialize data directories
+mkdir -p data/badges data/usernames data/logs
 ```
 
 ## Running Tests
 ```bash
-# Node.js
-npm test
+# Run all tests
+bun test
 
-# Python
-pytest
+# Run tests in watch mode
+bun test --watch
 
-# Rust
-cargo test
+# Run tests with coverage
+bun run test:coverage
 ```
 
 ## Build Commands
 ```bash
+# Development build and server
+bun dev
+
 # Production build
-npm run build
-# or
-cargo build --release
+bun run build
+
+# Start production server (after build)
+bun start
 ```
 
 ## Development Server
 ```bash
-# Start development server
-npm run dev
-# or
-cargo run
+# Start development server (hot reload enabled)
+bun dev
+
+# Server runs on http://localhost:3000
 ```
 
 ## Key Learnings
-- Update this section when you learn new build optimizations
-- Document any gotchas or special setup requirements
-- Keep track of the fastest test/build cycle
+- **Bun vs npm**: Bun is significantly faster for install and test execution
+- **File Storage**: Data directory structure follows specs/TECHNICAL_SPEC.md
+  - `data/badges/{serialNumber}/profile.json` - user profiles
+  - `data/usernames/{username}` - symlinks to badge directories
+  - `data/badges/{serialNumber}/queue.jsonl` - blockchain operation queue
+- **API Routes**: Located in `src/app/api/*` following Next.js 14 App Router conventions
+- **Type Safety**: All types defined in `src/types/index.ts` based on technical spec
 
 ## Feature Development Quality Standards
 
@@ -59,10 +75,7 @@ cargo run
   - End-to-end tests for critical user workflows
 - **Coverage Validation**: Run coverage reports before marking features complete:
   ```bash
-  # Examples by language/framework
-  npm run test:coverage
-  pytest --cov=src tests/ --cov-report=term-missing
-  cargo tarpaulin --out Html
+  bun run test:coverage
   ```
 - **Test Quality**: Tests must validate behavior, not just achieve coverage metrics
 - **Test Documentation**: Complex test scenarios must include comments explaining the test strategy

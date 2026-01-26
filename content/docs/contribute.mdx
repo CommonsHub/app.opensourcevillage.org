@@ -1,0 +1,147 @@
+# Contribute
+
+Help improve Open Source Village!
+
+## Ways to Contribute
+
+### Report Issues
+
+Found a bug? Have a suggestion?
+
+1. Check [existing issues](https://github.com/commonshub/app.opensourcevillage.org/issues)
+2. Create a new issue with details
+3. Include steps to reproduce bugs
+
+### Submit Code
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Write/update tests
+5. Submit a pull request
+
+## Development Setup
+
+```bash
+# Clone your fork
+git clone https://github.com/YOUR_USERNAME/app.opensourcevillage.org.git
+cd app.opensourcevillage.org
+
+# Install dependencies
+npm install
+
+# Create environment file
+cp .env.example .env
+
+# Start development
+npm run dev
+```
+
+## Code Guidelines
+
+### TypeScript
+
+- Use TypeScript for all new code
+- Define types in `src/types/`
+- Avoid `any` types
+
+### File Structure
+
+```
+src/
+├── app/          # Next.js pages and API routes
+├── components/   # React components
+├── hooks/        # Custom React hooks
+├── lib/          # Utility functions
+└── types/        # TypeScript types
+```
+
+### Naming Conventions
+
+- **Files**: kebab-case (`my-component.tsx`)
+- **Components**: PascalCase (`MyComponent`)
+- **Functions**: camelCase (`myFunction`)
+- **Constants**: UPPER_SNAKE_CASE (`MY_CONSTANT`)
+
+### Testing
+
+- Write tests for new features
+- Run `npm test` before submitting PR
+- Aim for good coverage on critical paths
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test file
+npm test -- src/lib/__tests__/storage.test.ts
+
+# Run with coverage
+npm test -- --coverage
+```
+
+## Pull Request Process
+
+1. **Branch naming**: `feature/my-feature` or `fix/bug-description`
+2. **Commit messages**: Clear, descriptive messages
+3. **Description**: Explain what and why
+4. **Tests**: Include tests for new functionality
+5. **Review**: Address feedback promptly
+
+### PR Template
+
+```markdown
+## Description
+Brief description of changes
+
+## Type of Change
+- [ ] Bug fix
+- [ ] New feature
+- [ ] Breaking change
+- [ ] Documentation update
+
+## Testing
+How was this tested?
+
+## Checklist
+- [ ] Tests pass
+- [ ] Code follows style guidelines
+- [ ] Documentation updated
+```
+
+## Documentation
+
+Help improve the docs:
+
+- Fix typos and unclear explanations
+- Add examples and use cases
+- Translate to other languages
+
+Documentation is in `content/docs/` using MDX format.
+
+## Community
+
+- **Discussions**: GitHub Discussions
+- **NOSTR**: Follow project updates
+- **Events**: Join Open Source Village events
+
+## Code of Conduct
+
+Be respectful and inclusive. We welcome contributors of all backgrounds and experience levels.
+
+### Guidelines
+
+- Be kind and considerate
+- Respect differing viewpoints
+- Accept constructive criticism
+- Focus on what's best for the community
+
+## Recognition
+
+Contributors are recognized in:
+
+- GitHub contributors list
+- Release notes
+- Project documentation
+
+Thank you for contributing!

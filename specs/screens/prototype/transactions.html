@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pending Transactions - Open Source Village</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Top App Bar -->
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <button class="text-gray-600 hover:text-gray-900" onclick="window.location.href='notifications.html'">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                    </svg>
+                </button>
+                <h1 class="font-semibold text-gray-900">Pending Transactions</h1>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <!-- Balance & Avatar -->
+                <a href="profile-edit.html" class="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1 transition">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-xs font-semibold text-gray-900">47</p>
+                        <p class="text-xs text-gray-500 -mt-0.5">tokens</p>
+                    </div>
+                    <div class="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                        A
+                    </div>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Summary -->
+    <div class="bg-white border-b border-gray-200">
+        <div class="max-w-2xl mx-auto px-4 py-3">
+            <p class="text-sm text-gray-700">
+                <span class="font-semibold text-blue-600">2 pending</span>
+                <span class="mx-2">•</span>
+                <span class="font-semibold text-gray-600">0 failed</span>
+            </p>
+        </div>
+    </div>
+
+    <!-- Transactions Content -->
+    <main class="max-w-2xl mx-auto px-4 py-4">
+        <!-- Pending Section -->
+        <h2 class="text-sm font-semibold text-gray-500 mb-3 flex items-center">
+            <span class="flex-1 border-t border-gray-300"></span>
+            <span class="px-3">Pending</span>
+            <span class="flex-1 border-t border-gray-300"></span>
+        </h2>
+
+        <div class="space-y-3 mb-6">
+            <!-- Pending Transaction 1 -->
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                        🔄
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900">Send 5 tokens</p>
+                        <p class="text-sm text-gray-700 mt-1">
+                            To: <a href="profile-public.html" class="text-blue-600 hover:text-blue-700">@alice</a>
+                        </p>
+                        <p class="text-sm text-gray-600 mt-1">"Great workshop!"</p>
+                        <p class="text-xs text-gray-500 mt-2">Queued 5 minutes ago</p>
+                        <a href="#" class="text-sm text-blue-600 hover:text-blue-700 mt-2 inline-flex items-center gap-1">
+                            View on Explorer
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Transaction 2 -->
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                        🔄
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900">RSVP Payment</p>
+                        <p class="text-sm text-gray-700 mt-1">
+                            To: <a href="#" class="text-blue-600 hover:text-blue-700">@bob</a>
+                            <span class="text-gray-500">and</span>
+                            <a href="#" class="text-blue-600 hover:text-blue-700">@charlie</a>
+                        </p>
+                        <p class="text-sm text-gray-600 mt-1">For: "Intro to NOSTR"</p>
+                        <p class="text-xs text-gray-500 mt-2">Queued 10 minutes ago</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Failed Section -->
+        <h2 class="text-sm font-semibold text-gray-500 mb-3 flex items-center">
+            <span class="flex-1 border-t border-gray-300"></span>
+            <span class="px-3">Failed</span>
+            <span class="flex-1 border-t border-gray-300"></span>
+        </h2>
+
+        <div class="bg-gray-100 rounded-lg p-8 text-center mb-6">
+            <p class="text-sm text-gray-600">No failed transactions</p>
+        </div>
+
+        <!-- Confirmed Section (Last 24h) -->
+        <h2 class="text-sm font-semibold text-gray-500 mb-3 flex items-center">
+            <span class="flex-1 border-t border-gray-300"></span>
+            <span class="px-3">Confirmed (Last 24h)</span>
+            <span class="flex-1 border-t border-gray-300"></span>
+        </h2>
+
+        <div class="space-y-3">
+            <!-- Confirmed Transaction 1 -->
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+                        ✓
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900">Received 2 tokens</p>
+                        <p class="text-sm text-gray-700 mt-1">
+                            From: <a href="#" class="text-blue-600 hover:text-blue-700">@bob</a>
+                        </p>
+                        <p class="text-xs text-gray-500 mt-2">Confirmed 2 hours ago</p>
+                        <a href="#" class="text-sm text-blue-600 hover:text-blue-700 mt-2 inline-flex items-center gap-1">
+                            View on Explorer
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirmed Transaction 2 -->
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+                        ✓
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900">Minted 50 tokens</p>
+                        <p class="text-sm text-gray-700 mt-1">Initial badge claim</p>
+                        <p class="text-xs text-gray-500 mt-2">Confirmed 6 hours ago</p>
+                        <a href="#" class="text-sm text-blue-600 hover:text-blue-700 mt-2 inline-flex items-center gap-1">
+                            View on Explorer
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Confirmed Refund -->
+            <div class="bg-white rounded-lg shadow-sm p-4">
+                <div class="flex items-start gap-3">
+                    <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center text-green-600">
+                        ✓
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-900">Refund: 1 token</p>
+                        <p class="text-sm text-gray-700 mt-1">
+                            Workshop cancelled: "Advanced React" by <a href="#" class="text-blue-600 hover:text-blue-700">@dana</a>
+                        </p>
+                        <p class="text-xs text-gray-500 mt-2">Confirmed 18 hours ago</p>
+                        <a href="#" class="text-sm text-blue-600 hover:text-blue-700 mt-2 inline-flex items-center gap-1">
+                            View on Explorer
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

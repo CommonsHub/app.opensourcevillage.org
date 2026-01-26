@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NFC Badge Setup - Open Source Village</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="max-w-2xl mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">NFC Badge Setup</h1>
+            <p class="text-gray-600">Use this tool to generate URLs for NFC badges.</p>
+        </div>
+
+        <!-- Main Card -->
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <form onsubmit="generateUrl(); return false;">
+                <div class="mb-4">
+                    <label for="serial" class="block text-sm font-medium text-gray-700 mb-2">
+                        Serial Number
+                    </label>
+                    <input
+                        type="text"
+                        id="serial"
+                        placeholder="OSV2026-001"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        required
+                    >
+                    <p class="text-xs text-gray-500 mt-1">Suggested format: OSV2026-001, OSV2026-002, etc.</p>
+                </div>
+
+                <button
+                    type="submit"
+                    class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
+                >
+                    Generate URL
+                </button>
+            </form>
+        </div>
+
+        <!-- Generated URL (initially hidden) -->
+        <div id="result" class="bg-white rounded-lg shadow-lg p-6 mb-6 hidden">
+            <div class="border-t border-gray-200 pt-6">
+                <h2 class="text-lg font-semibold text-gray-900 mb-3">Generated URL:</h2>
+
+                <div class="bg-gray-50 border border-gray-300 rounded-lg p-4 mb-4">
+                    <p class="font-mono text-sm text-gray-900 break-all" id="generated-url"></p>
+                </div>
+
+                <div class="flex gap-3 mb-6">
+                    <button
+                        class="flex-1 bg-blue-600 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-700 transition"
+                        onclick="copyUrl()"
+                    >
+                        Copy URL
+                    </button>
+                    <button
+                        class="flex-1 bg-gray-200 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-300 transition"
+                        onclick="showQR()"
+                    >
+                        Show QR
+                    </button>
+                </div>
+
+                <!-- QR Code Container (initially hidden) -->
+                <div id="qr-container" class="hidden border-t border-gray-200 pt-6">
+                    <div class="text-center">
+                        <div class="inline-block bg-white p-4 rounded-lg shadow-inner mb-3">
+                            <!-- QR code would be generated here -->
+                            <div class="w-64 h-64 bg-gray-200 flex items-center justify-center">
+                                <span class="text-gray-500 text-sm">QR Code</span>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mb-4" id="qr-url"></p>
+                        <button class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                            Download PNG
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions -->
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-6">
+            <h2 class="text-lg font-semibold text-gray-900 mb-3">Instructions:</h2>
+            <ol class="space-y-2 text-sm text-gray-700 list-decimal list-inside">
+                <li>Enter the serial number for the NFC badge</li>
+                <li>Click "Generate URL" to create the badge URL</li>
+                <li>Write the URL to your NFC tag using your phone's NFC tools</li>
+                <li>Test by scanning the badge to ensure it opens correctly</li>
+            </ol>
+            <div class="mt-4 pt-4 border-t border-blue-200">
+                <p class="text-sm text-gray-700">
+                    <strong>Note:</strong> The serial number is included in the URL fragment (after #) so it stays client-side and is never sent to the server.
+                </p>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="mt-8 text-center space-x-4">
+            <a href="index.html" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                Test Badge Claim
+            </a>
+            <span class="text-gray-300">•</span>
+            <a href="calendar.html" class="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                View App
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function generateUrl() {
+            const serial = document.getElementById('serial').value;
+            const url = `app.opensourcevillage.org/badge#${serial}`;
+
+            document.getElementById('generated-url').textContent = url;
+            document.getElementById('qr-url').textContent = url;
+            document.getElementById('result').classList.remove('hidden');
+            document.getElementById('qr-container').classList.add('hidden');
+        }
+
+        function copyUrl() {
+            const url = document.getElementById('generated-url').textContent;
+            navigator.clipboard.writeText(url).then(() => {
+                alert('URL copied! Ready to write to NFC tag');
+            });
+        }
+
+        function showQR() {
+            const qrContainer = document.getElementById('qr-container');
+            qrContainer.classList.toggle('hidden');
+        }
+    </script>
+</body>
+</html>

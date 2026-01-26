@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Claim Badge - Open Source Village</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-lg shadow-lg p-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-2">Welcome to Open Source Village</h1>
+
+        <p class="text-gray-600 mb-6">This badge hasn't been claimed yet.</p>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p class="text-sm font-semibold text-blue-900 mb-2">To claim it:</p>
+            <ol class="text-sm text-blue-800 list-decimal list-inside space-y-1">
+                <li>Set a username</li>
+                <li>Set a password or PIN code</li>
+            </ol>
+        </div>
+
+        <form class="space-y-4">
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    placeholder="alice"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                <p class="text-xs text-gray-500 mt-1">• 3-20 characters<br>• Letters, numbers, - and _</p>
+                <p class="text-xs text-green-600 mt-1 hidden" id="username-valid">✓ Username valid</p>
+                <p class="text-xs text-red-600 mt-1 hidden" id="username-error">❌ Username already taken</p>
+            </div>
+
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                >
+                <p class="text-xs text-gray-500 mt-1">(browser will suggest strong password)</p>
+            </div>
+
+            <div class="text-center">
+                <a href="#" class="text-sm text-blue-600 hover:text-blue-700" onclick="togglePinMode(); return false;">or set a simple PIN code</a>
+            </div>
+
+            <div id="pin-mode" class="hidden">
+                <label for="pin" class="block text-sm font-medium text-gray-700 mb-1">PIN Code</label>
+                <input
+                    type="number"
+                    id="pin"
+                    name="pin"
+                    placeholder="1234"
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    pattern="[0-9]{4,8}"
+                    inputmode="numeric"
+                >
+                <p class="text-xs text-gray-500 mt-1">4-8 digits</p>
+            </div>
+
+            <button
+                type="submit"
+                class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
+                onclick="window.location.href='profile-edit.html'; return false;"
+            >
+                Claim Badge
+            </button>
+        </form>
+    </div>
+
+    <script>
+        function togglePinMode() {
+            const passwordDiv = document.querySelector('#password').parentElement;
+            const pinDiv = document.querySelector('#pin-mode');
+            if (pinDiv.classList.contains('hidden')) {
+                passwordDiv.classList.add('hidden');
+                pinDiv.classList.remove('hidden');
+            } else {
+                passwordDiv.classList.remove('hidden');
+                pinDiv.classList.add('hidden');
+            }
+        }
+    </script>
+</body>
+</html>
