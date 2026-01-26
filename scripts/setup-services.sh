@@ -128,15 +128,6 @@ echo -e "  Bun:           ${BLUE}$BUN_PATH (v$BUN_VERSION)${NC}"
 echo -e "  Service Name:  ${BLUE}$SERVICE_PREFIX${NC}"
 echo ""
 
-# Confirm before proceeding
-read -p "Continue with setup? (y/N) " -n 1 -r
-echo
-if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-    echo "Setup cancelled."
-    exit 0
-fi
-
-echo ""
 echo -e "${BLUE}Step 1: Creating log directory...${NC}"
 mkdir -p /var/log/osv
 chown $APP_USER:$APP_GROUP /var/log/osv
