@@ -71,6 +71,21 @@ export function clearCredentials(): void {
 }
 
 /**
+ * Hash a serial number to prevent enumeration attacks
+ * NFC tag serial numbers are incremental, so we hash them to hide the pattern.
+ * Returns a 16-character hex string (first 64 bits of SHA-256)
+ */
+export async function hashSerialNumber(serialNumber: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(serialNumber);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  // Take first 8 bytes (16 hex chars) for a shorter but still secure ID
+  const hashHex = hashArray.slice(0, 8).map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
+
+/**
  * Extract serial number from URL fragment
  * URL format: app.opensourcevillage.org/badge#{serialNumber}
  */

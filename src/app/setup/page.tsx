@@ -10,6 +10,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
+import { hashSerialNumber } from '@/lib/nostr-client';
 
 interface NFCReadingEvent extends Event {
   serialNumber: string;
@@ -177,12 +178,15 @@ export default function SetupPage() {
       const ndef = new window.NDEFReader();
 
       ndef.addEventListener('reading', async (event: NFCReadingEvent) => {
-        const serialNumber = event.serialNumber;
-        console.log('[NFC] Tag read:', serialNumber);
+        const rawSerial = event.serialNumber;
+        console.log('[NFC] Tag read (raw):', rawSerial);
 
-        if (serialNumber) {
-          // Setup badge and write URL to NFC tag
-          await setupBadge(serialNumber, true);
+        if (rawSerial) {
+          // Hash the serial number to prevent enumeration attacks
+          const hashedSerial = await hashSerialNumber(rawSerial);
+          console.log('[NFC] Hashed serial:', hashedSerial);
+          // Setup badge and write URL to NFC tag with hashed serial
+          await setupBadge(hashedSerial, true);
         }
       });
 
@@ -229,7 +233,9 @@ export default function SetupPage() {
 
   const handleManualSetup = async () => {
     if (!manualSerial.trim()) return;
-    await setupBadge(manualSerial.trim());
+    // Hash the manual serial number too
+    const hashedSerial = await hashSerialNumber(manualSerial.trim());
+    await setupBadge(hashedSerial);
     setManualSerial('');
   };
 

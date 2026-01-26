@@ -37,8 +37,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate serial number format (alphanumeric, colons allowed for NFC UIDs)
-    const serialRegex = /^[a-zA-Z0-9:-]+$/;
+    // Validate serial number format (hex hash - 16 characters)
+    const serialRegex = /^[a-f0-9]{16}$/;
     if (!serialRegex.test(serialNumber)) {
       return NextResponse.json(
         {
