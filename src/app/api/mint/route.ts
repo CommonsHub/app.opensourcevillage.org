@@ -16,7 +16,12 @@ import {
 } from '@/lib/nostr-events';
 import { publishNostrEvent } from '@/lib/nostr-publisher';
 import { getWalletAddressForNpub } from '@/lib/token-factory';
-import settings from '../../../../settings.json';
+import settingsJson from '../../../../settings.json';
+
+// Cast settings to include optional token config
+const settings = settingsJson as typeof settingsJson & {
+  token?: { address?: string; chain?: string; symbol?: string };
+};
 
 // Block explorer URLs for each chain
 const CHAIN_EXPLORERS: Record<number, string> = {
