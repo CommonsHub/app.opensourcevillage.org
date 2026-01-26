@@ -139,29 +139,30 @@ File-based storage with eventual consistency:
 
 ### Quick Setup
 
-Run the automated setup script to configure all systemd services and cron jobs:
+Run the automated setup script to set up everything (nginx, SSL, systemd services, cron jobs):
 
 ```bash
-# Set your app directory and run the setup script
-curl -sSL https://raw.githubusercontent.com/commonshub/app.opensourcevillage.org/main/scripts/setup-services.sh | sudo APP_DIR=/var/www/app.opensourcevillage.org bash
+# Run the setup script (will prompt for domain)
+curl -sSL https://raw.githubusercontent.com/commonshub/app.opensourcevillage.org/main/scripts/setup-services.sh | sudo bash
 ```
 
-Or with custom configuration:
+Or with custom configuration (non-interactive):
 
 ```bash
-# Download the script first
-wget https://raw.githubusercontent.com/commonshub/app.opensourcevillage.org/main/scripts/setup-services.sh
-chmod +x setup-services.sh
-
-# Run with custom settings
-sudo APP_DIR=/path/to/app APP_USER=myuser SERVICE_PREFIX=osv ./setup-services.sh
+# Set all options via environment variables
+curl -sSL https://raw.githubusercontent.com/commonshub/app.opensourcevillage.org/main/scripts/setup-services.sh | \
+  sudo DOMAIN=myapp.example.com APP_DIR=/var/www/myapp DOMAIN_SET=1 bash
 ```
 
 The script will:
+- Install nginx and certbot
+- Clone the repository and install dependencies
+- Build the application
 - Create systemd services for the main app, payment processor, and NOSTR recorder
 - Set up a cron job for calendar sync (every 5 minutes)
-- Configure sudoers for passwordless service restarts (for webhook deployments)
-- Create log directories
+- Configure nginx as a reverse proxy
+- Obtain SSL certificate with Let's Encrypt
+- Start all services
 
 ### Prerequisites
 

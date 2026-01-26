@@ -46,7 +46,8 @@
       "Bash(PRIVATE_KEY=0x0000000000000000000000000000000000000000000000000000000000000001 node:*)",
       "Bash(npx ts-node --transpileOnly -e \"require\\(''''./scripts/record-nostr-events.ts''''\\)\")",
       "Bash(timeout 5 npm run record-nostr-events:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(bash:*)"
     ]
   }
 }
