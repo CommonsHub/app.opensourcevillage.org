@@ -12,6 +12,7 @@ interface ServiceStatus {
   running: boolean;
   status: string;
   pid?: number;
+  logs?: string[];
 }
 
 interface RelayStatus {
@@ -149,23 +150,48 @@ function RelayStatusBadge({ relay }: { relay: RelayStatus }) {
 }
 
 function ServiceBadge({ service, name }: { service: ServiceStatus; name: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasLogs = service.logs && service.logs.length > 0;
+
   return (
-    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-      <div>
-        <span className="font-medium text-gray-900">{name}</span>
-        {service.pid && (
-          <span className="ml-2 text-xs text-gray-500">PID: {service.pid}</span>
-        )}
-      </div>
-      <span
-        className={`px-2 py-1 text-xs font-medium rounded-full ${
-          service.running
-            ? 'bg-green-100 text-green-800'
-            : 'bg-red-100 text-red-800'
-        }`}
+    <div className="bg-gray-50 rounded-lg overflow-hidden">
+      <button
+        onClick={() => hasLogs && setExpanded(!expanded)}
+        className={`w-full flex items-center justify-between p-3 ${hasLogs ? 'cursor-pointer hover:bg-gray-100' : 'cursor-default'}`}
       >
-        {service.status}
-      </span>
+        <div className="flex items-center gap-2">
+          {hasLogs && (
+            <svg
+              className={`w-4 h-4 text-gray-400 transition-transform ${expanded ? 'rotate-90' : ''}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          )}
+          <span className="font-medium text-gray-900">{name}</span>
+          {service.pid && (
+            <span className="text-xs text-gray-500">PID: {service.pid}</span>
+          )}
+        </div>
+        <span
+          className={`px-2 py-1 text-xs font-medium rounded-full ${
+            service.running
+              ? 'bg-green-100 text-green-800'
+              : 'bg-red-100 text-red-800'
+          }`}
+        >
+          {service.status}
+        </span>
+      </button>
+      {expanded && hasLogs && (
+        <div className="border-t border-gray-200 bg-gray-900 p-3 max-h-64 overflow-y-auto">
+          <pre className="text-xs font-mono text-gray-300 whitespace-pre-wrap break-all">
+            {service.logs!.join('\n')}
+          </pre>
+        </div>
+      )}
     </div>
   );
 }

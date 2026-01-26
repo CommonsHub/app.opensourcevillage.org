@@ -19,6 +19,7 @@ interface ServiceStatus {
   running: boolean;
   status: string;
   pid?: number;
+  logs?: string[];
 }
 
 interface GitInfo {
@@ -229,15 +230,29 @@ async function getServiceStatus(serviceName: string): Promise<ServiceStatus> {
       // Ignore
     }
 
+    // Fetch latest logs (last 20 lines)
+    let logs: string[] = [];
+    try {
+      const logsResult = await execAsync(`journalctl -u ${serviceName} -n 20 --no-pager --output=short 2>/dev/null`);
+      logs = logsResult.stdout
+        .trim()
+        .split('\n')
+        .filter(line => line.length > 0);
+    } catch {
+      // Ignore - logs might not be available
+    }
+
     return {
       running: status === 'active',
       status,
       pid,
+      logs,
     };
   } catch {
     return {
       running: false,
       status: 'not installed',
+      logs: [],
     };
   }
 }
