@@ -9,6 +9,7 @@ node_modules/
 # Testing
 coverage/
 
+.claude/settings.local.json
 # Next.js
 .next/
 out/
