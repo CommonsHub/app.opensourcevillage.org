@@ -40,10 +40,11 @@ export async function POST(request: NextRequest) {
     // Validate serial number format (hex hash - 16 characters)
     const serialRegex = /^[a-f0-9]{16}$/;
     if (!serialRegex.test(serialNumber)) {
+      console.log('[Badge Setup] Invalid serial format:', serialNumber, 'length:', serialNumber.length);
       return NextResponse.json(
         {
           success: false,
-          error: 'Invalid serial number format',
+          error: `Invalid serial number format. Expected 16 hex chars, got: ${serialNumber.substring(0, 20)}${serialNumber.length > 20 ? '...' : ''} (${serialNumber.length} chars)`,
         } as SetupBadgeResponse,
         { status: 400 }
       );
