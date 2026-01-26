@@ -362,6 +362,53 @@ server {
 }
 ```
 
+### NOSTR Relay Setup (Pyramid)
+
+The setup script automatically installs [Pyramid](https://github.com/fiatjaf/pyramid), a lightweight NOSTR relay. After installation, you need to configure the allowed event kinds.
+
+#### Required Event Kinds
+
+The application uses the following NOSTR event kinds:
+
+| Kind | Name | Description |
+|------|------|-------------|
+| 0 | Profile | User profile metadata (NIP-01) |
+| 1 | Note | Text notes, used for offers (NIP-01) |
+| 7 | Reaction | Reactions, used for RSVPs (NIP-25) |
+| 1734 | Payment Request | Token payment request (custom) |
+| 1735 | Payment Receipt | Token payment receipt (custom) |
+| 22242 | Auth | Client authentication (NIP-42) |
+| 31922 | Calendar Event | Calendar events (NIP-52) |
+
+#### Pyramid Configuration
+
+Edit the Pyramid configuration file (usually at `/etc/pyramid/config.toml` or `~/.pyramid/config.toml`):
+
+```toml
+# Allow specific event kinds
+allowed_kinds = [0, 1, 7, 1734, 1735, 22242, 31922]
+
+# Or allow all kinds (less secure, but simpler)
+# allowed_kinds = []
+```
+
+Restart Pyramid after configuration:
+
+```bash
+sudo systemctl restart pyramid
+```
+
+#### Verify Relay Status
+
+Check that the relay is running:
+
+```bash
+sudo systemctl status pyramid
+sudo journalctl -u pyramid -f
+```
+
+The relay should be accessible at `wss://your-domain.com` (if configured with nginx/SSL) or `ws://localhost:7777` locally.
+
 ## Contributing
 
 See [@AGENT.md](./@AGENT.md) for build instructions and development standards.

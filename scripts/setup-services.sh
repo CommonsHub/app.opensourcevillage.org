@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="49fc3c5"
-SCRIPT_BUILD_DATE="2026-01-26 09:55 UTC"
+SCRIPT_GIT_SHA="bedcb87"
+SCRIPT_BUILD_DATE="2026-01-26 10:06 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -178,6 +178,21 @@ if [ ! -d "$DATA_DIR" ]; then
     echo -e "${GREEN}✓ Created data directories in $DATA_DIR${NC}"
 fi
 
+# Ensure swap space exists (needed for build on low-memory servers)
+if [ ! -f /swapfile ]; then
+    echo -e "${YELLOW}Creating swap space for build process...${NC}"
+    fallocate -l 2G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+    echo -e "${GREEN}✓ Created 2GB swap space${NC}"
+else
+    # Ensure swap is enabled
+    swapon /swapfile 2>/dev/null || true
+    echo -e "${GREEN}✓ Swap space already exists${NC}"
+fi
+
 # Pull latest code
 echo -e "${YELLOW}Pulling latest code...${NC}"
 cd "$APP_DIR"
@@ -191,6 +206,8 @@ echo -e "${GREEN}✓ Dependencies installed${NC}"
 
 # Build the application
 echo -e "${YELLOW}Building application...${NC}"
+# Limit Node.js memory to prevent OOM on low-memory servers
+export NODE_OPTIONS="--max-old-space-size=1024"
 sudo -u $APP_USER "$BUN_PATH" run build
 echo -e "${GREEN}✓ Application built${NC}"
 
