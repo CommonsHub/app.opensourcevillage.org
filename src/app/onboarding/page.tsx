@@ -9,6 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { getStoredCredentials } from '@/lib/nostr-client';
 
 const COMMUNITY_VALUES = [
@@ -88,6 +89,15 @@ export default function OnboardingPage() {
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-2xl mx-auto">
         <div className="bg-white rounded-lg shadow-lg p-6 md:p-8">
+          <div className="flex justify-center mb-6">
+            <Image
+              src="/opensourcevillage-logo-black-white.png"
+              alt="Open Source Village"
+              width={120}
+              height={120}
+              priority
+            />
+          </div>
           <h1 className="text-2xl font-bold text-gray-900 mb-2">
             Welcome to the Village{displayName ? `, ${displayName}` : ''}!
           </h1>
