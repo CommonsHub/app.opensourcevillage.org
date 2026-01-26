@@ -241,6 +241,7 @@ export default function PublicProfilePage() {
   const [remainingInvites, setRemainingInvites] = useState(4);
   const [codeCopied, setCodeCopied] = useState(false);
   const [showInviteQR, setShowInviteQR] = useState(false);
+  const [needsAuth, setNeedsAuth] = useState(false);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
   // Send tokens drawer state
@@ -412,6 +413,7 @@ export default function PublicProfilePage() {
       const secretKey = getSecretKey();
       if (!secretKey) {
         console.log('[Profile] No secret key available for automatic invite code request');
+        setNeedsAuth(true);
         setInviteLoading(false);
         return;
       }
@@ -770,6 +772,24 @@ export default function PublicProfilePage() {
 
             {inviteLoading && !inviteCode && (
               <p className="text-sm text-gray-500">Loading invitation code...</p>
+            )}
+
+            {needsAuth && !inviteCode && remainingInvites > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm text-amber-800 mb-3">
+                  To generate an invitation code, please scan your badge and enter your password.
+                </p>
+                <a
+                  href="/badge"
+                  className="inline-flex items-center gap-2 text-sm font-medium text-amber-700 hover:text-amber-900"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 9a2 2 0 10-4 0v5a2 2 0 104 0V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 9h.01M15 9h.01M12 18v.01" />
+                  </svg>
+                  Scan my badge
+                </a>
+              </div>
             )}
 
             {inviteCode && remainingInvites > 0 && (
