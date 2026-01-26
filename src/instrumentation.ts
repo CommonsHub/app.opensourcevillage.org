@@ -55,17 +55,13 @@ async function testRpcConnection(rpcUrl: string): Promise<{ success: boolean; ch
  * Test Nostr relay connectivity using WebSocket
  */
 async function testRelayConnection(relayUrl: string): Promise<{ success: boolean; error?: string }> {
-  return new Promise(async (resolve) => {
+  return new Promise((resolve) => {
     try {
-      const wsModule = await import('ws');
-      const https = await import('https');
-      const WebSocket = wsModule.default || wsModule.WebSocket;
+      // Dynamic require to avoid webpack bundling issues
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const WebSocket = eval('require')('ws');
 
-      // Force HTTP/1.1 via ALPN (WebSocket doesn't work with HTTP/2)
-      const agent = relayUrl.startsWith('wss://')
-        ? new https.Agent({ ALPNProtocols: ['http/1.1'] })
-        : undefined;
-      const ws = new WebSocket(relayUrl, { agent });
+      const ws = new WebSocket(relayUrl);
       const timeout = setTimeout(() => {
         ws.close();
         resolve({ success: false, error: 'Connection timeout (10s)' });

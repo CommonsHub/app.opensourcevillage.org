@@ -203,7 +203,8 @@ async function publishToSingleRelay(
   console.log(`[NOSTR Publisher] Connecting to ${url}...`);
 
   const WebSocket = await getWebSocket();
-  const https = await import('https');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const https = eval('require')('https');
   const timeout = options.timeout || 15000;
 
   // Create agent that forces HTTP/1.1 (WebSocket doesn't work with HTTP/2)
