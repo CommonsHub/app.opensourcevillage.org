@@ -25,11 +25,16 @@ export async function GET(
   try {
     const { identifier } = await params;
 
-    // Try to fetch by username first, then npub
+    // Try to fetch by username first, then npub, then serial number
     let profile = await getProfileByUsername(identifier);
 
     if (!profile && identifier.startsWith('npub1')) {
       profile = await getProfileByNpub(identifier);
+    }
+
+    // Try serial number lookup (for badge scans)
+    if (!profile) {
+      profile = await getProfileBySerialNumber(identifier);
     }
 
     if (!profile) {
