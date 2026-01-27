@@ -399,7 +399,15 @@ export class NostrConnection {
     return new Promise(async (resolve, reject) => {
       console.log(`${this.logPrefix} Connecting to ${this.url}...`);
       const WebSocket = (await import('ws')).default;
-      this.ws = new WebSocket(this.url);
+
+      // Use https agent for wss:// to ensure proper SNI for autocert servers
+      let agent: import('https').Agent | undefined;
+      if (this.url.startsWith('wss://')) {
+        const https = await import('https');
+        agent = new https.Agent({ ALPNProtocols: ['http/1.1'] });
+      }
+
+      this.ws = new WebSocket(this.url, { agent });
       this.authenticated = false;
       let resolved = false;
       let subscribed = false;

@@ -60,8 +60,15 @@ async function testRelayConnection(relayUrl: string): Promise<{ success: boolean
       // Dynamic require to avoid webpack bundling issues
       // eslint-disable-next-line @typescript-eslint/no-require-imports
       const WebSocket = eval('require')('ws');
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const https = eval('require')('https');
 
-      const ws = new WebSocket(relayUrl);
+      // Use https agent for wss:// to ensure proper SNI for autocert servers
+      const agent = relayUrl.startsWith('wss://')
+        ? new https.Agent({ ALPNProtocols: ['http/1.1'] })
+        : undefined;
+
+      const ws = new WebSocket(relayUrl, { agent });
       const timeout = setTimeout(() => {
         ws.close();
         resolve({ success: false, error: 'Connection timeout (10s)' });
