@@ -45,7 +45,7 @@ if (!loadEnvFile('.env.local')) {
 }
 
 import { createPaymentRequestEvent, decodeNsec } from '../src/lib/nostr-events';
-import { publishNostrEvent } from '../src/lib/nostr-publisher';
+import { publishNostrEvent } from '../src/lib/nostr-server';
 import { getWalletAddressForNpub } from '../src/lib/token-factory';
 import settings from '../settings.json';
 

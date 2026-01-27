@@ -19,9 +19,9 @@ import {
   storeCredentials,
   getStoredCredentials,
   getSerialNumberFromURL,
-} from '@/lib/nostr-client';
+  redeemInviteCode,
+} from '@/lib/nostr';
 import { storeSecretKey } from '@/lib/nostr-events';
-import { redeemInviteCode } from '@/lib/nostr-relay-client';
 
 const QRScanner = lazy(() => import('@/components/QRScanner'));
 

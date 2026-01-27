@@ -11,7 +11,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Offer, RSVP } from '@/types';
 import { nip19, getPublicKey } from 'nostr-tools';
-import { publishNostrEvent } from '@/lib/nostr-publisher';
+import { publishNostrEvent } from '@/lib/nostr-server';
 import { createPaymentRequestEvent, CHAIN_IDS } from '@/lib/nostr-events';
 import { addProposalEvent, getRoomSlug, generateIcsFile, getProposalEvent } from '@/lib/local-calendar';
 import { getWalletAddressForNpub } from '@/lib/token-factory';

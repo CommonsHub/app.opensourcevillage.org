@@ -17,8 +17,8 @@ import { nip19, getPublicKey, finalizeEvent, type EventTemplate } from 'nostr-to
 import { promises as fs } from 'fs';
 import path from 'path';
 import { createProfile, isBadgeSetup, isBadgeClaimed, getProfileByNpub, updateProfile } from '@/lib/storage';
-import { addGroupMember, getGroupSettings } from '@/lib/nostr';
-import { publishNostrEvent } from '@/lib/nostr-publisher';
+import { addGroupMember, getGroupSettings } from '@/lib/nostr-server';
+import { publishNostrEvent } from '@/lib/nostr-server';
 import { createPaymentRequestEvent, decodeNsec } from '@/lib/nostr-events';
 import { getTokenInfo, getWalletAddressForNpub, getChain } from '@/lib/token-factory';
 import { addUserToAllRelays } from '@/lib/nip86-client';
@@ -257,20 +257,22 @@ export async function POST(request: NextRequest) {
 
     // Add user to NIP-29 closed group (async, don't block response)
     const groupSettings = getGroupSettings();
-    try {
-      const addMemberEvent = addGroupMember(groupSettings.id, npub, 'member');
-      console.log('[Claim API] Adding user to NIP-29 group:', {
-        groupId: groupSettings.id,
-        npub: npub.substring(0, 16) + '...',
-        eventId: addMemberEvent.id,
-      });
+    if (groupSettings) {
+      try {
+        const addMemberEvent = addGroupMember(groupSettings.id, npub, 'member');
+        console.log('[Claim API] Adding user to NIP-29 group:', {
+          groupId: groupSettings.id,
+          npub: npub.substring(0, 16) + '...',
+          eventId: addMemberEvent.id,
+        });
 
-      // Publish the add member event to NOSTR relays (async)
-      publishNostrEvent(addMemberEvent).catch((err) => {
-        console.error('[Claim API] Failed to publish add member event:', err);
-      });
-    } catch (err) {
-      console.error('[Claim API] Failed to add user to NIP-29 group:', err);
+        // Publish the add member event to NOSTR relays (async)
+        publishNostrEvent(addMemberEvent).catch((err) => {
+          console.error('[Claim API] Failed to publish add member event:', err);
+        });
+      } catch (err) {
+        console.error('[Claim API] Failed to add user to NIP-29 group:', err);
+      }
     }
 
     // Add user to relay's allowed list via NIP-86 (async, don't block response)

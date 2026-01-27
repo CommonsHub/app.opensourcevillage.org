@@ -10,7 +10,7 @@
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { hashSerialNumber } from '@/lib/nostr-client';
+import { hashSerialNumber } from '@/lib/nostr';
 
 interface NFCReadingEvent extends Event {
   serialNumber: string;

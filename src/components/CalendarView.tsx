@@ -7,7 +7,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { getStoredCredentials } from "@/lib/nostr-client";
+import { getStoredCredentials } from "@/lib/nostr";
 import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useNostrPublisher } from "@/hooks/useNostrPublisher";
 import RoomDetailDrawer, { RoomInfo } from "@/components/RoomDetailDrawer";

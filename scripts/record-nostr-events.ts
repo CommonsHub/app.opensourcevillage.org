@@ -59,13 +59,16 @@ if (!loadEnvFile('.env.local')) {
   loadEnvFile('.env');
 }
 
-import WebSocket from 'ws';
-import { finalizeEvent, type EventTemplate, getPublicKey, nip19 } from 'nostr-tools';
+import { getPublicKey, nip19 } from 'nostr-tools';
 import {
   NOSTR_KINDS,
   decodeNsec,
   type NostrEvent,
 } from '../src/lib/nostr-events';
+import {
+  NostrConnectionPool,
+  getRelayUrls,
+} from '../src/lib/nostr-server';
 
 // Load settings
 import settings from '../settings.json';
@@ -310,157 +313,24 @@ function processEvent(event: NostrEvent, relayUrl: string): void {
 }
 
 // ============================================================================
-// Relay Connection
+// Relay Connection (using shared NostrConnectionPool)
 // ============================================================================
 
-/**
- * Get the relay URL for NIP-42 AUTH events.
- */
-function getRelayAuthUrl(relayUrl: string): string {
-  if (process.env.NOSTR_RELAY_AUTH_URL) {
-    return process.env.NOSTR_RELAY_AUTH_URL;
-  }
-  try {
-    const u = new URL(relayUrl);
-    u.pathname = '';
-    u.search = '';
-    u.hash = '';
-    return u.toString().replace(/\/$/, '');
-  } catch {
-    return relayUrl;
-  }
-}
+let connectionPool: NostrConnectionPool | null = null;
 
-let relayConnections: Map<string, WebSocket> = new Map();
-
-function connectToRelay(
-  url: string,
-  secretKey: Uint8Array
-): Promise<WebSocket> {
-  return new Promise((resolve, reject) => {
-    log(`[NostrRecorder] Connecting to ${url}...`);
-
-    const ws = new WebSocket(url);
-    let authenticated = false;
-    let subscribed = false;
-
-    const timeout = setTimeout(() => {
-      ws.close();
-      reject(new Error(`Connection timeout: ${url}`));
-    }, 15000);
-
-    // Helper to subscribe after connection/auth
-    const subscribe = () => {
-      if (subscribed) return;
-      subscribed = true;
-
-      const subId = `recorder_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-      const filter = {
-        kinds: RECORDED_KINDS,
-        // Get events from the last hour to catch up
-        since: Math.floor(Date.now() / 1000) - 3600,
-      };
-
-      ws.send(JSON.stringify(['REQ', subId, filter]));
-      log(`[NostrRecorder] Subscribed to kinds ${RECORDED_KINDS.join(', ')} on ${url}`);
-    };
-
-    // Helper to handle NIP-42 AUTH challenge
-    const handleAuth = (challenge: string) => {
-      log(`[NostrRecorder] Handling AUTH challenge from ${url}`);
-      const authUrl = getRelayAuthUrl(url);
-
-      const authTemplate: EventTemplate = {
-        kind: 22242,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [
-          ['challenge', challenge],
-          ['relay', authUrl],
-        ],
-        content: '',
-      };
-
-      const authEvent = finalizeEvent(authTemplate, secretKey);
-      ws.send(JSON.stringify(['AUTH', authEvent]));
-    };
-
-    ws.on('open', () => {
-      clearTimeout(timeout);
-      log(`[NostrRecorder] Connected to ${url}`);
-      relayConnections.set(url, ws);
-
-      // Wait a bit to see if AUTH challenge comes, otherwise subscribe
-      setTimeout(() => {
-        if (!authenticated && !subscribed) {
-          subscribe();
-        }
-      }, 500);
-
-      resolve(ws);
-    });
-
-    ws.on('message', async (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-
-        if (!Array.isArray(message) || message.length < 2) return;
-
-        const [type, ...args] = message;
-
-        switch (type) {
-          case 'AUTH':
-            // NIP-42 AUTH challenge
-            if (typeof args[0] === 'string') {
-              handleAuth(args[0]);
-            }
-            break;
-
-          case 'EVENT':
-            if (args[1] && RECORDED_KINDS.includes(args[1].kind)) {
-              processEvent(args[1] as NostrEvent, url);
-            }
-            break;
-
-          case 'OK':
-            // Check if this is an AUTH OK
-            if (!authenticated && args[1] === true && !subscribed) {
-              log(`[NostrRecorder] AUTH accepted by ${url}`);
-              authenticated = true;
-              subscribe();
-            }
-            break;
-
-          case 'EOSE':
-            log(`[NostrRecorder] ${url}: End of stored events`);
-            break;
-
-          case 'NOTICE':
-            log(`[NostrRecorder] ${url} notice: ${args[0]}`);
-            break;
-        }
-      } catch (error) {
-        logError(`[NostrRecorder] Error parsing message: ${error}`);
-      }
-    });
-
-    ws.on('error', (error) => {
-      logError(`[NostrRecorder] WebSocket error for ${url}: ${error.message}`);
-    });
-
-    ws.on('close', () => {
-      clearTimeout(timeout);
-      log(`[NostrRecorder] Connection closed: ${url}`);
-      relayConnections.delete(url);
-
-      // Auto-reconnect after 5 seconds
-      setTimeout(() => {
-        log(`[NostrRecorder] Reconnecting to ${url}...`);
-        connectToRelay(url, secretKey).catch((err) => {
-          logError(`[NostrRecorder] Reconnection failed: ${err.message}`);
-        });
-      }, 5000);
-    });
-  });
+function setupConnectionPool(secretKey: Uint8Array): NostrConnectionPool {
+  return new NostrConnectionPool(
+    {
+      secretKey,
+      autoReconnect: true,
+      reconnectDelay: 5000,
+      onConnect: (url) => log(`[NostrRecorder] Connected to ${url}`),
+      onDisconnect: (url) => log(`[NostrRecorder] Disconnected from ${url}`),
+      onAuth: (url) => log(`[NostrRecorder] Authenticated with ${url}`),
+      onError: (url, error) => logError(`[NostrRecorder] Error from ${url}: ${error.message}`),
+    },
+    '[NostrRecorder]'
+  );
 }
 
 // ============================================================================
@@ -512,10 +382,7 @@ async function main(): Promise<void> {
   log('[NostrRecorder] ------------------------------------');
 
   // Get relay URLs from environment variable
-  const envRelays = process.env.NOSTR_RELAYS;
-  const relayUrls = envRelays
-    ? envRelays.split(',').map(r => r.trim()).filter(Boolean)
-    : [];
+  const relayUrls = getRelayUrls();
   if (relayUrls.length === 0) {
     logError('[NostrRecorder] ERROR: No relay URLs configured. Set NOSTR_RELAYS env variable (comma-separated)');
     process.exit(1);
@@ -523,13 +390,9 @@ async function main(): Promise<void> {
 
   log(`[NostrRecorder] Connecting to ${relayUrls.length} relay(s)...`);
 
-  // Connect to all relays
-  const results = await Promise.allSettled(
-    relayUrls.map((url) => connectToRelay(url, secretKey))
-  );
-
-  const connected = results.filter((r) => r.status === 'fulfilled').length;
-  const failed = results.filter((r) => r.status === 'rejected').length;
+  // Set up connection pool
+  connectionPool = setupConnectionPool(secretKey);
+  const { connected, failed } = await connectionPool.connectToRelays(relayUrls);
 
   log(`[NostrRecorder] Connected to ${connected} relay(s), ${failed} failed`);
 
@@ -538,27 +401,36 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
+  // Subscribe to recorded event kinds
+  connectionPool.subscribeAll({
+    filters: [{
+      kinds: RECORDED_KINDS,
+      since: Math.floor(Date.now() / 1000) - 3600, // Last hour
+    }],
+    onEvent: (event, relayUrl) => {
+      if (RECORDED_KINDS.includes(event.kind)) {
+        processEvent(event, relayUrl);
+      }
+    },
+    onEose: (relayUrl) => {
+      log(`[NostrRecorder] ${relayUrl}: End of stored events`);
+    },
+  });
+
+  log(`[NostrRecorder] Subscribed to kinds ${RECORDED_KINDS.join(', ')}`);
   log('[NostrRecorder] Listening for events...');
   log('[NostrRecorder] Press Ctrl+C to stop');
 
   // Handle shutdown
-  process.on('SIGINT', () => {
+  const shutdown = () => {
     console.log('');
     log('[NostrRecorder] Shutting down...');
-    for (const ws of relayConnections.values()) {
-      ws.close();
-    }
+    connectionPool?.closeAll();
     process.exit(0);
-  });
+  };
 
-  process.on('SIGTERM', () => {
-    console.log('');
-    log('[NostrRecorder] Received SIGTERM, shutting down...');
-    for (const ws of relayConnections.values()) {
-      ws.close();
-    }
-    process.exit(0);
-  });
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 // Run the recorder

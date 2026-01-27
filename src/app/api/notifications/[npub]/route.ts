@@ -17,7 +17,7 @@ import {
   markAllNotificationsAsRead,
   NotificationType,
 } from '@/lib/notifications';
-import { validateNpub } from '@/lib/nostr-validation';
+import { validateNpub } from '@/lib/nostr-server';
 
 // ============================================================================
 // GET /api/notifications/[npub]

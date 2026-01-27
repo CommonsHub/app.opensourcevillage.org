@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNostrPublisher } from '@/hooks/useNostrPublisher';
-import { getStoredCredentials } from '@/lib/nostr-client';
+import { getStoredCredentials } from '@/lib/nostr';
 
 interface SendTokensDrawerProps {
   isOpen: boolean;

@@ -14,7 +14,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Avatar } from './Avatar';
-import { getStoredCredentials } from '@/lib/nostr-client';
+import { getStoredCredentials } from '@/lib/nostr';
 import { useTokenBalance } from '@/hooks/useTokenBalance';
 
 interface UserProfile {

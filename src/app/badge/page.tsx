@@ -12,7 +12,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSerialNumberFromURL, hashSerialNumber } from '@/lib/nostr-client';
+import { getSerialNumberFromURL, hashSerialNumber } from '@/lib/nostr';
 
 export default function BadgePage() {
   const router = useRouter();

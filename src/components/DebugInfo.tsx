@@ -9,7 +9,7 @@
 
 import { useEffect, useState } from 'react';
 import { nip19 } from 'nostr-tools';
-import { getStoredCredentials } from '@/lib/nostr-client';
+import { getStoredCredentials } from '@/lib/nostr';
 import { getStoredSecretKey } from '@/lib/nostr-events';
 
 interface NostrEvent {

@@ -15,7 +15,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { writeFile, mkdir } from 'fs/promises';
 import { join } from 'path';
-import { validateNpub } from '@/lib/nostr-validation';
+import { validateNpub } from '@/lib/nostr-server';
 
 // Maximum avatar file size: 5MB
 const MAX_FILE_SIZE = 5 * 1024 * 1024;

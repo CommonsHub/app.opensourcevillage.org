@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { Offer } from '@/types';
 import { nip19, verifyEvent } from 'nostr-tools';
-import { publishNostrEvent } from '@/lib/nostr-publisher';
+import { publishNostrEvent } from '@/lib/nostr-server';
 import { addProposalEvent, getRoomSlug, generateIcsFile, getProposalEvent } from '@/lib/local-calendar';
 import fs from 'fs/promises';
 import path from 'path';

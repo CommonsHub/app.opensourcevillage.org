@@ -17,7 +17,7 @@ import {
   type OfferEventOptions,
   type PaymentRequestOptions,
 } from '@/lib/nostr-events';
-import { publishEvent, getRelayUrls } from '@/lib/nostr-relay';
+import { publishToAllRelays, getRelayUrls } from '@/lib/nostr';
 
 /**
  * Options for publishing a payment request
@@ -81,7 +81,7 @@ export function useNostrPublisher() {
       console.log('[useNostrPublisher] Profile event created:', event.id);
 
       // Publish to relays
-      const result = await publishEvent(event);
+      const result = await publishToAllRelays(event);
 
       if (result.successful.length === 0) {
         throw new Error('Failed to publish to any relay');
@@ -130,7 +130,7 @@ export function useNostrPublisher() {
       console.log('[useNostrPublisher] Offer event created:', event.id);
 
       // Publish to relays
-      const result = await publishEvent(event);
+      const result = await publishToAllRelays(event);
 
       if (result.successful.length === 0) {
         throw new Error('Failed to publish to any relay');
@@ -182,7 +182,7 @@ export function useNostrPublisher() {
       console.log('[useNostrPublisher] RSVP event created:', event.id);
 
       // Publish to relays
-      const result = await publishEvent(event);
+      const result = await publishToAllRelays(event);
 
       if (result.successful.length === 0) {
         throw new Error('Failed to publish to any relay');
@@ -231,7 +231,7 @@ export function useNostrPublisher() {
       console.log('[useNostrPublisher] RSVP cancellation event created:', event.id);
 
       // Publish to relays
-      const result = await publishEvent(event);
+      const result = await publishToAllRelays(event);
 
       if (result.successful.length === 0) {
         throw new Error('Failed to publish to any relay');
@@ -339,7 +339,7 @@ export function useNostrPublisher() {
       console.log('[useNostrPublisher] Payment request event created:', event.id);
 
       // Publish to relays
-      const result = await publishEvent(event);
+      const result = await publishToAllRelays(event);
 
       if (result.successful.length === 0) {
         throw new Error('Failed to publish to any relay');

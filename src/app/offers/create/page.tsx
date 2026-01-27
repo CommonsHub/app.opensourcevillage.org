@@ -12,7 +12,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getStoredCredentials } from "@/lib/nostr-client";
+import { getStoredCredentials } from "@/lib/nostr";
 import OfferForm, { OfferType, ROOMS } from "@/components/OfferForm";
 
 function CreateOfferContent() {

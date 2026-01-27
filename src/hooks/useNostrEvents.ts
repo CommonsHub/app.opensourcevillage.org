@@ -2,42 +2,26 @@
  * useNostrEvents Hook
  *
  * Subscribes to Nostr events from relays in real-time.
- * Supports filtering by authors and mentioned pubkeys.
+ * Uses the centralized nostr-connection module for all relay operations.
  */
 
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { nip19 } from 'nostr-tools';
+import {
+  subscribe,
+  unsubscribe,
+  getPrimaryRelayUrl,
+  isRelayInBackoff,
+  type NostrEvent,
+  type NostrFilter,
+} from '@/lib/nostr';
 
-const DEFAULT_RELAYS = ['wss://relay.damus.io', 'wss://nos.lol'];
+export type { NostrEvent };
 
-function getRelayUrls(): string[] {
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('osv_relay_urls');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch {
-        // Fall through
-      }
-    }
-  }
-  return DEFAULT_RELAYS;
-}
-
-export interface NostrEvent {
-  id: string;
-  pubkey: string;
-  created_at: number;
-  kind: number;
-  tags: string[][];
-  content: string;
-  sig: string;
-}
+// Alias for backward compatibility
+type NostrEventData = NostrEvent;
 
 interface UseNostrEventsOptions {
   /** Subscribe to events authored by this pubkey */
@@ -53,7 +37,7 @@ interface UseNostrEventsOptions {
 }
 
 interface UseNostrEventsResult {
-  events: NostrEvent[];
+  events: NostrEventData[];
   isConnected: boolean;
   isLoading: boolean;
   error: string | null;
@@ -97,27 +81,28 @@ export function useNostrEvents(options: UseNostrEventsOptions): UseNostrEventsRe
     autoConnect = true,
   } = options;
 
-  const [events, setEvents] = useState<NostrEvent[]>([]);
+  const [events, setEvents] = useState<NostrEventData[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const wsRef = useRef<WebSocket | null>(null);
-  const eventsMapRef = useRef<Map<string, NostrEvent>>(new Map());
+  const eventsMapRef = useRef<Map<string, NostrEventData>>(new Map());
   const subscriptionIdRef = useRef<string | null>(null);
+  const relayUrlRef = useRef<string | null>(null);
 
   // Convert pubkeys to hex if needed
   const authorHex = authorPubkey ? npubToHex(authorPubkey) : undefined;
   const mentionedHex = mentionedPubkey ? npubToHex(mentionedPubkey) : undefined;
 
-  const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      return;
-    }
+  const connect = useCallback(async () => {
+    const relayUrl = getPrimaryRelayUrl();
+    relayUrlRef.current = relayUrl;
 
-    const relayUrl = getRelayUrls()[0];
-    if (!relayUrl) {
-      setError('No relay URL configured');
+    // Check if relay is in backoff
+    const backoffStatus = isRelayInBackoff(relayUrl);
+    if (backoffStatus.inBackoff) {
+      console.log(`[useNostrEvents] Relay ${relayUrl} in backoff, waiting ${backoffStatus.waitTime}s`);
+      setError(`Rate limited, retry in ${backoffStatus.waitTime}s`);
       setIsLoading(false);
       return;
     }
@@ -125,131 +110,70 @@ export function useNostrEvents(options: UseNostrEventsOptions): UseNostrEventsRe
     setIsLoading(true);
     setError(null);
 
-    try {
-      const ws = new WebSocket(relayUrl);
-      wsRef.current = ws;
+    // Build filters
+    const filters: NostrFilter[] = [];
 
-      ws.onopen = () => {
-        console.log('[useNostrEvents] Connected to relay:', relayUrl);
-        setIsConnected(true);
+    if (authorHex) {
+      const authorFilter: NostrFilter = { authors: [authorHex], limit };
+      if (kinds && kinds.length > 0) {
+        authorFilter.kinds = kinds;
+      }
+      filters.push(authorFilter);
+    }
 
-        // Build filter for subscription
-        // We need to subscribe to two filters:
-        // 1. Events authored by the pubkey
-        // 2. Events mentioning the pubkey in p tags
-        const filters: any[] = [];
+    if (mentionedHex) {
+      const mentionedFilter: NostrFilter = { '#p': [mentionedHex], limit };
+      if (kinds && kinds.length > 0) {
+        mentionedFilter.kinds = kinds;
+      }
+      filters.push(mentionedFilter);
+    }
 
-        if (authorHex) {
-          const authorFilter: any = { authors: [authorHex] };
-          if (kinds && kinds.length > 0) {
-            authorFilter.kinds = kinds;
-          }
-          authorFilter.limit = limit;
-          filters.push(authorFilter);
+    if (filters.length === 0) {
+      console.log('[useNostrEvents] No filters specified, not subscribing');
+      setIsLoading(false);
+      return;
+    }
+
+    const subId = await subscribe(relayUrl, filters, {
+      onEvent: (event) => {
+        // Add event to map (deduplication by id)
+        if (!eventsMapRef.current.has(event.id)) {
+          eventsMapRef.current.set(event.id, event);
+
+          // Update state with sorted events (newest first)
+          const allEvents = Array.from(eventsMapRef.current.values());
+          allEvents.sort((a, b) => b.created_at - a.created_at);
+
+          // Apply limit
+          const limitedEvents = allEvents.slice(0, limit);
+          setEvents(limitedEvents);
         }
-
-        if (mentionedHex) {
-          const mentionedFilter: any = { '#p': [mentionedHex] };
-          if (kinds && kinds.length > 0) {
-            mentionedFilter.kinds = kinds;
-          }
-          mentionedFilter.limit = limit;
-          filters.push(mentionedFilter);
-        }
-
-        if (filters.length === 0) {
-          console.log('[useNostrEvents] No filters specified, not subscribing');
-          setIsLoading(false);
-          return;
-        }
-
-        // Generate subscription ID
-        const subId = `events_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-        subscriptionIdRef.current = subId;
-
-        // Send REQ message with filters
-        const reqMessage = JSON.stringify(['REQ', subId, ...filters]);
-        console.log('[useNostrEvents] Subscribing with filters:', filters);
-        ws.send(reqMessage);
-      };
-
-      ws.onmessage = (msg) => {
-        try {
-          const data = JSON.parse(msg.data);
-          if (!Array.isArray(data) || data.length < 2) return;
-
-          const [type, ...rest] = data;
-
-          switch (type) {
-            case 'EVENT': {
-              const [subId, event] = rest;
-              if (subId === subscriptionIdRef.current && event) {
-                // Add event to map (deduplication by id)
-                if (!eventsMapRef.current.has(event.id)) {
-                  eventsMapRef.current.set(event.id, event as NostrEvent);
-
-                  // Update state with sorted events (newest first)
-                  const allEvents = Array.from(eventsMapRef.current.values());
-                  allEvents.sort((a, b) => b.created_at - a.created_at);
-
-                  // Apply limit
-                  const limitedEvents = allEvents.slice(0, limit);
-                  setEvents(limitedEvents);
-                }
-              }
-              break;
-            }
-
-            case 'EOSE': {
-              // End of stored events
-              console.log('[useNostrEvents] End of stored events');
-              setIsLoading(false);
-              break;
-            }
-
-            case 'NOTICE': {
-              console.log('[useNostrEvents] Relay notice:', rest[0]);
-              break;
-            }
-
-            case 'CLOSED': {
-              console.log('[useNostrEvents] Subscription closed:', rest[1]);
-              break;
-            }
-          }
-        } catch (err) {
-          // Ignore parse errors
-        }
-      };
-
-      ws.onerror = (err) => {
-        console.error('[useNostrEvents] WebSocket error:', err);
-        setError('Connection error');
+      },
+      onEose: () => {
+        console.log('[useNostrEvents] End of stored events');
+        setIsLoading(false);
+      },
+      onError: (err) => {
+        console.error('[useNostrEvents] Error:', err);
+        setError(err);
         setIsConnected(false);
         setIsLoading(false);
-      };
+      },
+    });
 
-      ws.onclose = () => {
-        console.log('[useNostrEvents] Connection closed');
-        setIsConnected(false);
-        wsRef.current = null;
-        subscriptionIdRef.current = null;
-      };
-
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to connect');
+    if (subId) {
+      subscriptionIdRef.current = subId;
+      setIsConnected(true);
+    } else {
+      setError('Failed to subscribe');
       setIsLoading(false);
     }
   }, [authorHex, mentionedHex, kinds, limit]);
 
   const disconnect = useCallback(() => {
-    if (wsRef.current) {
-      // Send CLOSE message if subscription is active
-      if (subscriptionIdRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify(['CLOSE', subscriptionIdRef.current]));
-      }
-      wsRef.current.close();
-      wsRef.current = null;
+    if (subscriptionIdRef.current && relayUrlRef.current) {
+      unsubscribe(relayUrlRef.current, subscriptionIdRef.current);
       subscriptionIdRef.current = null;
     }
     setIsConnected(false);

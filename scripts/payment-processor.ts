@@ -58,37 +58,20 @@ if (!loadEnvFile('.env.local')) {
   loadEnvFile('.env');
 }
 
-import WebSocket from 'ws';
 import { Token } from '@opencollective/token-factory';
 import type { SupportedChain } from '@opencollective/token-factory';
-import { finalizeEvent, type EventTemplate, getPublicKey, nip19 } from 'nostr-tools';
+import { getPublicKey, nip19 } from 'nostr-tools';
 import {
   NOSTR_KINDS,
   parsePaymentRequestEvent,
   createPaymentReceiptEvent,
   decodeNsec,
   type NostrEvent,
-  type PaymentRequestOptions,
 } from '../src/lib/nostr-events';
-
-/**
- * Get the relay URL for NIP-42 AUTH events.
- * Use NOSTR_RELAY_AUTH_URL env var to override if pyramid's ServiceURL differs from connection URL.
- */
-function getRelayAuthUrl(relayUrl: string): string {
-  if (process.env.NOSTR_RELAY_AUTH_URL) {
-    return process.env.NOSTR_RELAY_AUTH_URL;
-  }
-  try {
-    const u = new URL(relayUrl);
-    u.pathname = '';
-    u.search = '';
-    u.hash = '';
-    return u.toString().replace(/\/$/, '');
-  } catch {
-    return relayUrl;
-  }
-}
+import {
+  NostrConnectionPool,
+  getRelayUrls,
+} from '../src/lib/nostr-server';
 
 // Load settings with type that allows optional token
 interface TokenConfig {
@@ -324,159 +307,39 @@ async function processPaymentRequest(
 }
 
 // ============================================================================
-// Relay Communication
+// Relay Communication (using shared NostrConnectionPool)
 // ============================================================================
 
-let relayConnections: Map<string, WebSocket> = new Map();
+let connectionPool: NostrConnectionPool | null = null;
 
 async function publishToRelays(event: NostrEvent): Promise<void> {
-  const eventMessage = JSON.stringify(['EVENT', event]);
-
-  for (const [url, ws] of relayConnections) {
-    if (ws.readyState === WebSocket.OPEN) {
-      try {
-        ws.send(eventMessage);
-        console.log(`[PaymentProcessor] Receipt sent to ${url}`);
-      } catch (error) {
-        console.error(`[PaymentProcessor] Failed to send to ${url}:`, error);
-      }
-    }
+  if (!connectionPool) {
+    console.error('[PaymentProcessor] No connection pool available');
+    return;
   }
+
+  const result = await connectionPool.publishToAll(event);
+  console.log(`[PaymentProcessor] Receipt published to ${result.successful}/${result.successful + result.failed} relays`);
 }
 
-function connectToRelay(
-  url: string,
+function setupConnectionPool(
   secretKey: Uint8Array,
   privateKey: string
-): Promise<WebSocket> {
-  return new Promise((resolve, reject) => {
-    console.log(`[PaymentProcessor] Connecting to ${url}...`);
+): NostrConnectionPool {
+  const pool = new NostrConnectionPool(
+    {
+      secretKey,
+      autoReconnect: true,
+      reconnectDelay: 5000,
+      onConnect: (url) => console.log(`[PaymentProcessor] Connected to ${url}`),
+      onDisconnect: (url) => console.log(`[PaymentProcessor] Disconnected from ${url}`),
+      onAuth: (url) => console.log(`[PaymentProcessor] Authenticated with ${url}`),
+      onError: (url, error) => console.error(`[PaymentProcessor] Error from ${url}:`, error.message),
+    },
+    '[PaymentProcessor]'
+  );
 
-    const ws = new WebSocket(url);
-    let authenticated = false;
-    let subscribed = false;
-
-    const timeout = setTimeout(() => {
-      ws.close();
-      reject(new Error(`Connection timeout: ${url}`));
-    }, 15000);
-
-    // Helper to subscribe after connection/auth
-    const subscribe = () => {
-      if (subscribed) return;
-      subscribed = true;
-
-      const subId = `payment_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
-      const filter = {
-        kinds: [NOSTR_KINDS.PAYMENT_REQUEST],
-        // Get events from the last hour to catch up on missed ones
-        since: Math.floor(Date.now() / 1000) - 3600,
-      };
-
-      ws.send(JSON.stringify(['REQ', subId, filter]));
-      console.log(`[PaymentProcessor] Subscribed to kind ${NOSTR_KINDS.PAYMENT_REQUEST} events`);
-    };
-
-    // Helper to handle NIP-42 AUTH challenge
-    const handleAuth = (challenge: string) => {
-      console.log(`[PaymentProcessor] Handling AUTH challenge from ${url}`);
-      const authUrl = getRelayAuthUrl(url);
-
-      const authTemplate: EventTemplate = {
-        kind: 22242,
-        created_at: Math.floor(Date.now() / 1000),
-        tags: [
-          ['challenge', challenge],
-          ['relay', authUrl],
-        ],
-        content: '',
-      };
-
-      const authEvent = finalizeEvent(authTemplate, secretKey);
-      console.log(`[PaymentProcessor] Sending AUTH response to ${url}`);
-      ws.send(JSON.stringify(['AUTH', authEvent]));
-    };
-
-    ws.on('open', () => {
-      clearTimeout(timeout);
-      console.log(`[PaymentProcessor] Connected to ${url}`);
-      relayConnections.set(url, ws);
-
-      // Wait a bit to see if AUTH challenge comes, otherwise subscribe
-      setTimeout(() => {
-        if (!authenticated && !subscribed) {
-          subscribe();
-        }
-      }, 500);
-
-      resolve(ws);
-    });
-
-    ws.on('message', async (data) => {
-      try {
-        const message = JSON.parse(data.toString());
-
-        if (!Array.isArray(message) || message.length < 2) return;
-
-        const [type, ...args] = message;
-
-        switch (type) {
-          case 'AUTH':
-            // NIP-42 AUTH challenge
-            if (typeof args[0] === 'string') {
-              handleAuth(args[0]);
-            }
-            break;
-
-          case 'EVENT':
-            if (args[1] && args[1].kind === NOSTR_KINDS.PAYMENT_REQUEST) {
-              await processPaymentRequest(args[1] as NostrEvent, secretKey, privateKey);
-            }
-            break;
-
-          case 'OK':
-            const [eventId, accepted, msg] = args;
-            // Check if this is an AUTH OK (not our main event)
-            if (!authenticated && accepted && !subscribed) {
-              console.log(`[PaymentProcessor] AUTH accepted by ${url}`);
-              authenticated = true;
-              subscribe();
-            } else {
-              console.log(`[PaymentProcessor] ${url}: Event ${eventId?.slice(0, 8)}... ${accepted ? 'accepted' : 'rejected'}${msg ? `: ${msg}` : ''}`);
-            }
-            break;
-
-          case 'EOSE':
-            console.log(`[PaymentProcessor] ${url}: End of stored events`);
-            break;
-
-          case 'NOTICE':
-            console.log(`[PaymentProcessor] ${url} notice: ${args[0]}`);
-            break;
-        }
-      } catch (error) {
-        console.error(`[PaymentProcessor] Error parsing message:`, error);
-      }
-    });
-
-    ws.on('error', (error) => {
-      console.error(`[PaymentProcessor] WebSocket error for ${url}:`, error.message);
-    });
-
-    ws.on('close', () => {
-      clearTimeout(timeout);
-      console.log(`[PaymentProcessor] Connection closed: ${url}`);
-      relayConnections.delete(url);
-
-      // Auto-reconnect after 5 seconds
-      setTimeout(() => {
-        console.log(`[PaymentProcessor] Reconnecting to ${url}...`);
-        connectToRelay(url, secretKey, privateKey).catch((err) => {
-          console.error(`[PaymentProcessor] Reconnection failed:`, err.message);
-        });
-      }, 5000);
-    });
-  });
+  return pool;
 }
 
 // ============================================================================
@@ -536,10 +399,7 @@ async function main(): Promise<void> {
   loadProcessedEvents();
 
   // Get relay URLs from environment variable
-  const envRelays = process.env.NOSTR_RELAYS;
-  const relayUrls = envRelays
-    ? envRelays.split(',').map(r => r.trim()).filter(Boolean)
-    : [];
+  const relayUrls = getRelayUrls();
   if (relayUrls.length === 0) {
     console.error('[PaymentProcessor] ERROR: No relay URLs configured. Set NOSTR_RELAYS env variable (comma-separated)');
     process.exit(1);
@@ -548,13 +408,9 @@ async function main(): Promise<void> {
   console.log(`[PaymentProcessor] Connecting to ${relayUrls.length} relay(s)...`);
   console.log(`[PaymentProcessor] Data directory: ${PROCESSOR_DIR}`);
 
-  // Connect to all relays
-  const results = await Promise.allSettled(
-    relayUrls.map((url) => connectToRelay(url, secretKey, privateKey))
-  );
-
-  const connected = results.filter((r) => r.status === 'fulfilled').length;
-  const failed = results.filter((r) => r.status === 'rejected').length;
+  // Set up connection pool
+  connectionPool = setupConnectionPool(secretKey, privateKey);
+  const { connected, failed } = await connectionPool.connectToRelays(relayUrls);
 
   console.log(`[PaymentProcessor] Connected to ${connected} relay(s), ${failed} failed`);
 
@@ -563,27 +419,36 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  console.log('[PaymentProcessor] Listening for payment requests (kind 9734)...');
+  // Subscribe to payment request events
+  connectionPool.subscribeAll({
+    filters: [{
+      kinds: [NOSTR_KINDS.PAYMENT_REQUEST],
+      since: Math.floor(Date.now() / 1000) - 3600, // Last hour
+    }],
+    onEvent: async (event, relayUrl) => {
+      if (event.kind === NOSTR_KINDS.PAYMENT_REQUEST) {
+        await processPaymentRequest(event, secretKey, privateKey);
+      }
+    },
+    onEose: (relayUrl) => {
+      console.log(`[PaymentProcessor] ${relayUrl}: End of stored events`);
+    },
+  });
+
+  console.log(`[PaymentProcessor] Subscribed to kind ${NOSTR_KINDS.PAYMENT_REQUEST} events`);
+  console.log('[PaymentProcessor] Listening for payment requests...');
   console.log('[PaymentProcessor] Press Ctrl+C to stop');
 
   // Handle shutdown
-  process.on('SIGINT', () => {
+  const shutdown = () => {
     console.log('\n[PaymentProcessor] Shutting down...');
     saveProcessedEvents();
-    for (const ws of relayConnections.values()) {
-      ws.close();
-    }
+    connectionPool?.closeAll();
     process.exit(0);
-  });
+  };
 
-  process.on('SIGTERM', () => {
-    console.log('\n[PaymentProcessor] Received SIGTERM, shutting down...');
-    saveProcessedEvents();
-    for (const ws of relayConnections.values()) {
-      ws.close();
-    }
-    process.exit(0);
-  });
+  process.on('SIGINT', shutdown);
+  process.on('SIGTERM', shutdown);
 }
 
 // Run the processor

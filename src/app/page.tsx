@@ -6,7 +6,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getStoredCredentials } from '@/lib/nostr-client';
+import { getStoredCredentials } from '@/lib/nostr';
 
 export default function Home() {
   const router = useRouter();

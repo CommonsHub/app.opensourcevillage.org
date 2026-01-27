@@ -10,7 +10,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getStoredCredentials } from '@/lib/nostr-client';
+import { getStoredCredentials } from '@/lib/nostr';
 
 const COMMUNITY_VALUES = [
   {

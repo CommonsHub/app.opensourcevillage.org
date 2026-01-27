@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getStoredCredentials, clearCredentials } from '@/lib/nostr-client';
+import { getStoredCredentials, clearCredentials } from '@/lib/nostr';
 import { getStoredSecretKey } from '@/lib/nostr-events';
 
 export default function SettingsPage() {

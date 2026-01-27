@@ -7,9 +7,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getStoredCredentials, deriveNostrKeypair, getSerialNumberFromURL } from '@/lib/nostr-client';
+import { getStoredCredentials, deriveNostrKeypair, getSerialNumberFromURL, publishToAllRelays } from '@/lib/nostr';
 import { getStoredSecretKey, decodeNsec, createProfileEvent, storeSecretKey } from '@/lib/nostr-events';
-import { publishEvent } from '@/lib/nostr-relay';
 
 interface SocialLink {
   type: string;
@@ -183,7 +182,7 @@ export default function ProfileEditPage() {
 
         // Publish to NOSTR relays directly
         console.log('[Profile Edit] Publishing event to NOSTR relays...');
-        const publishResult = await publishEvent(nostrEvent);
+        const publishResult = await publishToAllRelays(nostrEvent);
 
         console.log('[Profile Edit] ✓ Published to', publishResult.successful.length, 'relays');
         if (publishResult.failed.length > 0) {

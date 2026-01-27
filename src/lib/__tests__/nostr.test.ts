@@ -35,7 +35,7 @@ import {
   getGroupSettings,
   initializeGroup,
   NIP29_KINDS,
-} from '../nostr';
+} from '../nostr-server';
 
 // Test environment setup
 beforeAll(() => {

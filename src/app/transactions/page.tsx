@@ -9,7 +9,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getStoredCredentials } from '@/lib/nostr-client';
+import { getStoredCredentials } from '@/lib/nostr';
 import { useTokenBalance } from '@/hooks/useTokenBalance';
 import { TOKEN_ECONOMICS } from '@/lib/token-balance';
 

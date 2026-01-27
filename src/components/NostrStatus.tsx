@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getRelayStatus, initializeRelayConnections } from '@/lib/nostr-relay';
+import { getRelayStatus, initializeRelayConnections } from '@/lib/nostr';
 
 export default function NostrStatus() {
   const [relayStatus, setRelayStatus] = useState<Array<{ url: string; status: string }>>([]);

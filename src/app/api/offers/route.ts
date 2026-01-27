@@ -12,7 +12,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getProfileByNpub, addToBlockchainQueue } from "@/lib/storage";
 import { CreateOfferRequest, CreateOfferResponse, Offer } from "@/types";
-import { publishNostrEvent } from "@/lib/nostr-publisher";
+import { publishNostrEvent } from "@/lib/nostr-server";
 import {
   checkConflicts,
   getRoomSlug,

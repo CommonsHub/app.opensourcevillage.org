@@ -14,7 +14,7 @@ import {
   createPaymentRequestEvent,
   decodeNsec,
 } from '@/lib/nostr-events';
-import { publishNostrEvent } from '@/lib/nostr-publisher';
+import { publishNostrEvent } from '@/lib/nostr-server';
 import { getWalletAddressForNpub } from '@/lib/token-factory';
 
 // Block explorer URLs for each chain
