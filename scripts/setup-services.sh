@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="52319a8"
-SCRIPT_BUILD_DATE="2026-01-27 17:34 UTC"
+SCRIPT_GIT_SHA="37303a7"
+SCRIPT_BUILD_DATE="2026-01-27 17:45 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -652,17 +652,29 @@ fi
 # ============================================================================
 # Token Configuration
 # ============================================================================
-echo -e "${CYAN}========================================${NC}"
-echo -e "${CYAN}  Token Configuration${NC}"
-echo -e "${CYAN}========================================${NC}"
-echo ""
-echo -e "${YELLOW}Do you want to configure a token now?${NC}"
-echo -e "  1) ${BLUE}Enter existing token address${NC}"
-echo -e "  2) ${BLUE}Deploy a new token${NC} (requires funded wallet)"
-echo -e "  3) ${BLUE}Skip for now${NC}"
-echo ""
-echo -e "${YELLOW}Enter choice (1-3, default: 3):${NC}"
-read -r TOKEN_CHOICE </dev/tty || TOKEN_CHOICE=""
+
+# Check if token is already configured in .env.local
+EXISTING_TOKEN=""
+if [ -f "$ENV_FILE" ]; then
+    EXISTING_TOKEN=$(grep "^TOKEN_ADDRESS=" "$ENV_FILE" 2>/dev/null | cut -d'=' -f2)
+fi
+
+if [ -n "$EXISTING_TOKEN" ] && [ "$EXISTING_TOKEN" != "" ]; then
+    echo -e "${GREEN}✓ Token already configured: ${BLUE}${EXISTING_TOKEN}${NC}"
+    TOKEN_CHOICE="skip"
+else
+    echo -e "${CYAN}========================================${NC}"
+    echo -e "${CYAN}  Token Configuration${NC}"
+    echo -e "${CYAN}========================================${NC}"
+    echo ""
+    echo -e "${YELLOW}Do you want to configure a token now?${NC}"
+    echo -e "  1) ${BLUE}Enter existing token address${NC}"
+    echo -e "  2) ${BLUE}Deploy a new token${NC} (requires funded wallet)"
+    echo -e "  3) ${BLUE}Skip for now${NC}"
+    echo ""
+    echo -e "${YELLOW}Enter choice (1-3, default: 3):${NC}"
+    read -r TOKEN_CHOICE </dev/tty || TOKEN_CHOICE=""
+fi
 
 case "$TOKEN_CHOICE" in
     1)
@@ -744,6 +756,9 @@ SETTINGSEOF
         echo -e "  1. Fund the wallet address shown above"
         echo -e "  2. Deploy a token:"
         echo -e "     ${BLUE}cd $APP_DIR && bun run deploy-token${NC}"
+        ;;
+    skip)
+        # Token already configured, nothing to do
         ;;
 esac
 
