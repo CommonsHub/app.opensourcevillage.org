@@ -75,11 +75,11 @@ export default function TopBar() {
   return (
     <>
       <header className="bg-white border-b border-gray-200">
-        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center justify-between">
+        <div className="max-w-4xl mx-auto px-4 h-14 flex items-center relative">
           {/* Left: Hamburger menu */}
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors"
+            className="p-2 -ml-2 hover:bg-gray-100 rounded-lg transition-colors z-10"
             aria-label="Toggle menu"
           >
             <svg
@@ -106,17 +106,21 @@ export default function TopBar() {
             </svg>
           </button>
 
-          {/* Center: Page Title */}
-          {isHome ? (
-            <span className="text-lg font-semibold text-gray-900">{pageTitle}</span>
-          ) : (
-            <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+          {/* Center: Page Title (absolutely positioned to always be centered) */}
+          <div className="absolute left-0 right-0 flex justify-center pointer-events-none">
+            {isHome ? (
               <span className="text-lg font-semibold text-gray-900">{pageTitle}</span>
-            </Link>
-          )}
+            ) : (
+              <Link href="/" className="flex items-center gap-2 hover:opacity-80 transition-opacity pointer-events-auto">
+                <span className="text-lg font-semibold text-gray-900">{pageTitle}</span>
+              </Link>
+            )}
+          </div>
 
           {/* Right: User info */}
-          <UserHeader />
+          <div className="ml-auto z-10">
+            <UserHeader />
+          </div>
         </div>
       </header>
 
