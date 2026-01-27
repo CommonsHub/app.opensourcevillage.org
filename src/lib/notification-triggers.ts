@@ -51,17 +51,17 @@ export async function notifyTokenTransfer(params: {
     if (params.confirmed) {
       // Transaction confirmed notification
       await createTransactionConfirmedNotification({
-        recipientNpub: params.toNpub,
+        recipient: params.toNpub,
         amount: params.amount,
-        senderNpub: params.fromNpub,
+        sender: params.fromNpub,
         senderUsername,
         transactionId: params.transactionId || '',
       });
     } else {
       // Token receipt notification (for pending transfers)
       await createTokenReceiptNotification({
-        recipientNpub: params.toNpub,
-        senderNpub: params.fromNpub,
+        recipient: params.toNpub,
+        sender: params.fromNpub,
         senderUsername,
         amount: params.amount,
         message: params.message,
@@ -93,11 +93,11 @@ export async function checkAndNotifyWorkshopConfirmed(
   if (rsvpCount === offer.minAttendees) {
     try {
       // Notify workshop author (use first author from authors array)
-      const authorNpub = offer.authors[0];
-      if (!authorNpub) return;
+      const author = offer.authors[0];
+      if (!author) return;
 
       await createWorkshopConfirmedNotification({
-        recipientNpub: authorNpub,
+        recipient: author,
         workshopTitle: offer.title,
         workshopId: offer.id,
         attendeeCount: rsvpCount,
@@ -119,7 +119,7 @@ export async function checkAndNotifyWorkshopConfirmed(
 export async function notifyWorkshopCancelled(params: {
   workshopId: string;
   workshopTitle: string;
-  authorNpub: string;
+  author: string;
   rsvpedUserNpubs: string[]; // List of users who RSVPed
   refundAmount?: number;
 }): Promise<void> {
@@ -127,7 +127,7 @@ export async function notifyWorkshopCancelled(params: {
     // Load author profile
     let authorUsername: string | undefined;
     try {
-      const authorProfile = await getProfileByNpub(params.authorNpub);
+      const authorProfile = await getProfileByNpub(params.author);
       authorUsername = authorProfile?.username;
     } catch {
       // Use npub
@@ -136,7 +136,7 @@ export async function notifyWorkshopCancelled(params: {
     // Notify all RSVPed users
     const notificationPromises = params.rsvpedUserNpubs.map(userNpub =>
       createWorkshopCancelledNotification({
-        recipientNpub: userNpub,
+        recipient: userNpub,
         workshopTitle: params.workshopTitle,
         workshopId: params.workshopId,
         authorUsername,
@@ -180,7 +180,7 @@ export async function notifyWorkshopRsvp(params: {
     }
 
     await createRsvpNotification({
-      recipientNpub: params.workshopAuthorNpub,
+      recipient: params.workshopAuthorNpub,
       rsvpUserNpub: params.rsvpUserNpub,
       rsvpUsername,
       workshopTitle: params.workshopTitle,

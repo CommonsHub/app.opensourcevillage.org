@@ -223,9 +223,9 @@ export async function POST(request: NextRequest) {
 
         // Create payment request event (kind 1734) with method: mint
         const paymentRequestEvent = createPaymentRequestEvent(secretKey, {
-          recipientNpub: npub,
+          recipient: npub,
           recipientAddress: walletAddress,
-          senderNpub: serverNpub, // Server is the "sender" for mints
+          sender: serverNpub, // Server is the "sender" for mints
           amount: initialBalance,
           tokenAddress: tokenInfo.address,
           chainId,

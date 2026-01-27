@@ -130,7 +130,7 @@ export async function POST(
           status: 'CANCELLED',
           minRsvps: offer.minRsvps || 1,
           attendees: attendees,
-          authorNpub: npub,
+          author: npub,
         });
         await generateIcsFile(roomSlug);
         console.log('[Cancel API] Updated calendar event to CANCELLED');
@@ -155,9 +155,9 @@ export async function POST(
 
         if (authorWalletAddress) {
           const authorRefundEvent = createPaymentRequestEvent(serverSecretKey as Uint8Array, {
-            recipientNpub: npub,
+            recipient: npub,
             recipientAddress: authorWalletAddress,
-            senderNpub: serverNpub,
+            sender: serverNpub,
             amount: authorRefundAmount,
             tokenAddress: tokenInfo.address,
             chainId: tokenInfo.chainId,
@@ -185,9 +185,9 @@ export async function POST(
             const attendeeWalletAddress = await getWalletAddressForNpub(attendee.npub);
             if (attendeeWalletAddress) {
               const attendeeRefundEvent = createPaymentRequestEvent(serverSecretKey as Uint8Array, {
-                recipientNpub: attendee.npub,
+                recipient: attendee.npub,
                 recipientAddress: attendeeWalletAddress,
-                senderNpub: serverNpub,
+                sender: serverNpub,
                 amount: 1,
                 tokenAddress: tokenInfo.address,
                 chainId: tokenInfo.chainId,

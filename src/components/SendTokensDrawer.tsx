@@ -8,7 +8,7 @@ interface SendTokensDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   recipientUsername: string;
-  recipientNpub: string;
+  recipient: string;
   senderBalance: number;
   onSuccess?: (newBalance: number) => void;
 }
@@ -17,7 +17,7 @@ export function SendTokensDrawer({
   isOpen,
   onClose,
   recipientUsername,
-  recipientNpub,
+  recipient,
   senderBalance,
   onSuccess,
 }: SendTokensDrawerProps) {
@@ -73,8 +73,8 @@ export function SendTokensDrawer({
 
     try {
       const result = await publishPaymentRequest({
-        recipientNpub,
-        senderNpub: credentials.npub,
+        recipient,
+        sender: credentials.npub,
         amount,
         context: 'transfer',
         description: description || `Sent ${amount} tokens to @${recipientUsername}`,

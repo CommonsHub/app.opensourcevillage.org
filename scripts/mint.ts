@@ -191,9 +191,9 @@ Examples:
   console.log('');
 
   const event = createPaymentRequestEvent(secretKey, {
-    recipientNpub: resolved.npub,
+    recipient: resolved.npub,
     recipientAddress: walletAddress,
-    senderNpub: 'system',
+    sender: 'system',
     amount,
     tokenAddress,
     chainId,

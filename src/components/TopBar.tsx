@@ -20,6 +20,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/calendar': 'Calendar',
   '/marketplace': 'Marketplace',
   '/offers/create': 'Propose Workshop',
+  '/book': 'Book a Room',
   '/notifications': 'Notifications',
   '/settings': 'Settings',
   '/profile/edit': 'Edit Profile',
@@ -66,6 +67,7 @@ export default function TopBar() {
   const menuItems = [
     { href: '/', label: 'Home' },
     { href: '/calendar', label: 'Calendar' },
+    { href: '/book', label: 'Book a Room' },
     { href: '/marketplace', label: 'Marketplace' },
     { href: '/offers/create', label: 'Propose Workshop' },
     { href: '/notifications', label: 'Notifications' },

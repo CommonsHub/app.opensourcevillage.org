@@ -72,7 +72,7 @@ function localTimeToUTC(dateStr: string, timeStr: string): string {
   return actualUTC.toISOString();
 }
 
-export type OfferType = "workshop" | "1:1" | "other";
+export type OfferType = "workshop" | "1:1" | "other" | "private";
 
 interface ConflictInfo {
   type: "confirmed" | "tentative";
@@ -547,8 +547,8 @@ export default function OfferForm({
         console.log("[OfferForm] Publishing burn payment request...");
 
         const burnResult = await publishPaymentRequest({
-          recipientNpub: credentials.npub,
-          senderNpub: credentials.npub,
+          recipient: credentials.npub,
+          sender: credentials.npub,
           amount: 1,
           context: "workshop_proposal",
           relatedEventId: data.offer.id,

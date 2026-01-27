@@ -73,6 +73,7 @@ export default function UserHeader() {
 
       {/* Avatar */}
       <Avatar
+        name={credentials.username}
         npub={credentials.npub}
         profile={profile || undefined}
         size="sm"

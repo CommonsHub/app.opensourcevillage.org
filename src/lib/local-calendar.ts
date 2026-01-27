@@ -66,7 +66,7 @@ export interface ProposalEvent {
   createdAt?: Date;
   updatedAt?: Date;
   // Author info
-  authorNpub?: string;
+  author?: string;
   authorUsername?: string;
 }
 
@@ -252,12 +252,17 @@ export async function getAllProposalEvents(): Promise<ProposalEvent[]> {
 
   try {
     const roomDirs = await fs.readdir(CALENDARS_DIR);
+    console.log('[LocalCalendar] Reading from room directories:', roomDirs);
 
     for (const roomDir of roomDirs) {
       const events = await loadEvents(roomDir);
+      if (events.length > 0) {
+        console.log(`[LocalCalendar] Room ${roomDir}: ${events.length} events`);
+      }
       allEvents.push(...events);
     }
   } catch (error) {
+    console.log('[LocalCalendar] Error reading calendars directory:', error);
     // Calendars directory doesn't exist
   }
 

@@ -12,6 +12,8 @@
     "test:coverage": "jest --coverage",
     "deploy": "./scripts/deploy.sh",
     "payment-processor": "tsx scripts/payment-processor.ts",
+    "nostr-listener": "tsx scripts/nostr-listener.ts",
+    "receipt-listener": "tsx scripts/receipt-listener.ts",
     "record-nostr-events": "tsx scripts/record-nostr-events.ts",
     "deploy-token": "bun scripts/deploy-token.ts",
     "mint": "bun scripts/mint.ts",

@@ -6,28 +6,29 @@
  *
  * Usage:
  * ```tsx
- * <Avatar npub={user.npub} size="md" />
- * <Avatar npub={user.npub} profile={profile} size="lg" />
+ * <Avatar name={user.username} npub={user.npub} size="md" />
+ * <Avatar name={user.username} npub={user.npub} profile={profile} size="lg" />
  * ```
  */
 
 'use client';
 
 import Image from 'next/image';
-import { getAvatarUrl, getAvatarSizeClass } from '@/lib/avatar-utils';
+import { getAvatarSizeClass, getGeneratedAvatar } from '@/lib/avatar-utils';
 
 interface AvatarProps {
-  npub: string;
+  name: string;
+  npub?: string;
   profile?: { picture?: string };
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
   className?: string;
   alt?: string;
 }
 
-export function Avatar({ npub, profile, size = 'md', className = '', alt }: AvatarProps) {
-  const avatarUrl = getAvatarUrl(npub, profile);
+export function Avatar({ name, npub, profile, size = 'md', className = '', alt }: AvatarProps) {
   const sizeClass = getAvatarSizeClass(size);
-  const altText = alt || `Avatar for ${npub.slice(0, 12)}...`;
+  const altText = alt || `Avatar for ${name}`;
+  const avatarUrl = profile?.picture || getGeneratedAvatar(name, npub);
 
   return (
     <div className={`${sizeClass} rounded-full overflow-hidden bg-gray-200 flex-shrink-0 ${className}`}>
@@ -37,7 +38,7 @@ export function Avatar({ npub, profile, size = 'md', className = '', alt }: Avat
         width={120}
         height={120}
         className="w-full h-full object-cover"
-        unoptimized // For generated avatars and external URLs
+        unoptimized
       />
     </div>
   );
@@ -48,26 +49,24 @@ export function Avatar({ npub, profile, size = 'md', className = '', alt }: Avat
  * Displays avatar and username side by side
  */
 interface AvatarWithNameProps {
-  npub: string;
-  username?: string;
+  name: string;
+  npub?: string;
   profile?: { picture?: string };
   size?: 'xs' | 'sm' | 'md' | 'lg';
   className?: string;
 }
 
 export function AvatarWithName({
+  name,
   npub,
-  username,
   profile,
   size = 'sm',
   className = '',
 }: AvatarWithNameProps) {
-  const displayName = username || npub.slice(0, 12) + '...';
-
   return (
     <div className={`flex items-center gap-2 ${className}`}>
-      <Avatar npub={npub} profile={profile} size={size} />
-      <span className="text-sm font-medium text-gray-900">{displayName}</span>
+      <Avatar name={name} npub={npub} profile={profile} size={size} />
+      <span className="text-sm font-medium text-gray-900">{name}</span>
     </div>
   );
 }
@@ -77,7 +76,7 @@ export function AvatarWithName({
  * Shows multiple avatars overlapping
  */
 interface AvatarStackProps {
-  users: Array<{ npub: string; profile?: { picture?: string } }>;
+  users: Array<{ name: string; npub?: string; profile?: { picture?: string } }>;
   maxVisible?: number;
   size?: 'xs' | 'sm' | 'md';
   className?: string;
@@ -92,11 +91,11 @@ export function AvatarStack({ users, maxVisible = 3, size = 'sm', className = ''
     <div className={`flex items-center ${className}`}>
       {visible.map((user, index) => (
         <div
-          key={user.npub}
+          key={user.npub || user.name}
           className={`${sizeClass} rounded-full overflow-hidden bg-white border-2 border-white -ml-2 first:ml-0`}
           style={{ zIndex: visible.length - index }}
         >
-          <Avatar npub={user.npub} profile={user.profile} size={size} />
+          <Avatar name={user.name} npub={user.npub} profile={user.profile} size={size} />
         </div>
       ))}
       {remaining > 0 && (

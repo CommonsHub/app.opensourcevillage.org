@@ -19,12 +19,12 @@ export type NotificationType =
 export interface Notification {
   id: string;
   type: NotificationType;
-  recipientNpub: string;
+  recipient: string;
   createdAt: string;
   read: boolean;
 
   // Token receipt fields
-  senderNpub?: string;
+  sender?: string;
   senderUsername?: string;
   amount?: number;
   message?: string;
@@ -103,7 +103,7 @@ export function getNotificationColor(type: NotificationType): string {
 export function formatNotificationMessage(notification: Notification): string {
   switch (notification.type) {
     case 'token_receipt':
-      return `${notification.senderUsername || notification.senderNpub} sent you ${notification.amount} tokens`;
+      return `${notification.senderUsername || notification.sender} sent you ${notification.amount} tokens`;
 
     case 'workshop_confirmed':
       return `Workshop confirmed! "${notification.workshopTitle}" reached minimum attendance (${notification.attendeeCount}/${notification.minAttendees})`;
@@ -117,8 +117,8 @@ export function formatNotificationMessage(notification: Notification): string {
       return `${notification.rsvpUsername || notification.rsvpUserNpub} RSVPed to "${notification.workshopTitle}"`;
 
     case 'transaction_confirmed':
-      if (notification.senderNpub) {
-        return `Received ${notification.amount} tokens from ${notification.senderUsername || notification.senderNpub}`;
+      if (notification.sender) {
+        return `Received ${notification.amount} tokens from ${notification.senderUsername || notification.sender}`;
       } else {
         return `Transaction confirmed: sent ${notification.amount} tokens`;
       }

@@ -5,7 +5,7 @@ import NostrStatus from "@/components/NostrStatus";
 import DebugInfo from "@/components/DebugInfo";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
-import { getRelayUrls } from "@/lib/nostr-server";
+import { getRelayUrls, getServerNpub } from "@/lib/nostr-server";
 
 export const metadata: Metadata = {
   title: "Open Source Village",
@@ -23,15 +23,16 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  // Get relay URLs from server environment
+  // Get relay URLs and server npub from server environment
   const relayUrls = getRelayUrls();
+  const serverNpub = getServerNpub();
 
   return (
     <html lang="en">
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `window.__OSV_RELAY_URLS__ = ${JSON.stringify(relayUrls)};`,
+            __html: `window.__OSV_RELAY_URLS__ = ${JSON.stringify(relayUrls)}; window.__OSV_SERVER_NPUB__ = ${JSON.stringify(serverNpub)};`,
           }}
         />
       </head>

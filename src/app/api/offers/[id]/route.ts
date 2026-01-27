@@ -206,7 +206,7 @@ export async function PUT(
           status: calendarStatus,
           minRsvps: offer.minRsvps || 1,
           attendees: existingAttendees, // Preserve existing attendees
-          authorNpub: npub,
+          author: npub,
           authorUsername,
         });
 

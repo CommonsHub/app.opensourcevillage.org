@@ -15,46 +15,69 @@
  * Priority order:
  * 1. Custom uploaded avatar (local)
  * 2. NOSTR kind 0 picture field (Blossom URL)
- * 3. Generated avatar (boring-avatars)
+ * 3. Generated avatar (SVG with gradient)
  *
- * @param npub - User's npub
+ * @param name - Display name or username for generated avatar
+ * @param npub - User's npub for deterministic colors
  * @param profile - Optional profile data with picture field
  * @returns Avatar URL
  */
-export function getAvatarUrl(npub: string, profile?: { picture?: string }): string {
-  // Check for local uploaded avatar
-  const localAvatar = `/data/npubs/${npub}/avatar.jpg`;
-
+export function getAvatarUrl(name: string, npub?: string, profile?: { picture?: string }): string {
   // Check for NOSTR picture field (Blossom URL)
   if (profile?.picture) {
     return profile.picture;
   }
 
   // Fallback to generated avatar
-  return getGeneratedAvatar(npub);
+  return getGeneratedAvatar(name, npub);
 }
 
 /**
- * Generate a consistent avatar URL from npub
- *
- * Uses boring-avatars "beam" style with custom color palette.
- *
- * @see https://boringavatars.com/
- * @param npub - User's npub
- * @param size - Avatar size in pixels (default: 120)
- * @returns Generated avatar URL
+ * Generate a deterministic color from a string (npub)
+ * Returns an HSL color with good saturation and lightness for backgrounds
  */
-export function getGeneratedAvatar(npub: string, size: number = 120): string {
-  // Custom color palette for Open Source Village
-  const colors = [
-    '264653', // Deep teal
-    '2a9d8f', // Teal
-    'e9c46a', // Yellow
-    'f4a261', // Orange
-    'e76f51', // Coral
-  ];
+function hashToColor(str: string, offset: number = 0): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash) + offset;
+    hash = hash & hash;
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 70%, 60%)`;
+}
 
-  return `https://source.boringavatars.com/beam/${size}/${npub}?colors=${colors.join(',')}`;
+/**
+ * Generate an SVG avatar with gradient background and centered letter
+ *
+ * @param name - Display name or username (first letter will be shown)
+ * @param npub - User's npub (used to generate deterministic colors)
+ * @returns SVG data URL
+ */
+export function getGeneratedAvatar(name: string, npub: string = ''): string {
+  const letter = (name || '?').charAt(0).toUpperCase();
+  const seed = npub || name;
+
+  // Generate 3 colors based on npub
+  const color1 = hashToColor(seed, 0);
+  const color2 = hashToColor(seed, 100);
+  const color3 = hashToColor(seed, 200);
+
+  // Create SVG with gradient background and centered letter
+  const svg = `
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+      <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:${color1}"/>
+          <stop offset="50%" style="stop-color:${color2}"/>
+          <stop offset="100%" style="stop-color:${color3}"/>
+        </linearGradient>
+      </defs>
+      <rect width="100" height="100" fill="url(#grad)"/>
+      <text x="50" y="50" dy="0.35em" text-anchor="middle" font-family="system-ui, sans-serif" font-size="45" font-weight="600" fill="white">${letter}</text>
+    </svg>
+  `.trim().replace(/\n\s*/g, '');
+
+  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
 }
 
 /**
@@ -154,11 +177,13 @@ export interface AvatarData {
 /**
  * Get comprehensive avatar data for a user
  *
- * @param npub - User's npub
+ * @param name - Display name or username for generated avatar
+ * @param npub - User's npub (for checking uploaded avatars)
  * @param profile - Optional profile data
  * @returns Avatar data with type information
  */
 export async function getAvatarData(
+  name: string,
   npub: string,
   profile?: { picture?: string }
 ): Promise<AvatarData> {
@@ -186,7 +211,7 @@ export async function getAvatarData(
 
   // Use generated avatar
   return {
-    url: getGeneratedAvatar(npub),
+    url: getGeneratedAvatar(name),
     isGenerated: true,
     isUploaded: false,
     isBlossom: false,

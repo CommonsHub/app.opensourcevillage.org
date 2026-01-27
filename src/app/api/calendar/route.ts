@@ -136,15 +136,32 @@ export async function GET(request: NextRequest) {
           allProposals = await getAllProposalEvents();
         }
 
+        console.log('[Calendar API] Found', allProposals.length, 'proposals from local calendar');
+
         // Filter by date range
         const filteredProposals = allProposals
           .filter((p) => {
             const startTime = new Date(p.startTime);
             const endTime = new Date(p.endTime);
             // Event overlaps with requested range
-            return startTime < timeMax && endTime > timeMin;
+            const inRange = startTime < timeMax && endTime > timeMin;
+            if (!inRange) {
+              console.log('[Calendar API] Filtered out proposal (out of range):', p.offerId, p.title, p.startTime);
+            }
+            return inRange;
           })
-          .filter((p) => p.status !== 'CANCELLED');
+          .filter((p) => {
+            if (p.status === 'CANCELLED') {
+              console.log('[Calendar API] Filtered out proposal (cancelled):', p.offerId);
+              return false;
+            }
+            return true;
+          });
+
+        console.log('[Calendar API]', filteredProposals.length, 'proposals after filtering');
+        if (filteredProposals.length > 0) {
+          console.log('[Calendar API] Proposal rooms:', filteredProposals.map(p => p.room));
+        }
 
         // Load tags for each proposal and convert to CalendarEvent format
         proposalEvents = await Promise.all(
@@ -165,7 +182,7 @@ export async function GET(request: NextRequest) {
               minRsvps: p.minRsvps,
               rsvpCount: p.attendees.length,
               rsvpList: p.attendees.map((a) => ({ username: a.username, npub: a.npub })),
-              authorNpub: p.authorNpub,
+              author: p.author,
               authorUsername: p.authorUsername,
             };
           })

@@ -12,6 +12,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { nip19 } from 'nostr-tools';
 import { getStoredCredentials, getOrRequestInviteCode } from '@/lib/nostr';
 import { getSecretKey } from '@/lib/nostr-events';
+import { Avatar } from '@/components/Avatar';
 import { useNostrEvents, type NostrEvent } from '@/hooks/useNostrEvents';
 import SendTokensDrawer from '@/components/SendTokensDrawer';
 
@@ -242,6 +243,8 @@ export default function PublicProfilePage() {
   const [showInviteQR, setShowInviteQR] = useState(false);
   const [needsAuth, setNeedsAuth] = useState(false);
   const [inviteRequestFailed, setInviteRequestFailed] = useState(false);
+  const [notAMember, setNotAMember] = useState(false);
+  const [npubCopied, setNpubCopied] = useState(false);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
 
   // Send tokens drawer state
@@ -403,6 +406,7 @@ export default function PublicProfilePage() {
 
   // Automatically request invite code when profile loads (if not already stored)
   const requestInviteCodeAutomatically = async () => {
+    console.log('[Profile] requestInviteCodeAutomatically called, inviteLoading:', inviteLoading, 'inviteCode:', !!inviteCode);
     // Don't request if already loading or have a code
     if (inviteLoading || inviteCode) return;
 
@@ -411,6 +415,7 @@ export default function PublicProfilePage() {
     try {
       // Get the user's secret key from localStorage
       const secretKey = getSecretKey();
+      console.log('[Profile] getSecretKey result:', secretKey ? `Uint8Array(${secretKey.length})` : 'null');
       if (!secretKey) {
         console.log('[Profile] No secret key available for automatic invite code request');
         setNeedsAuth(true);
@@ -418,18 +423,26 @@ export default function PublicProfilePage() {
         return;
       }
 
-      console.log('[Profile] Automatically requesting invite code...');
+      console.log('[Profile] Automatically requesting invite code with secretKey...');
 
       // Request invite code from relay (client-side)
       const result = await getOrRequestInviteCode(secretKey);
+      console.log('[Profile] getOrRequestInviteCode result:', result.success ? 'success' : result.error);
 
       if (result.success && result.inviteCode) {
-        console.log('[Profile] Invite code received and stored');
+        console.log('[Profile] Invite code received and stored, length:', result.inviteCode.length);
         setInviteCode(result.inviteCode);
         setInviteRequestFailed(false);
+        setNotAMember(false);
       } else {
         console.log('[Profile] Failed to get invite code:', result.error);
-        setInviteRequestFailed(true);
+        if (result.error === 'not_a_member') {
+          setNotAMember(true);
+          setInviteRequestFailed(false);
+        } else {
+          setInviteRequestFailed(true);
+          setNotAMember(false);
+        }
       }
     } catch (err) {
       console.error('[Profile] Failed to auto-request invite code:', err);
@@ -597,9 +610,11 @@ export default function PublicProfilePage() {
         {/* Profile Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-4">
           <div className="flex items-start gap-4 mb-4">
-            <div className="w-20 h-20 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-2xl font-bold">
-              {profile.username.charAt(0).toUpperCase()}
-            </div>
+            <Avatar
+              name={profile.username}
+              npub={profile.npub}
+              size="xl"
+            />
             <div className="flex-1">
               <div className="flex items-start justify-between">
                 <div>
@@ -793,7 +808,7 @@ export default function PublicProfilePage() {
               </div>
             )}
 
-            {inviteRequestFailed && !inviteCode && !needsAuth && remainingInvites > 0 && (
+            {inviteRequestFailed && !inviteCode && !needsAuth && !notAMember && remainingInvites > 0 && (
               <div className="space-y-3">
                 <p className="text-sm text-gray-600">
                   Could not load invitation code. This may be a connection issue.
@@ -811,6 +826,52 @@ export default function PublicProfilePage() {
                   </svg>
                   {inviteLoading ? 'Loading...' : 'Try again'}
                 </button>
+              </div>
+            )}
+
+            {notAMember && !inviteCode && profile && (
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-sm text-amber-800 mb-4">
+                  You are not a member yet of this relay. Ask an admin to add you manually.
+                </p>
+                <div className="flex flex-col items-center gap-4">
+                  <div className="bg-white p-3 rounded-lg border border-amber-200">
+                    <QRCodeSVG
+                      value={profile.npub}
+                      size={150}
+                      level="M"
+                      includeMargin={true}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <code className="text-xs text-gray-600 bg-gray-100 px-2 py-1 rounded font-mono">
+                      {profile.npub.substring(0, 12)}...{profile.npub.substring(profile.npub.length - 8)}
+                    </code>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(profile.npub);
+                          setNpubCopied(true);
+                          setTimeout(() => setNpubCopied(false), 2000);
+                        } catch (err) {
+                          console.error('Failed to copy:', err);
+                        }
+                      }}
+                      className="text-gray-500 hover:text-gray-700 p-1"
+                      title="Copy npub"
+                    >
+                      {npubCopied ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                        </svg>
+                      ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
 
@@ -898,7 +959,9 @@ export default function PublicProfilePage() {
                 eventMap.set(event.id, event);
               }
             }
+            // Filter to only known event kinds and sort by time
             const allEvents = Array.from(eventMap.values())
+              .filter(event => event && event.id && event.pubkey && KIND_DESCRIPTIONS[event.kind])
               .sort((a, b) => b.created_at - a.created_at)
               .slice(0, 50);
 
@@ -913,7 +976,7 @@ export default function PublicProfilePage() {
 
             return (
               <div className="space-y-2">
-                {allEvents.filter(event => event && event.id && event.pubkey).map((event) => {
+                {allEvents.map((event) => {
                   const isExpanded = expandedEvents.has(event.id);
                   const kindInfo = KIND_DESCRIPTIONS[event.kind];
                   // Check if this user authored the event (compare hex pubkeys)
@@ -1062,7 +1125,7 @@ export default function PublicProfilePage() {
           isOpen={showSendDrawer}
           onClose={() => setShowSendDrawer(false)}
           recipientUsername={profile.username}
-          recipientNpub={profile.npub}
+          recipient={profile.npub}
           senderBalance={senderBalance}
           onSuccess={(newBalance) => {
             setSenderBalance(newBalance);

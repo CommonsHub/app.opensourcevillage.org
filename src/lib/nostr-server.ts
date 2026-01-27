@@ -174,6 +174,25 @@ export function getPrimaryRelayUrl(): string {
 }
 
 /**
+ * Get the server's npub (derived from NOSTR_NSEC)
+ * Used for clients to subscribe to server-published events
+ */
+export function getServerNpub(): string | null {
+  const nsec = process.env.NOSTR_NSEC;
+  if (!nsec) return null;
+
+  try {
+    const decoded = nip19.decode(nsec);
+    const secretKeyHex = decoded.data as Uint8Array;
+    const secretKey = hexToBytes(bytesToHex(secretKeyHex));
+    const pubkey = getPublicKey(secretKey);
+    return nip19.npubEncode(pubkey);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Get the relay URL for NIP-42 AUTH events
  */
 export function getRelayAuthUrl(relayUrl: string): string {

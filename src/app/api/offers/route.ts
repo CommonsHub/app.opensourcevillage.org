@@ -244,11 +244,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate type
-    if (!["workshop", "1:1", "other"].includes(type)) {
+    if (!["workshop", "1:1", "other", "private"].includes(type)) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid type. Must be: workshop, 1:1, or other",
+          error: "Invalid type. Must be: workshop, 1:1, other, or private",
         } as CreateOfferResponse,
         { status: 400 },
       );
@@ -494,7 +494,7 @@ export async function POST(request: NextRequest) {
           status: "TENTATIVE",
           minRsvps: type === "workshop" ? minRsvps : 1,
           attendees: [],
-          authorNpub: npub,
+          author: npub,
           authorUsername: profile?.username,
         };
 

@@ -289,8 +289,8 @@ describe('NOSTR Validation', () => {
   describe('validateRSVPEvent', () => {
     it('should validate correct RSVP event', () => {
       const offerEventId = 'test-offer-123';
-      const authorNpub = nip19.npubEncode(getPublicKey(generateSecretKey()));
-      const event = createRSVPEvent(secretKey, offerEventId, authorNpub);
+      const author = nip19.npubEncode(getPublicKey(generateSecretKey()));
+      const event = createRSVPEvent(secretKey, offerEventId, author);
       const result = validateRSVPEvent(event);
       expect(result.valid).toBe(true);
     });

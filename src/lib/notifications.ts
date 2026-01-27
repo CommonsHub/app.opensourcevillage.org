@@ -88,7 +88,7 @@ export async function loadNotifications(npub: string): Promise<Notification[]> {
 async function saveNotification(notification: Notification): Promise<void> {
   // Dynamic import to avoid bundling fs in client code
   const { appendJsonLine } = await import('./storage');
-  const filePath = getNotificationFilePath(notification.recipientNpub);
+  const filePath = getNotificationFilePath(notification.recipient);
   await appendJsonLine(filePath, notification);
 }
 
@@ -124,8 +124,8 @@ export async function cleanupOldNotifications(npub: string): Promise<void> {
  * Create token receipt notification
  */
 export async function createTokenReceiptNotification(params: {
-  recipientNpub: string;
-  senderNpub: string;
+  recipient: string;
+  sender: string;
   senderUsername?: string;
   amount: number;
   message?: string;
@@ -134,10 +134,10 @@ export async function createTokenReceiptNotification(params: {
   const notification: Notification = {
     id: generateNotificationId(),
     type: 'token_receipt',
-    recipientNpub: params.recipientNpub,
+    recipient: params.recipient,
     createdAt: new Date().toISOString(),
     read: false,
-    senderNpub: params.senderNpub,
+    sender: params.sender,
     senderUsername: params.senderUsername,
     amount: params.amount,
     message: params.message,
@@ -152,7 +152,7 @@ export async function createTokenReceiptNotification(params: {
  * Create workshop confirmed notification
  */
 export async function createWorkshopConfirmedNotification(params: {
-  recipientNpub: string;
+  recipient: string;
   workshopTitle: string;
   workshopId: string;
   attendeeCount: number;
@@ -161,7 +161,7 @@ export async function createWorkshopConfirmedNotification(params: {
   const notification: Notification = {
     id: generateNotificationId(),
     type: 'workshop_confirmed',
-    recipientNpub: params.recipientNpub,
+    recipient: params.recipient,
     createdAt: new Date().toISOString(),
     read: false,
     workshopTitle: params.workshopTitle,
@@ -178,7 +178,7 @@ export async function createWorkshopConfirmedNotification(params: {
  * Create workshop cancelled notification
  */
 export async function createWorkshopCancelledNotification(params: {
-  recipientNpub: string;
+  recipient: string;
   workshopTitle: string;
   workshopId: string;
   authorUsername?: string;
@@ -187,7 +187,7 @@ export async function createWorkshopCancelledNotification(params: {
   const notification: Notification = {
     id: generateNotificationId(),
     type: 'workshop_cancelled',
-    recipientNpub: params.recipientNpub,
+    recipient: params.recipient,
     createdAt: new Date().toISOString(),
     read: false,
     workshopTitle: params.workshopTitle,
@@ -206,7 +206,7 @@ export async function createWorkshopCancelledNotification(params: {
  * Create RSVP notification (for workshop authors)
  */
 export async function createRsvpNotification(params: {
-  recipientNpub: string; // Workshop author
+  recipient: string; // Workshop author
   rsvpUserNpub: string;
   rsvpUsername?: string;
   workshopTitle: string;
@@ -215,7 +215,7 @@ export async function createRsvpNotification(params: {
   const notification: Notification = {
     id: generateNotificationId(),
     type: 'rsvp_notification',
-    recipientNpub: params.recipientNpub,
+    recipient: params.recipient,
     createdAt: new Date().toISOString(),
     read: false,
     rsvpUserNpub: params.rsvpUserNpub,
@@ -232,9 +232,9 @@ export async function createRsvpNotification(params: {
  * Create transaction confirmed notification
  */
 export async function createTransactionConfirmedNotification(params: {
-  recipientNpub: string;
+  recipient: string;
   amount: number;
-  senderNpub?: string;
+  sender?: string;
   senderUsername?: string;
   transactionId: string;
   txHash?: string;
@@ -242,11 +242,11 @@ export async function createTransactionConfirmedNotification(params: {
   const notification: Notification = {
     id: generateNotificationId(),
     type: 'transaction_confirmed',
-    recipientNpub: params.recipientNpub,
+    recipient: params.recipient,
     createdAt: new Date().toISOString(),
     read: false,
     amount: params.amount,
-    senderNpub: params.senderNpub,
+    sender: params.sender,
     senderUsername: params.senderUsername,
     transactionId: params.transactionId,
     txHash: params.txHash,

@@ -36,7 +36,7 @@ interface CalendarEvent {
   minRsvps?: number;
   rsvpCount?: number;
   rsvpList?: Array<{ username: string; npub: string }>;
-  authorNpub?: string;
+  author?: string;
   authorUsername?: string;
 }
 
@@ -461,8 +461,8 @@ export default function CalendarView({
       // Step 1: Send NOSTR payment request to burn 1 token
       console.log("[CalendarView] Publishing burn event for RSVP...");
       const burnResult = await publishPaymentRequest({
-        recipientNpub: credentials.npub, // For burn, recipient is self (not used)
-        senderNpub: credentials.npub,
+        recipient: credentials.npub, // For burn, recipient is self (not used)
+        sender: credentials.npub,
         amount: 1,
         context: "rsvp",
         relatedEventId: event.offerId,
@@ -758,8 +758,8 @@ export default function CalendarView({
                   // Check if logged-in user is the author
                   const isAuthor =
                     credentials?.npub &&
-                    event.authorNpub &&
-                    credentials.npub === event.authorNpub;
+                    event.author &&
+                    credentials.npub === event.author;
                   const hasRsvped = event.offerId
                     ? userRsvps.has(event.offerId)
                     : false;

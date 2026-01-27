@@ -174,12 +174,12 @@ export default function NotificationsPage() {
 
             {/* Action buttons */}
             <div className="flex items-center gap-3 mt-2">
-              {notification.type === 'token_receipt' && notification.senderNpub && (
+              {notification.type === 'token_receipt' && notification.sender && (
                 <button
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                   onClick={(e) => {
                     e.stopPropagation();
-                    router.push(`/profile/${notification.senderNpub}`);
+                    router.push(`/profile/${notification.sender}`);
                   }}
                 >
                   View Profile

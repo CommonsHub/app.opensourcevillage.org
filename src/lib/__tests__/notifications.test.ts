@@ -64,16 +64,16 @@ afterEach(async () => {
 describe('Notification Creation', () => {
   it('should create token receipt notification', async () => {
     const notification = await createTokenReceiptNotification({
-      recipientNpub: TEST_NPUB,
-      senderNpub: 'npub1sender',
+      recipient: TEST_NPUB,
+      sender: 'npub1sender',
       senderUsername: 'alice',
       amount: 5,
       message: 'Thanks!',
     });
 
     expect(notification.type).toBe('token_receipt');
-    expect(notification.recipientNpub).toBe(TEST_NPUB);
-    expect(notification.senderNpub).toBe('npub1sender');
+    expect(notification.recipient).toBe(TEST_NPUB);
+    expect(notification.sender).toBe('npub1sender');
     expect(notification.senderUsername).toBe('alice');
     expect(notification.amount).toBe(5);
     expect(notification.message).toBe('Thanks!');
@@ -83,7 +83,7 @@ describe('Notification Creation', () => {
 
   it('should create workshop confirmed notification', async () => {
     const notification = await createWorkshopConfirmedNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       workshopTitle: 'Intro to NOSTR',
       workshopId: 'workshop123',
       attendeeCount: 5,
@@ -99,7 +99,7 @@ describe('Notification Creation', () => {
 
   it('should create workshop cancelled notification', async () => {
     const notification = await createWorkshopCancelledNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       workshopTitle: 'React Workshop',
       workshopId: 'workshop456',
       authorUsername: 'bob',
@@ -114,7 +114,7 @@ describe('Notification Creation', () => {
 
   it('should create RSVP notification', async () => {
     const notification = await createRsvpNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       rsvpUserNpub: 'npub1charlie',
       rsvpUsername: 'charlie',
       workshopTitle: 'Smart Contracts',
@@ -129,9 +129,9 @@ describe('Notification Creation', () => {
 
   it('should create transaction confirmed notification', async () => {
     const notification = await createTransactionConfirmedNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       amount: 10,
-      senderNpub: 'npub1sender',
+      sender: 'npub1sender',
       senderUsername: 'alice',
       transactionId: 'tx123',
       txHash: '0xabc...',
@@ -152,13 +152,13 @@ describe('Notification Storage', () => {
   it('should load notifications', async () => {
     // Create some notifications
     await createTokenReceiptNotification({
-      recipientNpub: TEST_NPUB,
-      senderNpub: 'npub1sender',
+      recipient: TEST_NPUB,
+      sender: 'npub1sender',
       amount: 5,
     });
 
     await createWorkshopConfirmedNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       workshopTitle: 'Test Workshop',
       workshopId: 'workshop1',
       attendeeCount: 5,
@@ -177,13 +177,13 @@ describe('Notification Storage', () => {
 
   it('should filter notifications by type', async () => {
     await createTokenReceiptNotification({
-      recipientNpub: TEST_NPUB,
-      senderNpub: 'npub1sender',
+      recipient: TEST_NPUB,
+      sender: 'npub1sender',
       amount: 5,
     });
 
     await createWorkshopConfirmedNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       workshopTitle: 'Test Workshop',
       workshopId: 'workshop1',
       attendeeCount: 5,
@@ -197,13 +197,13 @@ describe('Notification Storage', () => {
 
   it('should get unread notifications', async () => {
     const notification1 = await createTokenReceiptNotification({
-      recipientNpub: TEST_NPUB,
-      senderNpub: 'npub1sender',
+      recipient: TEST_NPUB,
+      sender: 'npub1sender',
       amount: 5,
     });
 
     await createWorkshopConfirmedNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       workshopTitle: 'Test Workshop',
       workshopId: 'workshop1',
       attendeeCount: 5,
@@ -226,19 +226,19 @@ describe('Notification Storage', () => {
 describe('Notification Stats', () => {
   it('should calculate notification stats', async () => {
     await createTokenReceiptNotification({
-      recipientNpub: TEST_NPUB,
-      senderNpub: 'npub1sender',
+      recipient: TEST_NPUB,
+      sender: 'npub1sender',
       amount: 5,
     });
 
     await createTokenReceiptNotification({
-      recipientNpub: TEST_NPUB,
-      senderNpub: 'npub1sender2',
+      recipient: TEST_NPUB,
+      sender: 'npub1sender2',
       amount: 3,
     });
 
     await createWorkshopConfirmedNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       workshopTitle: 'Test Workshop',
       workshopId: 'workshop1',
       attendeeCount: 5,
@@ -266,8 +266,8 @@ describe('Notification Stats', () => {
 describe('Mark as Read', () => {
   it('should mark notification as read', async () => {
     const notification = await createTokenReceiptNotification({
-      recipientNpub: TEST_NPUB,
-      senderNpub: 'npub1sender',
+      recipient: TEST_NPUB,
+      sender: 'npub1sender',
       amount: 5,
     });
 
@@ -287,13 +287,13 @@ describe('Mark as Read', () => {
 
   it('should mark all notifications as read', async () => {
     await createTokenReceiptNotification({
-      recipientNpub: TEST_NPUB,
-      senderNpub: 'npub1sender',
+      recipient: TEST_NPUB,
+      sender: 'npub1sender',
       amount: 5,
     });
 
     await createWorkshopConfirmedNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       workshopTitle: 'Test Workshop',
       workshopId: 'workshop1',
       attendeeCount: 5,
@@ -330,8 +330,8 @@ describe('UI Helpers', () => {
 
   it('should format token receipt message', async () => {
     const notification = await createTokenReceiptNotification({
-      recipientNpub: TEST_NPUB,
-      senderNpub: 'npub1sender',
+      recipient: TEST_NPUB,
+      sender: 'npub1sender',
       senderUsername: 'alice',
       amount: 5,
     });
@@ -342,7 +342,7 @@ describe('UI Helpers', () => {
 
   it('should format workshop confirmed message', async () => {
     const notification = await createWorkshopConfirmedNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       workshopTitle: 'Intro to NOSTR',
       workshopId: 'workshop1',
       attendeeCount: 5,
@@ -357,7 +357,7 @@ describe('UI Helpers', () => {
 
   it('should format workshop cancelled message', async () => {
     const notification = await createWorkshopCancelledNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       workshopTitle: 'React Workshop',
       workshopId: 'workshop1',
       authorUsername: 'bob',
@@ -372,7 +372,7 @@ describe('UI Helpers', () => {
 
   it('should format RSVP notification message', async () => {
     const notification = await createRsvpNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       rsvpUserNpub: 'npub1charlie',
       rsvpUsername: 'charlie',
       workshopTitle: 'Smart Contracts',
@@ -413,13 +413,13 @@ describe('UI Helpers', () => {
 
     // Create notifications with different dates
     const notif1 = await createTokenReceiptNotification({
-      recipientNpub: TEST_NPUB,
-      senderNpub: 'npub1sender',
+      recipient: TEST_NPUB,
+      sender: 'npub1sender',
       amount: 5,
     });
 
     const notif2 = await createWorkshopConfirmedNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       workshopTitle: 'Workshop 1',
       workshopId: 'workshop1',
       attendeeCount: 5,
@@ -428,7 +428,7 @@ describe('UI Helpers', () => {
     notif2.createdAt = yesterday.toISOString();
 
     const notif3 = await createRsvpNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       rsvpUserNpub: 'npub1charlie',
       workshopTitle: 'Workshop 2',
       workshopId: 'workshop2',
@@ -454,8 +454,8 @@ describe('Cleanup', () => {
     for (let i = 0; i < 105; i++) {
       promises.push(
         createTokenReceiptNotification({
-          recipientNpub: TEST_NPUB,
-          senderNpub: `npub1sender${i}`,
+          recipient: TEST_NPUB,
+          sender: `npub1sender${i}`,
           amount: 1,
         })
       );
@@ -478,8 +478,8 @@ describe('Cleanup', () => {
     for (let i = 0; i < 50; i++) {
       promises.push(
         createTokenReceiptNotification({
-          recipientNpub: TEST_NPUB,
-          senderNpub: `npub1sender${i}`,
+          recipient: TEST_NPUB,
+          sender: `npub1sender${i}`,
           amount: 1,
         })
       );
@@ -500,8 +500,8 @@ describe('Cleanup', () => {
 describe('Edge Cases', () => {
   it('should handle notifications without optional fields', async () => {
     const notification = await createTokenReceiptNotification({
-      recipientNpub: TEST_NPUB,
-      senderNpub: 'npub1sender',
+      recipient: TEST_NPUB,
+      sender: 'npub1sender',
       amount: 5,
       // No username, message, or transactionId
     });
@@ -516,7 +516,7 @@ describe('Edge Cases', () => {
 
   it('should handle transaction confirmed without sender', async () => {
     const notification = await createTransactionConfirmedNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       amount: 10,
       transactionId: 'tx123',
       // No sender (outgoing transaction)
@@ -528,7 +528,7 @@ describe('Edge Cases', () => {
 
   it('should handle workshop cancelled without refund', async () => {
     const notification = await createWorkshopCancelledNotification({
-      recipientNpub: TEST_NPUB,
+      recipient: TEST_NPUB,
       workshopTitle: 'Test Workshop',
       workshopId: 'workshop1',
       // No refund amount
@@ -548,8 +548,8 @@ describe('Notification Performance', () => {
     for (let i = 0; i < 1000; i++) {
       promises.push(
         createTokenReceiptNotification({
-          recipientNpub: TEST_NPUB,
-          senderNpub: `npub1sender${i}`,
+          recipient: TEST_NPUB,
+          sender: `npub1sender${i}`,
           amount: 1,
         })
       );

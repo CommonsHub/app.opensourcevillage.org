@@ -171,9 +171,9 @@ export async function POST(request: NextRequest) {
 
     // Create payment request event
     const event = createPaymentRequestEvent(secretKey, {
-      recipientNpub: resolved.npub,
+      recipient: resolved.npub,
       recipientAddress: walletAddress,
-      senderNpub: 'system', // 'system' indicates this is a mint, not a transfer
+      sender: 'system', // 'system' indicates this is a mint, not a transfer
       amount: parsedAmount,
       tokenAddress,
       chainId,

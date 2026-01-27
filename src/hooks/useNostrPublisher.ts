@@ -24,13 +24,13 @@ import { publishToAllRelays, getRelayUrls } from '@/lib/nostr';
  */
 export interface PaymentRequestInput {
   /** Recipient's npub */
-  recipientNpub: string;
+  recipient: string;
   /** Sender's npub (current user) */
-  senderNpub: string;
+  sender: string;
   /** Amount in tokens */
   amount: number;
   /** Context of the payment */
-  context: 'rsvp' | 'tip' | 'transfer' | 'offer_creation' | 'workshop_proposal';
+  context: 'rsvp' | 'tip' | 'transfer' | 'offer_creation' | 'workshop_proposal' | 'booking';
   /** Related event ID (e.g., offer ID for RSVP) */
   relatedEventId?: string;
   /** Human-readable description */
@@ -80,8 +80,8 @@ export function useNostrPublisher() {
       const event = createProfileEvent(secretKey, { ...profile, relays });
       console.log('[useNostrPublisher] Profile event created:', event.id);
 
-      // Publish to relays
-      const result = await publishToAllRelays(event);
+      // Publish to relays (pass secretKey for AUTH handling)
+      const result = await publishToAllRelays(event, secretKey);
 
       if (result.successful.length === 0) {
         throw new Error('Failed to publish to any relay');
@@ -129,8 +129,8 @@ export function useNostrPublisher() {
       const event = createOfferEvent(secretKey, offer);
       console.log('[useNostrPublisher] Offer event created:', event.id);
 
-      // Publish to relays
-      const result = await publishToAllRelays(event);
+      // Publish to relays (pass secretKey for AUTH handling)
+      const result = await publishToAllRelays(event, secretKey);
 
       if (result.successful.length === 0) {
         throw new Error('Failed to publish to any relay');
@@ -161,7 +161,7 @@ export function useNostrPublisher() {
    */
   const publishRSVP = useCallback(async (
     offerEventId: string,
-    authorNpub: string
+    author: string
   ): Promise<PublishResult> => {
     console.log('[useNostrPublisher] Publishing RSVP event...');
     setIsPublishing(true);
@@ -178,11 +178,11 @@ export function useNostrPublisher() {
       const secretKey = decodeNsec(nsec);
 
       // Create and sign RSVP event
-      const event = createRSVPEvent(secretKey, offerEventId, authorNpub);
+      const event = createRSVPEvent(secretKey, offerEventId, author);
       console.log('[useNostrPublisher] RSVP event created:', event.id);
 
-      // Publish to relays
-      const result = await publishToAllRelays(event);
+      // Publish to relays (pass secretKey for AUTH handling)
+      const result = await publishToAllRelays(event, secretKey);
 
       if (result.successful.length === 0) {
         throw new Error('Failed to publish to any relay');
@@ -230,8 +230,8 @@ export function useNostrPublisher() {
       const event = createRSVPCancellationEvent(secretKey, rsvpEventId);
       console.log('[useNostrPublisher] RSVP cancellation event created:', event.id);
 
-      // Publish to relays
-      const result = await publishToAllRelays(event);
+      // Publish to relays (pass secretKey for AUTH handling)
+      const result = await publishToAllRelays(event, secretKey);
 
       if (result.successful.length === 0) {
         throw new Error('Failed to publish to any relay');
@@ -298,13 +298,13 @@ export function useNostrPublisher() {
 
       if (isBurn) {
         // Burn only needs sender address
-        const senderWalletResponse = await fetch(`/api/wallet/address/${input.senderNpub}`);
+        const senderWalletResponse = await fetch(`/api/wallet/address/${input.sender}`);
         senderWalletData = await senderWalletResponse.json();
       } else {
         // Transfer/mint needs both addresses
         const [senderResponse, recipientResponse] = await Promise.all([
-          fetch(`/api/wallet/address/${input.senderNpub}`),
-          fetch(`/api/wallet/address/${input.recipientNpub}`),
+          fetch(`/api/wallet/address/${input.sender}`),
+          fetch(`/api/wallet/address/${input.recipient}`),
         ]);
 
         senderWalletData = await senderResponse.json();
@@ -320,9 +320,9 @@ export function useNostrPublisher() {
 
       // Create payment request options
       const paymentOptions: PaymentRequestOptions = {
-        recipientNpub: isBurn ? input.senderNpub : input.recipientNpub, // For burn, no recipient
+        recipient: isBurn ? input.sender : input.recipient, // For burn, no recipient
         recipientAddress: isBurn ? '' : recipientWalletData.walletAddress!, // For burn, no recipient address
-        senderNpub: input.senderNpub,
+        sender: input.sender,
         senderAddress: senderWalletData.walletAddress,
         amount: input.amount,
         tokenAddress: token.address,
@@ -338,8 +338,8 @@ export function useNostrPublisher() {
       const event = createPaymentRequestEvent(secretKey, paymentOptions);
       console.log('[useNostrPublisher] Payment request event created:', event.id);
 
-      // Publish to relays
-      const result = await publishToAllRelays(event);
+      // Publish to relays (pass secretKey for AUTH handling)
+      const result = await publishToAllRelays(event, secretKey);
 
       if (result.successful.length === 0) {
         throw new Error('Failed to publish to any relay');

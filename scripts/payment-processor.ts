@@ -26,6 +26,17 @@
 import * as fs from 'fs';
 import * as path from 'path';
 
+// Logging helper with timestamp
+function log(...args: unknown[]): void {
+  const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  console.log(`[${timestamp}]`, ...args);
+}
+
+function logError(...args: unknown[]): void {
+  const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 19);
+  console.error(`[${timestamp}]`, ...args);
+}
+
 function loadEnvFile(filename: string): boolean {
   const envPath = path.join(process.cwd(), filename);
   if (fs.existsSync(envPath)) {
@@ -132,7 +143,7 @@ const state: ProcessorState = {
 function ensureProcessorDir(): void {
   if (!fs.existsSync(PROCESSOR_DIR)) {
     fs.mkdirSync(PROCESSOR_DIR, { recursive: true });
-    console.log(`[PaymentProcessor] Created directory: ${PROCESSOR_DIR}`);
+    log(`[PaymentProcessor] Created directory: ${PROCESSOR_DIR}`);
   }
 }
 
@@ -144,7 +155,7 @@ function loadProcessedEvents(): void {
       const content = fs.readFileSync(PROCESSED_FILE, 'utf-8');
       const data = JSON.parse(content);
       state.processedEventIds = new Set(data.processedIds || []);
-      console.log(`[PaymentProcessor] Loaded ${state.processedEventIds.size} processed event IDs`);
+      log(`[PaymentProcessor] Loaded ${state.processedEventIds.size} processed event IDs`);
     }
   } catch (error) {
     console.error('[PaymentProcessor] Failed to load processed events:', error);
@@ -205,16 +216,16 @@ async function processPaymentRequest(
 ): Promise<void> {
   // Check if already processed
   if (state.processedEventIds.has(event.id)) {
-    console.log(`[PaymentProcessor] Event ${event.id.slice(0, 8)}... already processed, skipping`);
+    log(`[PaymentProcessor] Event ${event.id.slice(0, 8)}... already processed, skipping`);
     return;
   }
 
-  console.log(`[PaymentProcessor] Processing payment request: ${event.id.slice(0, 8)}...`);
+  log(`[PaymentProcessor] Processing payment request: ${event.id.slice(0, 8)}...`);
 
   // Parse the payment request
   const request = parsePaymentRequestEvent(event);
   if (!request) {
-    console.error(`[PaymentProcessor] Failed to parse payment request: ${event.id}`);
+    logError(`[PaymentProcessor] Failed to parse payment request: ${event.id}`);
     state.processedEventIds.add(event.id);
     saveProcessedEvents();
     return;
@@ -222,10 +233,10 @@ async function processPaymentRequest(
 
   const method = request.method || 'transfer';
 
-  console.log(`[PaymentProcessor] Payment details:`, {
+  log(`[PaymentProcessor] Payment details:`, {
     method,
-    from: request.senderNpub.slice(0, 15) + '...',
-    to: request.recipientNpub.slice(0, 15) + '...',
+    from: request.sender.slice(0, 15) + '...',
+    to: request.recipient.slice(0, 15) + '...',
     amount: request.amount,
     tokenSymbol: request.tokenSymbol,
     chainId: request.chainId,
@@ -242,37 +253,37 @@ async function processPaymentRequest(
 
     if (method === 'mint') {
       // Mint new tokens to the recipient
-      console.log(`[PaymentProcessor] Minting ${request.amount} tokens to ${request.recipientNpub.slice(0, 15)}...`);
-      txHash = await token.mintTo(request.amount, `nostr:${request.recipientNpub}`) || '0x0';
+      log(`[PaymentProcessor] Minting ${request.amount} tokens to ${request.recipient.slice(0, 15)}...`);
+      txHash = await token.mintTo(request.amount, `nostr:${request.recipient}`) || '0x0';
 
       if (txHash && txHash !== '0x0') {
-        console.log(`[PaymentProcessor] Mint successful: ${txHash}`);
+        log(`[PaymentProcessor] Mint successful: ${txHash}`);
         success = true;
       } else {
         throw new Error('Mint returned no transaction hash');
       }
     } else if (method === 'burn') {
       // Burn tokens from sender (used for workshop proposals)
-      console.log(`[PaymentProcessor] Burning ${request.amount} tokens from ${request.senderNpub.slice(0, 15)}...`);
-      txHash = await token.burnFrom(request.amount, `nostr:${request.senderNpub}`) || '0x0';
+      log(`[PaymentProcessor] Burning ${request.amount} tokens from ${request.sender.slice(0, 15)}...`);
+      txHash = await token.burnFrom(request.amount, `nostr:${request.sender}`) || '0x0';
 
       if (txHash && txHash !== '0x0') {
-        console.log(`[PaymentProcessor] Burn successful: ${txHash}`);
+        log(`[PaymentProcessor] Burn successful: ${txHash}`);
         success = true;
       } else {
         throw new Error('Burn returned no transaction hash');
       }
     } else {
       // Transfer tokens from sender to recipient
-      console.log(`[PaymentProcessor] Transferring ${request.amount} tokens...`);
+      log(`[PaymentProcessor] Transferring ${request.amount} tokens...`);
       txHash = await token.transfer(
-        `nostr:${request.senderNpub}`,
-        `nostr:${request.recipientNpub}`,
+        `nostr:${request.sender}`,
+        `nostr:${request.recipient}`,
         request.amount
       ) || '0x0';
 
       if (txHash && txHash !== '0x0') {
-        console.log(`[PaymentProcessor] Transfer successful: ${txHash}`);
+        log(`[PaymentProcessor] Transfer successful: ${txHash}`);
         success = true;
       } else {
         throw new Error('Transfer returned no transaction hash');
@@ -280,7 +291,7 @@ async function processPaymentRequest(
     }
   } catch (error) {
     errorMessage = error instanceof Error ? error.message : String(error);
-    console.error(`[PaymentProcessor] ${method} failed:`, errorMessage);
+    logError(`[PaymentProcessor] ${method} failed:`, errorMessage);
   }
 
   // Mark as processed
@@ -297,12 +308,12 @@ async function processPaymentRequest(
       });
 
       await publishToRelays(receiptEvent);
-      console.log(`[PaymentProcessor] Published payment receipt: ${receiptEvent.id.slice(0, 8)}...`);
+      log(`[PaymentProcessor] Published payment receipt: ${receiptEvent.id.slice(0, 8)}...`);
     } catch (error) {
-      console.error(`[PaymentProcessor] Failed to publish receipt:`, error);
+      logError(`[PaymentProcessor] Failed to publish receipt:`, error);
     }
   } else {
-    console.log(`[PaymentProcessor] Skipping receipt for failed transaction: ${event.id.slice(0, 8)}...`);
+    log(`[PaymentProcessor] Skipping receipt for failed transaction: ${event.id.slice(0, 8)}...`);
   }
 }
 
@@ -319,7 +330,7 @@ async function publishToRelays(event: NostrEvent): Promise<void> {
   }
 
   const result = await connectionPool.publishToAll(event);
-  console.log(`[PaymentProcessor] Receipt published to ${result.successful}/${result.successful + result.failed} relays`);
+  log(`[PaymentProcessor] Receipt published to ${result.successful}/${result.successful + result.failed} relays`);
 }
 
 function setupConnectionPool(
@@ -331,10 +342,10 @@ function setupConnectionPool(
       secretKey,
       autoReconnect: true,
       reconnectDelay: 5000,
-      onConnect: (url) => console.log(`[PaymentProcessor] Connected to ${url}`),
-      onDisconnect: (url) => console.log(`[PaymentProcessor] Disconnected from ${url}`),
-      onAuth: (url) => console.log(`[PaymentProcessor] Authenticated with ${url}`),
-      onError: (url, error) => console.error(`[PaymentProcessor] Error from ${url}:`, error.message),
+      onConnect: (url) => log(`[PaymentProcessor] Connected to ${url}`),
+      onDisconnect: (url) => log(`[PaymentProcessor] Disconnected from ${url}`),
+      onAuth: (url) => log(`[PaymentProcessor] Authenticated with ${url}`),
+      onError: (url, error) => logError(`[PaymentProcessor] Error from ${url}:`, error.message),
     },
     '[PaymentProcessor]'
   );
@@ -347,9 +358,9 @@ function setupConnectionPool(
 // ============================================================================
 
 async function main(): Promise<void> {
-  console.log('='.repeat(60));
-  console.log('Payment Processor - Starting');
-  console.log('='.repeat(60));
+  log('='.repeat(60));
+  log('Payment Processor - Starting');
+  log('='.repeat(60));
 
   // Check required environment variables
   const privateKey = process.env.PRIVATE_KEY;
@@ -390,9 +401,9 @@ async function main(): Promise<void> {
 
   // Display startup information
   console.log('[PaymentProcessor] ------------------------------------');
-  console.log(`[PaymentProcessor] npub: ${npub}`);
-  console.log(`[PaymentProcessor] Chain: ${tokenConfig.chain}`);
-  console.log(`[PaymentProcessor] Token: ${tokenConfig.symbol} (${tokenConfig.address})`);
+  log(`[PaymentProcessor] npub: ${npub}`);
+  log(`[PaymentProcessor] Chain: ${tokenConfig.chain}`);
+  log(`[PaymentProcessor] Token: ${tokenConfig.symbol} (${tokenConfig.address})`);
   console.log('[PaymentProcessor] ------------------------------------');
 
   // Load processed events
@@ -405,14 +416,14 @@ async function main(): Promise<void> {
     process.exit(1);
   }
 
-  console.log(`[PaymentProcessor] Connecting to ${relayUrls.length} relay(s)...`);
-  console.log(`[PaymentProcessor] Data directory: ${PROCESSOR_DIR}`);
+  log(`[PaymentProcessor] Connecting to ${relayUrls.length} relay(s)...`);
+  log(`[PaymentProcessor] Data directory: ${PROCESSOR_DIR}`);
 
   // Set up connection pool
   connectionPool = setupConnectionPool(secretKey, privateKey);
   const { connected, failed } = await connectionPool.connectToRelays(relayUrls);
 
-  console.log(`[PaymentProcessor] Connected to ${connected} relay(s), ${failed} failed`);
+  log(`[PaymentProcessor] Connected to ${connected} relay(s), ${failed} failed`);
 
   if (connected === 0) {
     console.error('[PaymentProcessor] ERROR: Failed to connect to any relay');
@@ -431,17 +442,17 @@ async function main(): Promise<void> {
       }
     },
     onEose: (relayUrl) => {
-      console.log(`[PaymentProcessor] ${relayUrl}: End of stored events`);
+      log(`[PaymentProcessor] ${relayUrl}: End of stored events`);
     },
   });
 
-  console.log(`[PaymentProcessor] Subscribed to kind ${NOSTR_KINDS.PAYMENT_REQUEST} events`);
+  log(`[PaymentProcessor] Subscribed to kind ${NOSTR_KINDS.PAYMENT_REQUEST} events`);
   console.log('[PaymentProcessor] Listening for payment requests...');
   console.log('[PaymentProcessor] Press Ctrl+C to stop');
 
   // Handle shutdown
   const shutdown = () => {
-    console.log('\n[PaymentProcessor] Shutting down...');
+    log('\n[PaymentProcessor] Shutting down...');
     saveProcessedEvents();
     connectionPool?.closeAll();
     process.exit(0);
@@ -453,6 +464,6 @@ async function main(): Promise<void> {
 
 // Run the processor
 main().catch((error) => {
-  console.error('[PaymentProcessor] Fatal error:', error);
+  logError('[PaymentProcessor] Fatal error:', error);
   process.exit(1);
 });

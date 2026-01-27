@@ -159,7 +159,8 @@ describe('NOSTR Events', () => {
     });
 
     it('should include co-authors in tags', () => {
-      const coAuthorNpub = nip19.npubEncode(getPublicKey(generateSecretKey()));
+      const coAuthorPubkeyHex = getPublicKey(generateSecretKey());
+      const coAuthorNpub = nip19.npubEncode(coAuthorPubkeyHex);
 
       const offer: OfferEventOptions = {
         title: 'Pair Programming',
@@ -174,7 +175,8 @@ describe('NOSTR Events', () => {
         key === 'p' && marker === 'author'
       );
       expect(coAuthorTags.length).toBe(1);
-      expect(coAuthorTags[0][1]).toBe(coAuthorNpub);
+      // Tags use raw hex pubkey (NOSTR convention)
+      expect(coAuthorTags[0][1]).toBe(coAuthorPubkeyHex);
     });
 
     it('should default price to 1 if not specified', () => {
@@ -206,16 +208,17 @@ describe('NOSTR Events', () => {
 
   describe('createRSVPEvent', () => {
     it('should create a valid RSVP event', () => {
-      const offerEventId = 'abc123def456';
-      const authorNpub = nip19.npubEncode(getPublicKey(generateSecretKey()));
+      const offerEventId = 'abc123def456abc123def456abc123def456abc123def456abc123def456abc1'; // 64 hex chars
+      const authorPubkeyHex = getPublicKey(generateSecretKey());
+      const author = nip19.npubEncode(authorPubkeyHex);
 
-      const event = createRSVPEvent(secretKey, offerEventId, authorNpub);
+      const event = createRSVPEvent(secretKey, offerEventId, author);
 
       expect(event.kind).toBe(NOSTR_KINDS.REACTION);
       expect(event.pubkey).toBe(publicKey);
       expect(event.content).toBe('🎟️');
 
-      // Check tags
+      // Check tags - should use raw hex (NOSTR convention)
       const eTags = event.tags.filter(([key]) => key === 'e');
       const pTags = event.tags.filter(([key]) => key === 'p');
 
@@ -224,7 +227,7 @@ describe('NOSTR Events', () => {
       expect(eTags[0][3]).toBe('reply');
 
       expect(pTags.length).toBe(1);
-      expect(pTags[0][1]).toBe(authorNpub);
+      expect(pTags[0][1]).toBe(authorPubkeyHex); // Expect hex, not npub
     });
 
     it('should create verifiable events', () => {

@@ -242,6 +242,121 @@ export function countEventsByKind(npub: string): Record<number, number> {
 }
 
 // ============================================================================
+// Global Events (all events from nostr-listener)
+// ============================================================================
+
+/**
+ * Read all NOSTR events from the global events file
+ * Used by /nostr page to display all events
+ *
+ * @param options - Query options for filtering/pagination
+ * @returns Array of NOSTR events with metadata
+ */
+export interface GlobalEventEntry {
+  timestamp: string;
+  source: string;
+  mentioned?: boolean;
+  event: NostrEvent;
+}
+
+export function readAllNostrEvents(options?: {
+  limit?: number;
+  offset?: number;
+  kinds?: number[];
+  pubkeys?: string[];
+}): GlobalEventEntry[] {
+  const dataDir = getDataDir();
+  const allEventsFile = join(dataDir, 'nostr_events.jsonl');
+
+  try {
+    if (!existsSync(allEventsFile)) {
+      return [];
+    }
+
+    const content = readFileSync(allEventsFile, 'utf-8');
+    const lines = content.trim().split('\n').filter(line => line.length > 0);
+
+    // Parse all events
+    let entries: GlobalEventEntry[] = [];
+    const seenEventIds = new Set<string>();
+
+    for (const line of lines) {
+      try {
+        const parsed = JSON.parse(line) as GlobalEventEntry;
+
+        // Skip duplicates
+        if (seenEventIds.has(parsed.event.id)) {
+          continue;
+        }
+        seenEventIds.add(parsed.event.id);
+
+        // Apply kind filter
+        if (options?.kinds && options.kinds.length > 0) {
+          if (!options.kinds.includes(parsed.event.kind)) {
+            continue;
+          }
+        }
+
+        // Apply pubkey filter (hex pubkey)
+        if (options?.pubkeys && options.pubkeys.length > 0) {
+          if (!options.pubkeys.includes(parsed.event.pubkey)) {
+            continue;
+          }
+        }
+
+        entries.push(parsed);
+      } catch {
+        // Skip malformed lines
+      }
+    }
+
+    // Sort by timestamp descending (newest first)
+    entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    // Apply pagination
+    const offset = options?.offset || 0;
+    const limit = options?.limit || entries.length;
+
+    return entries.slice(offset, offset + limit);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get unique pubkeys from all events
+ * Used for the filter dropdown on /nostr page
+ */
+export function getUniquePubkeys(): string[] {
+  const dataDir = getDataDir();
+  const allEventsFile = join(dataDir, 'nostr_events.jsonl');
+
+  try {
+    if (!existsSync(allEventsFile)) {
+      return [];
+    }
+
+    const content = readFileSync(allEventsFile, 'utf-8');
+    const lines = content.trim().split('\n').filter(line => line.length > 0);
+
+    const pubkeys = new Set<string>();
+
+    for (const line of lines) {
+      try {
+        const parsed = JSON.parse(line) as GlobalEventEntry;
+        pubkeys.add(parsed.event.pubkey);
+      } catch {
+        // Skip malformed lines
+      }
+    }
+
+    return Array.from(pubkeys);
+  } catch {
+    return [];
+  }
+}
+
+// ============================================================================
 // Legacy support - these functions accept serialNumber but won't work anymore
 // They are kept for reference during migration
 // ============================================================================

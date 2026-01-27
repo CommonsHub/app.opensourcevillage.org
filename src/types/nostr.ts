@@ -34,7 +34,7 @@ export interface UserProfileWithNostr extends UserProfile {
  */
 export interface CreateOfferWithNostrRequest {
   offer: {
-    type: 'workshop' | '1:1' | 'other';
+    type: 'workshop' | '1:1' | 'other' | 'private';
     title: string;
     description: string;
     tags?: string[];

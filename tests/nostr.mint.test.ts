@@ -240,9 +240,9 @@ async function authenticate(ws: WebSocket, secretKey: Uint8Array, challenge?: st
 function createPaymentRequestEvent(
   secretKey: Uint8Array,
   options: {
-    recipientNpub: string;
+    recipient: string;
     recipientAddress: string;
-    senderNpub: string;
+    sender: string;
     amount: number;
     tokenAddress: string;
     chainId: number;
@@ -256,8 +256,8 @@ function createPaymentRequestEvent(
   const amountInSmallestUnit = BigInt(Math.floor(options.amount * 10 ** TOKEN_DECIMALS));
 
   // Convert npubs to hex pubkeys (NOSTR standard requires hex in p tags)
-  const recipientPubkey = npubToHex(options.recipientNpub);
-  const senderPubkey = npubToHex(options.senderNpub);
+  const recipientPubkey = npubToHex(options.recipient);
+  const senderPubkey = npubToHex(options.sender);
 
   const tags: string[][] = [
     ['p', recipientPubkey],    // Recipient pubkey (hex, 64 chars)
@@ -306,9 +306,9 @@ describeWhenReady('nostr mint integration (kind 21734)', () => {
   it('creates payment request with hex pubkeys in p tags (not npub)', () => {
     // Create a payment request event
     const paymentEvent = createPaymentRequestEvent(secretKey, {
-      recipientNpub: npub, // Pass npub, should be converted to hex
+      recipient: npub, // Pass npub, should be converted to hex
       recipientAddress: '0x0000000000000000000000000000000000000001',
-      senderNpub: 'system',
+      sender: 'system',
       amount: 10,
       tokenAddress: '0x2E70c02060Fc87009Be2f5C94591f6df4Bc4873e',
       chainId: 31337,
@@ -356,9 +356,9 @@ describeWhenReady('nostr mint integration (kind 21734)', () => {
 
       // Create payment request event
       const paymentEvent = createPaymentRequestEvent(secretKey, {
-        recipientNpub: npub,
+        recipient: npub,
         recipientAddress: '0x0000000000000000000000000000000000000001',
-        senderNpub: 'system', // 'system' indicates mint
+        sender: 'system', // 'system' indicates mint
         amount: 10,
         tokenAddress: '0x2E70c02060Fc87009Be2f5C94591f6df4Bc4873e',
         chainId: 31337,
@@ -453,9 +453,9 @@ describeWhenReady('nostr mint integration (kind 21734)', () => {
 
       // Create and publish payment request
       const paymentEvent = createPaymentRequestEvent(secretKey, {
-        recipientNpub: npub,
+        recipient: npub,
         recipientAddress: '0x0000000000000000000000000000000000000002',
-        senderNpub: 'system',
+        sender: 'system',
         amount: 5,
         tokenAddress: '0x2E70c02060Fc87009Be2f5C94591f6df4Bc4873e',
         chainId: 31337,

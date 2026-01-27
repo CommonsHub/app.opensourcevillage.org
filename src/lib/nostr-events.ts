@@ -28,6 +28,56 @@ export const NOSTR_KINDS = {
 } as const;
 
 /**
+ * Encode a hex event ID as nostr:note1... format
+ * Required by relays with RejectUnprefixedNostrReferences policy (like pyramid)
+ */
+export function encodeEventReference(eventIdHex: string): string {
+  if (!eventIdHex || !/^[a-f0-9]{64}$/i.test(eventIdHex)) {
+    return eventIdHex; // Return as-is if not a valid hex event ID
+  }
+  // nip19.noteEncode expects hex string directly, returns note1...
+  return nip19.noteEncode(eventIdHex);
+}
+
+/**
+ * Encode a hex pubkey as npub1... format
+ * Note: This is for display/content purposes, not for tags (tags use raw hex)
+ */
+export function encodePubkeyReference(pubkeyHex: string): string {
+  if (!pubkeyHex || !/^[a-f0-9]{64}$/i.test(pubkeyHex)) {
+    return pubkeyHex;
+  }
+  return nip19.npubEncode(pubkeyHex);
+}
+
+/**
+ * Convert a pubkey tag value to npub format
+ * Handles both hex (NOSTR standard) and npub (legacy) formats for backwards compatibility
+ */
+export function pubkeyTagToNpub(tagValue: string): string {
+  if (!tagValue) return tagValue;
+
+  // Special value 'system' passes through
+  if (tagValue === 'system') {
+    return 'system';
+  }
+
+  // Already an npub (legacy format in tags)
+  if (tagValue.startsWith('npub1')) {
+    return tagValue;
+  }
+
+  // Hex pubkey (correct NOSTR format) - convert to npub
+  if (/^[0-9a-f]{64}$/i.test(tagValue)) {
+    return nip19.npubEncode(tagValue);
+  }
+
+  // Unknown format - log warning and return as-is
+  console.warn('[NOSTR] Unknown pubkey tag format:', tagValue?.substring(0, 20));
+  return tagValue;
+}
+
+/**
  * Convert an npub to hex pubkey
  * If already a hex pubkey (64 chars) or special value like 'system', returns as-is
  *
@@ -141,6 +191,10 @@ export interface CalendarEventOptions {
   tags?: string[];
   /** Group ID for NIP-29 (optional) */
   groupId?: string;
+  /** Event status: TENTATIVE, CONFIRMED, or CANCELLED (optional) */
+  status?: 'TENTATIVE' | 'CONFIRMED' | 'CANCELLED';
+  /** Reference to related event ID (optional) */
+  relatedEventId?: string;
 }
 
 /**
@@ -199,6 +253,16 @@ export function createCalendarEventClient(
     eventTags.push(['h', options.groupId]);
   }
 
+  // Add status if provided (TENTATIVE, CONFIRMED, or CANCELLED)
+  if (options.status) {
+    eventTags.push(['status', options.status]);
+  }
+
+  // Add reference to related event (e.g., offer/booking ID)
+  if (options.relatedEventId) {
+    eventTags.push(['e', options.relatedEventId, '', 'related']);
+  }
+
   // Add topic tags
   if (options.tags && options.tags.length > 0) {
     options.tags.forEach(tag => {
@@ -217,8 +281,11 @@ export function createCalendarEventClient(
 
   console.log('[NOSTR] Calendar event created and signed:');
   console.log('[NOSTR]   Event ID:', signedEvent.id);
-  console.log('[NOSTR]   d-tag:', options.dTag);
-  console.log('[NOSTR]   Title:', options.title);
+  console.log('[NOSTR]   Pubkey:', signedEvent.pubkey);
+  console.log('[NOSTR]   Kind:', signedEvent.kind);
+  console.log('[NOSTR]   Tags:', JSON.stringify(signedEvent.tags));
+  console.log('[NOSTR]   Content:', signedEvent.content);
+  console.log('[NOSTR]   Full event:', JSON.stringify(signedEvent));
 
   return signedEvent;
 }
@@ -229,7 +296,7 @@ export function createCalendarEventClient(
 export interface OfferEventOptions {
   title: string;
   description: string;
-  type: 'workshop' | '1:1' | 'other';
+  type: 'workshop' | '1:1' | 'other' | 'private';
   tags?: string[];
   price?: number;
   location?: string;
@@ -285,10 +352,11 @@ export function createOfferEvent(
     offer.tags.forEach(tag => tags.push(['t', tag]));
   }
 
-  // Add co-authors
+  // Add co-authors (use raw hex pubkey in p-tag - NOSTR convention)
   if (offer.coAuthors && offer.coAuthors.length > 0) {
     offer.coAuthors.forEach(npub => {
-      tags.push(['p', npub, '', 'author']);
+      const pubkeyHex = npubToHex(npub);
+      tags.push(['p', pubkeyHex, '', 'author']);
     });
   }
 
@@ -335,7 +403,7 @@ export function createOfferEvent(
  *
  * @param secretKey - User's NOSTR secret key (32 bytes)
  * @param offerEventId - The NOSTR event ID of the offer being RSVP'd to
- * @param authorNpub - The npub of the offer author
+ * @param author - The npub of the offer author
  * @returns Signed NOSTR event
  *
  * @example
@@ -350,20 +418,23 @@ export function createOfferEvent(
 export function createRSVPEvent(
   secretKey: Uint8Array,
   offerEventId: string,
-  authorNpub: string
+  author: string
 ): NostrEvent {
   console.log('[NOSTR] Creating RSVP event (kind 7)...');
   console.log('[NOSTR] RSVP data:', {
     offerEventId,
-    authorNpub,
+    author,
   });
+
+  // Convert npub to hex for p-tag (NOSTR convention: tags use raw hex)
+  const authorPubkeyHex = npubToHex(author);
 
   const event: EventTemplate = {
     kind: NOSTR_KINDS.REACTION,
     created_at: Math.floor(Date.now() / 1000),
     tags: [
       ['e', offerEventId, '', 'reply'],
-      ['p', authorNpub],
+      ['p', authorPubkeyHex],
     ],
     content: '🎟️',
   };
@@ -401,7 +472,7 @@ export function createRSVPCancellationEvent(
     kind: NOSTR_KINDS.REACTION,
     created_at: Math.floor(Date.now() / 1000),
     tags: [
-      ['e', rsvpEventId, '', 'cancel'],
+      ['e', rsvpEventId, '', 'cancel'],  // Raw hex event ID (NOSTR convention)
     ],
     content: '❌',
   };
@@ -508,9 +579,9 @@ export function parseOfferEvent(event: NostrEvent): OfferEventOptions | null {
   // Parse tags
   const tagMap = new Map(event.tags.map(([key, value]) => [key, value]));
   const topicTags = event.tags.filter(([key]) => key === 't').map(([, value]) => value);
-  const type = topicTags[0] as 'workshop' | '1:1' | 'other' | undefined;
+  const type = topicTags[0] as 'workshop' | '1:1' | 'other' | 'private' | undefined;
 
-  if (!type || !['workshop', '1:1', 'other'].includes(type)) {
+  if (!type || !['workshop', '1:1', 'other', 'private'].includes(type)) {
     return null;
   }
 
@@ -628,11 +699,11 @@ export function parseEIP681PaymentUrl(url: string): {
  */
 export interface PaymentRequestOptions {
   /** Recipient's npub */
-  recipientNpub: string;
+  recipient: string;
   /** Recipient's 0x wallet address (Safe address) */
   recipientAddress: string;
   /** Sender's npub (for transfers) or 'system' (for mints) */
-  senderNpub: string;
+  sender: string;
   /** Sender's 0x wallet address (Safe address) - optional for mints */
   senderAddress?: string;
   /** Amount in tokens (will be converted to smallest unit) */
@@ -646,7 +717,7 @@ export interface PaymentRequestOptions {
   /** Related event ID (e.g., offer ID for RSVP) */
   relatedEventId?: string;
   /** Context of the payment */
-  context: 'rsvp' | 'tip' | 'transfer' | 'offer_creation' | 'badge_claim' | 'refund' | 'workshop_proposal';
+  context: 'rsvp' | 'tip' | 'transfer' | 'offer_creation' | 'badge_claim' | 'refund' | 'workshop_proposal' | 'booking';
   /** Human-readable description */
   description?: string;
   /** Method: mint (create new tokens), transfer (move existing tokens), or burn (destroy tokens) */
@@ -685,9 +756,9 @@ function deduplicateTags(tags: string[][]): string[][] {
  * @example
  * ```typescript
  * const event = createPaymentRequestEvent(secretKey, {
- *   recipientNpub: "npub1...",
+ *   recipient: "npub1...",
  *   recipientAddress: "0x1234...",
- *   senderNpub: "npub2...",
+ *   sender: "npub2...",
  *   senderAddress: "0x5678...",
  *   amount: 1,
  *   tokenAddress: "0xtoken...",
@@ -705,8 +776,8 @@ export function createPaymentRequestEvent(
   console.log('[NOSTR] Creating payment request event (kind 1734)...');
   console.log('[NOSTR] Payment request:', {
     method: options.method,
-    from: options.senderNpub.substring(0, 15) + '...',
-    to: options.method === 'burn' ? '(burn)' : options.recipientNpub.substring(0, 15) + '...',
+    from: options.sender.substring(0, 15) + '...',
+    to: options.method === 'burn' ? '(burn)' : options.recipient.substring(0, 15) + '...',
     amount: options.amount,
     context: options.context,
   });
@@ -718,8 +789,8 @@ export function createPaymentRequestEvent(
   const isBurn = options.method === 'burn';
 
   // Convert npubs to hex pubkeys for p tags (NOSTR standard requires hex pubkeys)
-  const senderPubkey = npubToHex(options.senderNpub);
-  const recipientPubkey = !isBurn ? npubToHex(options.recipientNpub) : null;
+  const senderPubkey = npubToHex(options.sender);
+  const recipientPubkey = !isBurn ? npubToHex(options.recipient) : null;
 
   // For burn, use sender address in the payment URL (tokens are burned from sender)
   const addressForPaymentUrl = isBurn ? options.senderAddress! : options.recipientAddress;
@@ -733,6 +804,7 @@ export function createPaymentRequestEvent(
     options.method
   );
 
+  // Use raw hex pubkeys in tags (NOSTR convention)
   const tags: string[][] = [
     ['P', senderPubkey],                             // Sender pubkey (hex) or 'system' for mints
     ['amount', String(amountInSmallestUnit)],        // Amount in smallest unit
@@ -753,7 +825,7 @@ export function createPaymentRequestEvent(
   } else {
     // Transfer/mint needs recipient info
     if (recipientPubkey) {
-      tags.push(['p', recipientPubkey]);             // Recipient pubkey (hex)
+      tags.push(['p', recipientPubkey]); // Recipient pubkey (hex)
     }
     tags.push(['toAddress', options.recipientAddress]); // Recipient's 0x address
 
@@ -768,9 +840,16 @@ export function createPaymentRequestEvent(
     tags.push(['symbol', options.tokenSymbol]);
   }
 
-  // Add related event reference
+  // Add related event/item reference
+  // Use 'e' tag with raw hex event ID (NOSTR convention)
   if (options.relatedEventId) {
-    tags.push(['e', options.relatedEventId, '', 'related']);
+    const isValidEventId = /^[a-f0-9]{64}$/i.test(options.relatedEventId);
+    if (isValidEventId) {
+      tags.push(['e', options.relatedEventId, '', 'related']);
+    } else {
+      // Use 'r' tag for non-event-ID references
+      tags.push(['r', options.relatedEventId]);
+    }
   }
 
   // Deduplicate tags to avoid duplicates
@@ -846,17 +925,29 @@ export function createPaymentReceiptEvent(
   const symbol = requestTags.find(t => t[0] === 'symbol')?.[1];
   const relatedEventId = requestTags.find(t => t[0] === 'e' && t[3] === 'related')?.[1];
 
-  // Ensure pubkeys are in hex format (convert if they're npubs)
-  const recipientPubkey = recipientPubkeyRaw ? npubToHex(recipientPubkeyRaw) : undefined;
-  const senderPubkey = senderPubkeyRaw ? npubToHex(senderPubkeyRaw) : undefined;
+  // Ensure pubkeys are in hex format (convert if they're npubs or nostr:npub)
+  const recipientPubkey = recipientPubkeyRaw ? npubToHex(recipientPubkeyRaw.replace('nostr:', '')) : undefined;
+  const senderPubkey = senderPubkeyRaw ? npubToHex(senderPubkeyRaw.replace('nostr:', '')) : undefined;
+
+  // Decode relatedEventId if it's in nostr:note format
+  let relatedEventIdHex = relatedEventId;
+  if (relatedEventId?.startsWith('nostr:note')) {
+    try {
+      const decoded = nip19.decode(relatedEventId.replace('nostr:', ''));
+      if (decoded.type === 'note') {
+        // nip19.decode for 'note' returns hex string directly
+        relatedEventIdHex = decoded.data as string;
+      }
+    } catch { /* keep original */ }
+  }
 
   const tags: string[][] = [
-    ['e', options.paymentRequestEvent.id, '', 'request'],  // Reference to the request
+    ['e', options.paymentRequestEvent.id, '', 'request'],  // Reference to the request (hex)
     ['txhash', options.txHash],                            // Blockchain transaction hash
     ['status', options.success ? 'success' : 'failed'],    // Status
   ];
 
-  // Copy relevant tags from request (with hex pubkeys)
+  // Copy relevant tags from request (use raw hex for pubkeys - NOSTR convention)
   if (recipientPubkey) tags.push(['p', recipientPubkey]);
   if (senderPubkey) tags.push(['P', senderPubkey]);
   if (amount) tags.push(['amount', amount]);
@@ -864,19 +955,20 @@ export function createPaymentReceiptEvent(
   if (method) tags.push(['method', method]);
   if (context) tags.push(['context', context]);
   if (symbol) tags.push(['symbol', symbol]);
-  if (relatedEventId) tags.push(['e', relatedEventId, '', 'related']);
+  if (relatedEventIdHex) tags.push(['e', relatedEventIdHex, '', 'related']);
 
   // Add error tag if failed
   if (!options.success && options.error) {
     tags.push(['error', options.error]);
   }
 
-  // Include the full request event as description (for verification)
-  const description = JSON.stringify(options.paymentRequestEvent);
-
-  const content = options.success
-    ? `Payment confirmed: ${options.txHash}`
-    : `Payment failed: ${options.error || 'Unknown error'}`;
+  // Include the full request event in content so receipt listeners can recover all details
+  const content = JSON.stringify({
+    message: options.success
+      ? `Payment confirmed: ${options.txHash}`
+      : `Payment failed: ${options.error || 'Unknown error'}`,
+    request: options.paymentRequestEvent,
+  });
 
   const event: EventTemplate = {
     kind: NOSTR_KINDS.PAYMENT_RECEIPT,
@@ -931,22 +1023,23 @@ export function parsePaymentRequestEvent(event: NostrEvent): PaymentRequestOptio
     return null;
   }
 
-  // Convert hex pubkeys to npub format (token-factory expects npub strings)
-  // Note: senderPubkeyHex might be "system" for mints
-  const senderNpub = senderPubkeyHex === 'system' ? 'system' : nip19.npubEncode(senderPubkeyHex);
+  // Convert pubkeys to npub format (token-factory expects npub strings)
+  // Handle both hex (new format) and npub (old format) for backwards compatibility
+  // Note: sender might be "system" for mints
+  const sender = pubkeyTagToNpub(senderPubkeyHex);
 
   // For burn, recipient is empty/same as sender
-  const recipientNpub = isBurn
-    ? senderNpub
-    : nip19.npubEncode(recipientPubkeyHex!);
+  const recipient = isBurn
+    ? sender
+    : pubkeyTagToNpub(recipientPubkeyHex!);
 
   const TOKEN_DECIMALS = 6;
   const amountInTokens = Number(BigInt(amount)) / 10 ** TOKEN_DECIMALS;
 
   return {
-    recipientNpub,
+    recipient,
     recipientAddress: recipientAddress || '',
-    senderNpub,
+    sender,
     senderAddress,
     amount: amountInTokens,
     tokenAddress,
@@ -970,9 +1063,13 @@ export function parsePaymentReceiptEvent(event: NostrEvent): {
   txHash: string;
   success: boolean;
   error?: string;
-  recipientNpub?: string;
-  senderNpub?: string;
+  recipient?: string;
+  sender?: string;
   amount?: string;
+  context?: string;
+  relatedEventId?: string;
+  // The embedded payment request event (if available in content)
+  embeddedRequest?: NostrEvent;
 } | null {
   if (event.kind !== NOSTR_KINDS.PAYMENT_RECEIPT) {
     return null;
@@ -986,13 +1083,27 @@ export function parsePaymentReceiptEvent(event: NostrEvent): {
     return null;
   }
 
+  // Try to parse embedded request from content
+  let embeddedRequest: NostrEvent | undefined;
+  try {
+    const contentData = JSON.parse(event.content);
+    if (contentData.request) {
+      embeddedRequest = contentData.request;
+    }
+  } catch {
+    // Content is not JSON or doesn't contain request
+  }
+
   return {
     requestEventId,
     txHash,
     success: status === 'success',
     error: event.tags.find(t => t[0] === 'error')?.[1],
-    recipientNpub: event.tags.find(t => t[0] === 'p')?.[1],
-    senderNpub: event.tags.find(t => t[0] === 'P')?.[1],
+    recipient: event.tags.find(t => t[0] === 'p')?.[1],
+    sender: event.tags.find(t => t[0] === 'P')?.[1],
     amount: event.tags.find(t => t[0] === 'amount')?.[1],
+    context: event.tags.find(t => t[0] === 'context')?.[1],
+    relatedEventId: event.tags.find(t => t[0] === 'e' && t[3] === 'related')?.[1],
+    embeddedRequest,
   };
 }
