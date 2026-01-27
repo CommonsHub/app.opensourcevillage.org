@@ -67,8 +67,9 @@ echo ""
 
 # Step 3: Build
 echo -e "${YELLOW}[3/4] Building application...${NC}"
-# Limit Node.js memory to prevent OOM on low-memory servers
-export NODE_OPTIONS="--max-old-space-size=1024"
+# Increase Node.js memory limit to prevent OOM on low-memory servers
+# Next.js spawns node processes even when using bun
+export NODE_OPTIONS="--max-old-space-size=2048"
 $PKG_RUN build
 echo -e "${GREEN}✓ Build completed${NC}"
 echo ""
@@ -81,7 +82,7 @@ if command -v systemctl &> /dev/null; then
     SERVICES=(
         "${SERVICE_NAME}"
         "${SERVICE_NAME}-payment-processor"
-        "${SERVICE_NAME}-nostr-recorder"
+        "${SERVICE_NAME}-nostr-listener"
     )
 
     for service in "${SERVICES[@]}"; do

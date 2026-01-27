@@ -17,6 +17,15 @@ const withMDX = createMDX({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  // Skip TypeScript checking during build (we check locally before commit)
+  // This prevents OOM errors on low-memory servers
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  // Skip ESLint during build for same reason
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   // Enable MDX pages
   pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
   // Include content directory for MDX processing
