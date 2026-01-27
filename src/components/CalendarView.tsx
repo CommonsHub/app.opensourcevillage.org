@@ -673,26 +673,40 @@ export default function CalendarView({
 
       {/* Content */}
       <main className="max-w-2xl mx-auto px-4 py-6">
-        {/* Propose Workshop CTA */}
+        {/* Action Buttons - Offer Workshop / Book Room */}
         <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg shadow-lg p-6 mb-6 text-white">
           <h2 className="text-xl font-bold mb-2">
-            Want to share your knowledge?
+            What do you want to do?
           </h2>
           <p className="text-sm opacity-90 mb-4">
-            Propose a workshop for{" "}
-            {formatDateHeader(selectedDate).toLowerCase()} and earn tokens from
-            attendees
+            Share your knowledge or book a room for{" "}
+            {formatDateHeader(selectedDate).toLowerCase()}
           </p>
-          <button
-            onClick={() =>
-              router.push(
-                `/offers/create?type=workshop&date=${formatDateForWorkshop(selectedDate)}`,
-              )
-            }
-            className="bg-white text-blue-600 font-semibold py-2 px-6 rounded-lg hover:bg-gray-100 transition text-sm"
-          >
-            Propose a Workshop
-          </button>
+          <div className="space-y-3">
+            <button
+              onClick={() =>
+                router.push(
+                  `/offers/create?type=workshop&date=${formatDateForWorkshop(selectedDate)}`,
+                )
+              }
+              className="w-full bg-white text-blue-600 font-semibold py-3 px-4 rounded-lg hover:bg-gray-100 transition flex items-center gap-3"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              <span>Offer a workshop</span>
+            </button>
+
+            <button
+              onClick={() => router.push('/book')}
+              className="w-full bg-white/20 text-white font-semibold py-3 px-4 rounded-lg hover:bg-white/30 transition flex items-center gap-3 border border-white/30"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              <span>Book a room</span>
+            </button>
+          </div>
         </div>
 
         {/* Loading State */}
