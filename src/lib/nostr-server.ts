@@ -280,13 +280,14 @@ async function publishToSingleRelay(
   options: PublishOptions
 ): Promise<void> {
   const WebSocket = await getWebSocket();
-  // @ts-expect-error - Bun global check
-  const https = typeof Bun !== 'undefined' ? require('https') : eval('require')('https');
   const timeout = options.timeout || CONNECTION_TIMEOUT;
 
-  const agent = url.startsWith('wss://')
-    ? new https.Agent({ ALPNProtocols: ['http/1.1'] })
-    : undefined;
+  // Use https agent for wss:// to ensure proper SNI for autocert servers
+  let agent: import('https').Agent | undefined;
+  if (url.startsWith('wss://')) {
+    const https = await import('https');
+    agent = new https.Agent({ ALPNProtocols: ['http/1.1'] });
+  }
 
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url, { skipUTF8Validation: true, agent });
