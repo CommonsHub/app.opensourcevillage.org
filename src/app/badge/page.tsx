@@ -30,13 +30,12 @@ export default function BadgePage() {
     checkBadgeAndRedirect(serialNumber);
   }, [router]);
 
-  const checkBadgeAndRedirect = async (serialNumber: string) => {
+  const checkBadgeAndRedirect = async (badgeId: string) => {
     try {
       setStatus('Looking up badge...');
-      const hashedSerial = await hashSerialNumber(serialNumber);
 
-      // Check localStorage first for cached username
-      const cacheKey = `badge_${hashedSerial}`;
+      // Check localStorage first for cached username (try both raw and hashed)
+      const cacheKey = `badge_${badgeId}`;
       const cachedUsername = localStorage.getItem(cacheKey);
       if (cachedUsername) {
         setStatus(`Redirecting to ${cachedUsername}'s profile...`);
@@ -44,12 +43,13 @@ export default function BadgePage() {
         return;
       }
 
-      // Fetch with no-cache to always get fresh data
-      const response = await fetch(`/api/profile/${hashedSerial}`, {
+      // Try to fetch profile using the badge ID directly first
+      // (it might already be a hashed serial)
+      let response = await fetch(`/api/profile/${badgeId}`, {
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' },
       });
-      const data = await response.json();
+      let data = await response.json();
 
       if (data.success && data.profile?.username) {
         // Save username to localStorage for future lookups
@@ -59,11 +59,40 @@ export default function BadgePage() {
         return;
       }
 
+      // If not found, try hashing the badge ID (it might be a raw serial number)
+      const hashedSerial = await hashSerialNumber(badgeId);
+      if (hashedSerial !== badgeId) {
+        const hashedCacheKey = `badge_${hashedSerial}`;
+        const hashedCachedUsername = localStorage.getItem(hashedCacheKey);
+        if (hashedCachedUsername) {
+          // Also cache under original key for faster future lookups
+          localStorage.setItem(cacheKey, hashedCachedUsername);
+          setStatus(`Redirecting to ${hashedCachedUsername}'s profile...`);
+          router.replace(`/profile/${hashedCachedUsername}`);
+          return;
+        }
+
+        response = await fetch(`/api/profile/${hashedSerial}`, {
+          cache: 'no-store',
+          headers: { 'Cache-Control': 'no-cache' },
+        });
+        data = await response.json();
+
+        if (data.success && data.profile?.username) {
+          // Save username to localStorage for future lookups (both keys)
+          localStorage.setItem(cacheKey, data.profile.username);
+          localStorage.setItem(hashedCacheKey, data.profile.username);
+          setStatus(`Redirecting to ${data.profile.username}'s profile...`);
+          router.replace(`/profile/${data.profile.username}`);
+          return;
+        }
+      }
+
       setStatus('Badge available! Redirecting to claim...');
-      router.replace(`/claim#${serialNumber}`);
+      router.replace(`/claim#${badgeId}`);
     } catch (err) {
       console.error('[Badge] Error checking badge:', err);
-      router.replace(`/claim#${serialNumber}`);
+      router.replace(`/claim#${badgeId}`);
     }
   };
 
