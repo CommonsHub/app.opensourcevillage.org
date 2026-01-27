@@ -80,12 +80,12 @@ This is asserted in the integration test (`/^[0-9a-f]{192}$/i`).
 
 ### Generating an invite code (inviter UI)
 
-- The inviter uses the “Invite a Villager” section on their profile page.
-- The frontend calls `POST /api/invite` with `{ npub }`.
-- The server attempts to fetch a kind `28935` event from the relay and returns
-  `inviteCode`.
+- The inviter uses the "Onboard a Villager" section on their profile page.
+- The frontend connects directly to the relay via WebSocket and requests a
+  kind `28935` event using `getOrRequestInviteCode()` from `src/lib/nostr.ts`.
+- The invite code is stored in localStorage for reuse.
 
-Implementation: `src/app/api/invite/route.ts`.
+Implementation: `src/lib/nostr.ts` (`requestInviteCode`, `getOrRequestInviteCode`).
 
 ### Redeeming an invite code (invitee onboarding)
 
