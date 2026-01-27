@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="321dda7"
-SCRIPT_BUILD_DATE="2026-01-27 10:59 UTC"
+SCRIPT_GIT_SHA="9d293c7"
+SCRIPT_BUILD_DATE="2026-01-27 17:18 UTC"
 
 # Colors for output
 RED='\033[0;31m'
@@ -428,10 +428,10 @@ EOF
 echo -e "${GREEN}✓ Created /etc/systemd/system/${SERVICE_PREFIX}-payment-processor.service${NC}"
 
 echo ""
-echo -e "${BLUE}Step 4: Creating systemd service for NOSTR event recorder...${NC}"
-cat > /etc/systemd/system/${SERVICE_PREFIX}-nostr-recorder.service << EOF
+echo -e "${BLUE}Step 4: Creating systemd service for NOSTR listener...${NC}"
+cat > /etc/systemd/system/${SERVICE_PREFIX}-nostr-listener.service << EOF
 [Unit]
-Description=OSV NOSTR Event Recorder
+Description=OSV NOSTR Listener (Event Recorder + Receipt Processor)
 After=network.target
 
 [Service]
@@ -440,7 +440,7 @@ User=$APP_USER
 Group=$APP_GROUP
 WorkingDirectory=$APP_DIR
 Environment=NODE_ENV=production
-ExecStart=$BUN_PATH run scripts/record-nostr-events.ts
+ExecStart=$BUN_PATH run scripts/nostr-listener.ts
 Restart=on-failure
 RestartSec=30
 StandardOutput=journal
@@ -449,7 +449,7 @@ StandardError=journal
 [Install]
 WantedBy=multi-user.target
 EOF
-echo -e "${GREEN}✓ Created /etc/systemd/system/${SERVICE_PREFIX}-nostr-recorder.service${NC}"
+echo -e "${GREEN}✓ Created /etc/systemd/system/${SERVICE_PREFIX}-nostr-listener.service${NC}"
 
 echo ""
 echo -e "${BLUE}Step 5: Setting up sudoers for webhook deployment and log access...${NC}"
@@ -458,13 +458,13 @@ cat > /etc/sudoers.d/${SERVICE_PREFIX}-deploy << EOF
 # This is used by the GitHub webhook for auto-deployment
 $APP_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart ${SERVICE_PREFIX}
 $APP_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart ${SERVICE_PREFIX}-payment-processor
-$APP_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart ${SERVICE_PREFIX}-nostr-recorder
+$APP_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart ${SERVICE_PREFIX}-nostr-listener
 $APP_USER ALL=(ALL) NOPASSWD: /bin/systemctl restart ${SERVICE_PREFIX}*
 
 # Allow $APP_USER to read service logs (for status page)
 $APP_USER ALL=(ALL) NOPASSWD: /bin/journalctl -u ${SERVICE_PREFIX} *
 $APP_USER ALL=(ALL) NOPASSWD: /bin/journalctl -u ${SERVICE_PREFIX}-payment-processor *
-$APP_USER ALL=(ALL) NOPASSWD: /bin/journalctl -u ${SERVICE_PREFIX}-nostr-recorder *
+$APP_USER ALL=(ALL) NOPASSWD: /bin/journalctl -u ${SERVICE_PREFIX}-nostr-listener *
 EOF
 chmod 440 /etc/sudoers.d/${SERVICE_PREFIX}-deploy
 echo -e "${GREEN}✓ Created /etc/sudoers.d/${SERVICE_PREFIX}-deploy${NC}"
@@ -486,7 +486,7 @@ echo ""
 echo -e "${BLUE}Step 8: Enabling services...${NC}"
 systemctl enable ${SERVICE_PREFIX}
 systemctl enable ${SERVICE_PREFIX}-payment-processor
-systemctl enable ${SERVICE_PREFIX}-nostr-recorder
+systemctl enable ${SERVICE_PREFIX}-nostr-listener
 echo -e "${GREEN}✓ Services enabled to start on boot${NC}"
 
 echo ""
@@ -534,7 +534,7 @@ echo ""
 echo -e "${BLUE}Step 10: Starting services...${NC}"
 systemctl start ${SERVICE_PREFIX}
 systemctl start ${SERVICE_PREFIX}-payment-processor
-systemctl start ${SERVICE_PREFIX}-nostr-recorder
+systemctl start ${SERVICE_PREFIX}-nostr-listener
 echo -e "${GREEN}✓ Services started${NC}"
 
 echo ""
@@ -558,7 +558,7 @@ fi
 echo -e "${GREEN}✓ SSL certificate configured${NC}"
 
 echo ""
-echo -e "${BLUE}Step 13: Creating login message (MOTD)...${NC}"
+echo -e "${BLUE}Step 12: Creating login message (MOTD)...${NC}"
 cat > /etc/update-motd.d/99-osv << 'MOTD_EOF'
 #!/bin/bash
 echo ""
@@ -569,7 +569,7 @@ echo ""
 echo "Services:"
 echo "  osv                      - Main Next.js app (port 3000)"
 echo "  osv-payment-processor    - Payment processor"
-echo "  osv-nostr-recorder       - NOSTR event recorder"
+echo "  osv-nostr-listener       - NOSTR listener (events + receipts)"
 echo ""
 echo "Useful commands:"
 echo "  Status:   sudo systemctl status osv"
@@ -579,10 +579,10 @@ echo "  Restart:  sudo systemctl restart osv"
 echo "  Logs:     sudo journalctl -u osv -f"
 echo ""
 echo "Start/restart all OSV services:"
-echo "  sudo systemctl restart osv osv-payment-processor osv-nostr-recorder"
+echo "  sudo systemctl restart osv osv-payment-processor osv-nostr-listener"
 echo ""
 echo "View all logs:"
-echo "  sudo journalctl -u osv -u osv-payment-processor -u osv-nostr-recorder -f"
+echo "  sudo journalctl -u osv -u osv-payment-processor -u osv-nostr-listener -f"
 echo ""
 MOTD_EOF
 chmod +x /etc/update-motd.d/99-osv
@@ -598,7 +598,7 @@ echo ""
 echo -e "Services running:"
 echo -e "  • ${BLUE}${SERVICE_PREFIX}${NC} - Main Next.js application"
 echo -e "  • ${BLUE}${SERVICE_PREFIX}-payment-processor${NC} - Payment processor"
-echo -e "  • ${BLUE}${SERVICE_PREFIX}-nostr-recorder${NC} - NOSTR event recorder"
+echo -e "  • ${BLUE}${SERVICE_PREFIX}-nostr-listener${NC} - NOSTR listener (events + receipts)"
 echo ""
 echo -e "Cron job:"
 echo -e "  • Calendar sync runs every 5 minutes"
