@@ -231,15 +231,26 @@ async function getServiceStatus(serviceName: string): Promise<ServiceStatus> {
     }
 
     // Fetch latest logs (last 20 lines)
+    // Note: journalctl may require sudo permissions when running as a service user
     let logs: string[] = [];
     try {
-      const logsResult = await execAsync(`journalctl -u ${serviceName} -n 20 --no-pager --output=short 2>/dev/null`);
+      // Try with sudo first (service user should have NOPASSWD access)
+      const logsResult = await execAsync(`sudo journalctl -u ${serviceName} -n 20 --no-pager --output=short 2>/dev/null`);
       logs = logsResult.stdout
         .trim()
         .split('\n')
         .filter(line => line.length > 0);
     } catch {
-      // Ignore - logs might not be available
+      // Fallback: try without sudo (might work if user is in systemd-journal group)
+      try {
+        const logsResult = await execAsync(`journalctl -u ${serviceName} -n 20 --no-pager --output=short 2>/dev/null`);
+        logs = logsResult.stdout
+          .trim()
+          .split('\n')
+          .filter(line => line.length > 0);
+      } catch {
+        // Ignore - logs might not be available
+      }
     }
 
     return {
