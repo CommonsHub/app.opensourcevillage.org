@@ -157,15 +157,24 @@ export async function POST(request: NextRequest) {
     const buildResult = await runCommand('bun run build', cwd);
     results.push(`build: completed`);
 
-    // 4. Restart systemd service
-    console.log(`[Webhook] Step 4: systemctl restart ${serviceName}`);
-    try {
-      await runCommand(`sudo systemctl restart ${serviceName}`, cwd);
-      results.push(`restart ${serviceName}: completed`);
-    } catch (restartError: any) {
-      // Service restart might fail if not configured, log but don't fail
-      console.warn(`[Webhook] Service restart failed: ${restartError.message}`);
-      results.push(`restart ${serviceName}: failed (${restartError.message})`);
+    // 4. Restart all systemd services
+    const services = [
+      serviceName,
+      `${serviceName}-payment-processor`,
+      `${serviceName}-nostr-recorder`,
+    ];
+
+    console.log(`[Webhook] Step 4: Restarting services...`);
+    for (const service of services) {
+      try {
+        await runCommand(`sudo systemctl restart ${service}`, cwd);
+        results.push(`restart ${service}: completed`);
+        console.log(`[Webhook] Restarted ${service}`);
+      } catch (restartError: any) {
+        // Service restart might fail if not configured, log but don't fail
+        console.warn(`[Webhook] Service ${service} restart failed: ${restartError.message}`);
+        results.push(`restart ${service}: failed (${restartError.message})`);
+      }
     }
 
     console.log('[Webhook] Deployment completed successfully');

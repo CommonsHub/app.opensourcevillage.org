@@ -10,6 +10,7 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "deploy": "./scripts/deploy.sh",
     "payment-processor": "tsx scripts/payment-processor.ts",
     "record-nostr-events": "tsx scripts/record-nostr-events.ts",
     "deploy-token": "bun scripts/deploy-token.ts",
