@@ -7,7 +7,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getRelayStatus, initializeRelayConnections } from '@/lib/nostr';
+import { getRelayStatus, initializeRelayConnections, getRelayUrls, setRelayUrls } from '@/lib/nostr';
 
 export default function NostrStatus() {
   const [relayStatus, setRelayStatus] = useState<Array<{ url: string; status: string }>>([]);
@@ -31,28 +31,55 @@ export default function NostrStatus() {
         (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
       setIsVisible(true);
 
-      // Initial check
-      const status = getRelayStatus();
-      setRelayStatus(status);
+      // Fetch relay URLs from server if not already stored
+      const initRelays = async () => {
+        let urls = getRelayUrls();
 
-      // Pre-connect to relays
-      if (status.every(s => s.status === 'disconnected')) {
-        setIsInitializing(true);
-        console.log('[NostrStatus] Pre-connecting to NOSTR relays...');
+        // If no relay URLs in localStorage, fetch from server
+        if (urls.length === 0) {
+          try {
+            const response = await fetch('/api/env/check');
+            const data = await response.json();
+            if (data.relayUrls && data.relayUrls.length > 0) {
+              setRelayUrls(data.relayUrls);
+              urls = data.relayUrls;
+              console.log('[NostrStatus] Loaded relay URLs from server:', urls);
+            }
+          } catch (err) {
+            console.error('[NostrStatus] Failed to fetch relay URLs:', err);
+          }
+        }
 
-        initializeRelayConnections()
-          .then(() => {
-            console.log('[NostrStatus] ✓ Relays initialized');
-            const newStatus = getRelayStatus();
-            setRelayStatus(newStatus);
-          })
-          .catch((err) => {
-            console.error('[NostrStatus] Failed to initialize relays:', err);
-          })
-          .finally(() => {
-            setIsInitializing(false);
-          });
-      }
+        if (urls.length === 0) {
+          console.warn('[NostrStatus] No relay URLs configured');
+          return;
+        }
+
+        // Initial check
+        const status = getRelayStatus();
+        setRelayStatus(status);
+
+        // Pre-connect to relays
+        if (status.length === 0 || status.every(s => s.status === 'disconnected')) {
+          setIsInitializing(true);
+          console.log('[NostrStatus] Pre-connecting to NOSTR relays...');
+
+          initializeRelayConnections()
+            .then(() => {
+              console.log('[NostrStatus] ✓ Relays initialized');
+              const newStatus = getRelayStatus();
+              setRelayStatus(newStatus);
+            })
+            .catch((err) => {
+              console.error('[NostrStatus] Failed to initialize relays:', err);
+            })
+            .finally(() => {
+              setIsInitializing(false);
+            });
+        }
+      };
+
+      initRelays();
 
       // Check relay status every 5 seconds
       const interval = setInterval(() => {

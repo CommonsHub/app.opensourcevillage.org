@@ -23,7 +23,6 @@ export { NOSTR_KINDS, type NostrEvent } from './nostr-events';
 // Configuration
 // ─────────────────────────────────────────────────────────────────────────────
 
-const DEFAULT_RELAYS = ['wss://relay.damus.io', 'wss://nos.lol'];
 const CONNECTION_TIMEOUT = 15_000;
 const RECONNECT_DELAY = 5_000;
 
@@ -167,7 +166,7 @@ export function getRelayUrls(): string[] {
   if (envRelays) {
     return envRelays.split(',').map(r => r.trim()).filter(Boolean);
   }
-  return DEFAULT_RELAYS;
+  return []; // No default relays - must be configured via NOSTR_RELAYS env var
 }
 
 export function getPrimaryRelayUrl(): string {

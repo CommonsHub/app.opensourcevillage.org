@@ -8,25 +8,7 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-
-const DEFAULT_RELAYS = ['wss://relay.damus.io', 'wss://nos.lol'];
-
-function getRelayUrls(): string[] {
-  if (typeof window !== 'undefined') {
-    const stored = localStorage.getItem('osv_relay_urls');
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          return parsed;
-        }
-      } catch {
-        // Fall through
-      }
-    }
-  }
-  return DEFAULT_RELAYS;
-}
+import { getRelayUrls } from '@/lib/nostr';
 
 interface MintResult {
   success: boolean;
