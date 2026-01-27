@@ -5,6 +5,7 @@ import NostrStatus from "@/components/NostrStatus";
 import DebugInfo from "@/components/DebugInfo";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
+import { getRelayUrls } from "@/lib/nostr-server";
 
 export const metadata: Metadata = {
   title: "Open Source Village",
@@ -22,8 +23,18 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Get relay URLs from server environment
+  const relayUrls = getRelayUrls();
+
   return (
     <html lang="en">
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__OSV_RELAY_URLS__ = ${JSON.stringify(relayUrls)};`,
+          }}
+        />
+      </head>
       <body className="antialiased bg-gray-50 min-h-screen flex flex-col">
         <WalletSetup />
         <NostrStatus />

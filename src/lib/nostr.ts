@@ -118,8 +118,20 @@ export type RequestInviteResult = InviteResult;
 // Relay URLs
 // ─────────────────────────────────────────────────────────────────────────────
 
+// Declare the global variable injected by the server
+declare global {
+  interface Window {
+    __OSV_RELAY_URLS__?: string[];
+  }
+}
+
 export function getRelayUrls(): string[] {
   if (typeof window !== 'undefined') {
+    // First check server-injected relay URLs
+    if (window.__OSV_RELAY_URLS__ && window.__OSV_RELAY_URLS__.length > 0) {
+      return window.__OSV_RELAY_URLS__;
+    }
+    // Fall back to localStorage (for overrides)
     const stored = localStorage.getItem('osv_relay_urls');
     if (stored) {
       try {
@@ -128,7 +140,7 @@ export function getRelayUrls(): string[] {
       } catch { /* ignore */ }
     }
   }
-  return []; // No default relays - must be configured via localStorage or fetched from server
+  return []; // No relays configured
 }
 
 export function setRelayUrls(urls: string[]): void {

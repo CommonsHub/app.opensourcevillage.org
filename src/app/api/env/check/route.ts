@@ -1,12 +1,11 @@
 /**
- * API route to return settings from settings.json and environment config
- * Used by OfferForm to load workshop defaults and relay URLs
+ * API route to return settings from settings.json
+ * Used by OfferForm to load workshop defaults
  */
 
 import { NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
 import path from 'path';
-import { getRelayUrls } from '@/lib/nostr-server';
 
 interface Settings {
   defaults?: {
@@ -39,13 +38,11 @@ async function loadSettings(): Promise<Settings> {
 
 export async function GET() {
   const settings = await loadSettings();
-  const relayUrls = getRelayUrls();
 
   return NextResponse.json({
     settings: {
       defaults: settings.defaults,
       tokenEconomics: settings.tokenEconomics,
     },
-    relayUrls,
   });
 }
