@@ -87,6 +87,58 @@ export function isRateLimitError(error: unknown): boolean {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Relay Connection Testing
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Test if a relay is reachable (simple connectivity check)
+ * Used for startup validation and health checks
+ */
+export async function testRelayConnection(
+  relayUrl: string,
+  timeoutMs = 10000
+): Promise<{ success: boolean; error?: string }> {
+  return new Promise(async (resolve) => {
+    try {
+      const WebSocket = await getWebSocket();
+
+      // Use https agent for wss:// to ensure proper SNI for autocert servers
+      let agent: import('https').Agent | undefined;
+      if (relayUrl.startsWith('wss://')) {
+        const https = await import('https');
+        agent = new https.Agent({ ALPNProtocols: ['http/1.1'] });
+      }
+
+      const ws = new WebSocket(relayUrl, { agent });
+      const timeout = setTimeout(() => {
+        ws.close();
+        resolve({ success: false, error: `Connection timeout (${timeoutMs / 1000}s)` });
+      }, timeoutMs);
+
+      ws.on('open', () => {
+        clearTimeout(timeout);
+        ws.close();
+        resolve({ success: true });
+      });
+
+      ws.on('error', (err: Error) => {
+        clearTimeout(timeout);
+        // "Unexpected server response: 101" means the server responded correctly
+        // but ws library had issues with the handshake (common with Bun)
+        if (err.message.includes('Unexpected server response: 101')) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false, error: err.message });
+        }
+      });
+    } catch (err) {
+      const error = err instanceof Error ? err.message : String(err);
+      resolve({ success: false, error });
+    }
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // WebSocket Helper
 // ─────────────────────────────────────────────────────────────────────────────
 

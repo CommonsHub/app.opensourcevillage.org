@@ -8,6 +8,7 @@
  */
 
 import { nip19, getPublicKey } from 'nostr-tools';
+import { testRelayConnection } from '@/lib/nostr-server';
 
 // Chain RPC configurations (must match token-factory.ts)
 const CHAIN_RPC: Record<string, { name: string; rpc: string }> = {
@@ -49,52 +50,6 @@ async function testRpcConnection(rpcUrl: string): Promise<{ success: boolean; ch
     const error = err instanceof Error ? err.message : String(err);
     return { success: false, error };
   }
-}
-
-/**
- * Test Nostr relay connectivity using WebSocket
- */
-async function testRelayConnection(relayUrl: string): Promise<{ success: boolean; error?: string }> {
-  return new Promise((resolve) => {
-    try {
-      // Dynamic require to avoid webpack bundling issues
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const WebSocket = eval('require')('ws');
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const https = eval('require')('https');
-
-      // Use https agent for wss:// to ensure proper SNI for autocert servers
-      const agent = relayUrl.startsWith('wss://')
-        ? new https.Agent({ ALPNProtocols: ['http/1.1'] })
-        : undefined;
-
-      const ws = new WebSocket(relayUrl, { agent });
-      const timeout = setTimeout(() => {
-        ws.close();
-        resolve({ success: false, error: 'Connection timeout (10s)' });
-      }, 10000);
-
-      ws.on('open', () => {
-        clearTimeout(timeout);
-        ws.close();
-        resolve({ success: true });
-      });
-
-      ws.on('error', (err: Error) => {
-        clearTimeout(timeout);
-        // "Unexpected server response: 101" means the server responded correctly
-        // but ws library had issues with the handshake (common with Bun)
-        if (err.message.includes('Unexpected server response: 101')) {
-          resolve({ success: true });
-        } else {
-          resolve({ success: false, error: err.message });
-        }
-      });
-    } catch (err) {
-      const error = err instanceof Error ? err.message : String(err);
-      resolve({ success: false, error });
-    }
-  });
 }
 
 /**

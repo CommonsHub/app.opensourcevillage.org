@@ -12,6 +12,7 @@ import { promises as fs } from 'fs';
 import path from 'path';
 import { getPublicKey, nip19 } from 'nostr-tools';
 import { privateKeyToAccount } from 'viem/accounts';
+import { testRelayConnection } from '@/lib/nostr-server';
 
 const execAsync = promisify(exec);
 
@@ -331,40 +332,12 @@ function getWalletInfo(): WalletInfo {
 }
 
 async function checkRelayConnection(url: string): Promise<RelayStatus> {
-  return new Promise((resolve) => {
-    try {
-      const WebSocket = require('ws');
-      const https = require('https');
-      // Force HTTP/1.1 via ALPN (WebSocket doesn't work with HTTP/2)
-      const agent = url.startsWith('wss://')
-        ? new https.Agent({ ALPNProtocols: ['http/1.1'] })
-        : undefined;
-      const ws = new WebSocket(url, { agent });
-      const timeout = setTimeout(() => {
-        ws.close();
-        resolve({ url, connected: false, error: 'timeout' });
-      }, 5000);
-
-      ws.on('open', () => {
-        clearTimeout(timeout);
-        ws.close();
-        resolve({ url, connected: true });
-      });
-
-      ws.on('error', (err: Error) => {
-        clearTimeout(timeout);
-        // "Unexpected server response: 101" means the server responded correctly
-        // but ws library had issues with the handshake (common with Bun)
-        if (err.message.includes('Unexpected server response: 101')) {
-          resolve({ url, connected: true });
-        } else {
-          resolve({ url, connected: false, error: err.message });
-        }
-      });
-    } catch (err) {
-      resolve({ url, connected: false, error: err instanceof Error ? err.message : 'unknown error' });
-    }
-  });
+  const result = await testRelayConnection(url, 5000);
+  return {
+    url,
+    connected: result.success,
+    error: result.error,
+  };
 }
 
 async function getNostrInfo(): Promise<NostrInfo> {
