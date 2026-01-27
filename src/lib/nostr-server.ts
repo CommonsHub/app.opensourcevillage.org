@@ -101,13 +101,7 @@ export async function testRelayConnection(
   return new Promise(async (resolve) => {
     try {
       const WebSocket = await getWebSocket();
-
-      // Use https agent for wss:// to ensure proper SNI for autocert servers
-      let agent: import('https').Agent | undefined;
-      if (relayUrl.startsWith('wss://')) {
-        const https = await import('https');
-        agent = new https.Agent({ ALPNProtocols: ['http/1.1'] });
-      }
+      const agent = getHttpsAgent(relayUrl);
 
       const ws = new WebSocket(relayUrl, { agent });
       const timeout = setTimeout(() => {
@@ -139,7 +133,7 @@ export async function testRelayConnection(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// WebSocket Helper
+// WebSocket & HTTPS Helpers
 // ─────────────────────────────────────────────────────────────────────────────
 
 async function getWebSocket(): Promise<typeof import('ws').default> {
@@ -150,6 +144,18 @@ async function getWebSocket(): Promise<typeof import('ws').default> {
   }
   const wsModule = await import('ws');
   return wsModule.default;
+}
+
+/**
+ * Get https agent for wss:// connections with proper SNI support
+ * Uses eval to bypass webpack bundling of the 'https' module
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getHttpsAgent(url: string): any {
+  if (!url.startsWith('wss://')) return undefined;
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const https = eval('require')('https');
+  return new https.Agent({ ALPNProtocols: ['http/1.1'] });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -281,13 +287,7 @@ async function publishToSingleRelay(
 ): Promise<void> {
   const WebSocket = await getWebSocket();
   const timeout = options.timeout || CONNECTION_TIMEOUT;
-
-  // Use https agent for wss:// to ensure proper SNI for autocert servers
-  let agent: import('https').Agent | undefined;
-  if (url.startsWith('wss://')) {
-    const https = await import('https');
-    agent = new https.Agent({ ALPNProtocols: ['http/1.1'] });
-  }
+  const agent = getHttpsAgent(url);
 
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(url, { skipUTF8Validation: true, agent });
@@ -452,13 +452,7 @@ export class NostrConnection {
     return new Promise(async (resolve, reject) => {
       console.log(`${this.logPrefix} Connecting to ${this.url}...`);
       const WebSocket = (await import('ws')).default;
-
-      // Use https agent for wss:// to ensure proper SNI for autocert servers
-      let agent: import('https').Agent | undefined;
-      if (this.url.startsWith('wss://')) {
-        const https = await import('https');
-        agent = new https.Agent({ ALPNProtocols: ['http/1.1'] });
-      }
+      const agent = getHttpsAgent(this.url);
 
       this.ws = new WebSocket(this.url, { agent });
       this.authenticated = false;
