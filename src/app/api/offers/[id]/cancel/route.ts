@@ -139,7 +139,9 @@ export async function POST(
       }
     }
 
-    // Publish refund NOSTR events (mint tokens)
+    // Publish refund NOSTR events
+    // - Author refund: mint tokens (proposal creation cost)
+    // - Attendee refunds: transfer from author back to attendees (RSVP tokens)
     const nsec = process.env.NOSTR_NSEC;
     const tokenInfo = getTokenInfo();
 
@@ -149,7 +151,7 @@ export async function POST(
         const serverPublicKey = getPublicKey(serverSecretKey as Uint8Array);
         const serverNpub = nip19.npubEncode(serverPublicKey);
 
-        // Refund the author (proposal cost = 1 token for now)
+        // Refund the author (proposal cost = 1 token for now) via mint
         const authorRefundAmount = offer.cost || 1;
         const authorWalletAddress = await getWalletAddressForNpub(npub);
 
@@ -168,7 +170,7 @@ export async function POST(
           });
 
           publishNostrEvent(authorRefundEvent).then((result) => {
-            console.log('[Cancel API] Published author refund:', {
+            console.log('[Cancel API] Published author refund (mint):', {
               eventId: authorRefundEvent.id,
               npub: npub.substring(0, 16) + '...',
               amount: authorRefundAmount,
@@ -179,7 +181,8 @@ export async function POST(
           });
         }
 
-        // Refund each attendee (1 token each for RSVP)
+        // Refund each attendee (1 token each for RSVP) via transfer from author
+        // The author received tokens when attendees RSVPed, so they need to send them back
         for (const attendee of attendees) {
           try {
             const attendeeWalletAddress = await getWalletAddressForNpub(attendee.npub);
@@ -187,20 +190,20 @@ export async function POST(
               const attendeeRefundEvent = createPaymentRequestEvent(serverSecretKey as Uint8Array, {
                 recipient: attendee.npub,
                 recipientAddress: attendeeWalletAddress,
-                sender: serverNpub,
+                sender: npub, // Author is the sender (returning RSVP tokens)
                 amount: 1,
                 tokenAddress: tokenInfo.address,
                 chainId: tokenInfo.chainId,
                 tokenSymbol: tokenInfo.symbol,
                 context: 'refund',
-                method: 'mint',
+                method: 'transfer',
                 description: `Refund 1 token for cancelled workshop RSVP: ${offer.title}`,
               });
 
               publishNostrEvent(attendeeRefundEvent).then((result) => {
-                console.log('[Cancel API] Published attendee refund:', {
+                console.log('[Cancel API] Published attendee refund (transfer from author):', {
                   eventId: attendeeRefundEvent.id,
-                  npub: attendee.npub.substring(0, 16) + '...',
+                  attendee: attendee.npub.substring(0, 16) + '...',
                   published: result.published.length,
                 });
               }).catch((err) => {

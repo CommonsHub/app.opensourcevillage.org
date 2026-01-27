@@ -452,31 +452,31 @@ export default function CalendarView({
     setRsvpError(null);
   };
 
-  // Handle RSVP - burn token and update calendar
+  // Handle RSVP - transfer token to workshop author and update calendar
   const handleRSVP = async (event: CalendarEvent) => {
-    if (!credentials || !event.offerId) return;
+    if (!credentials || !event.offerId || !event.author) return;
 
     setRsvpLoading(event.id);
     setRsvpError(null);
 
     try {
-      // Step 1: Send NOSTR payment request to burn 1 token
-      console.log("[CalendarView] Publishing burn event for RSVP...");
-      const burnResult = await publishPaymentRequest({
-        recipient: credentials.npub, // For burn, recipient is self (not used)
+      // Step 1: Send NOSTR payment request to transfer 1 token to author
+      console.log("[CalendarView] Publishing transfer event for RSVP to author:", event.author);
+      const transferResult = await publishPaymentRequest({
+        recipient: event.author, // Workshop author receives the token
         sender: credentials.npub,
         amount: 1,
         context: "rsvp",
         relatedEventId: event.offerId,
         description: `RSVP to "${event.title}"`,
-        method: "burn",
+        method: "transfer",
       });
 
-      if (!burnResult.success) {
-        throw new Error(burnResult.error || "Failed to burn token");
+      if (!transferResult.success) {
+        throw new Error(transferResult.error || "Failed to transfer token");
       }
 
-      console.log("[CalendarView] Burn event published:", burnResult.eventId);
+      console.log("[CalendarView] Transfer event published:", transferResult.eventId);
 
       // Step 2: Call RSVP API to add user to calendar and increment counter
       console.log("[CalendarView] Calling RSVP API...");
@@ -982,13 +982,13 @@ export default function CalendarView({
                                     {isRsvpLoading ? (
                                       <>
                                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                                        <span>Burning token...</span>
+                                        <span>Sending token...</span>
                                       </>
                                     ) : (
                                       <>
                                         <span>RSVP</span>
                                         <span className="text-orange-200">
-                                          (burns 1 token)
+                                          (sends 1 token to host)
                                         </span>
                                       </>
                                     )}
