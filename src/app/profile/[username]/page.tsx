@@ -12,6 +12,35 @@ import { QRCodeSVG } from "qrcode.react";
 import { nip19 } from "nostr-tools";
 import { getStoredCredentials, getOrRequestInviteCode } from "@/lib/nostr";
 import { getSecretKey } from "@/lib/nostr-events";
+
+// localStorage key prefix for storing kind 0 profile event content (keyed by npub)
+const PROFILE_CACHE_PREFIX = 'osv_profile_kind0_';
+
+/**
+ * Get cached kind 0 profile for an npub
+ */
+function getCachedProfile(npub: string): Record<string, unknown> | null {
+  try {
+    const cached = localStorage.getItem(PROFILE_CACHE_PREFIX + npub);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch {
+    // Ignore errors
+  }
+  return null;
+}
+
+/**
+ * Cache kind 0 profile for an npub
+ */
+function setCachedProfile(npub: string, content: Record<string, unknown>): void {
+  try {
+    localStorage.setItem(PROFILE_CACHE_PREFIX + npub, JSON.stringify(content));
+  } catch {
+    // Ignore errors
+  }
+}
 import { Avatar } from "@/components/Avatar";
 import { useNostrEvents, type NostrEvent } from "@/hooks/useNostrEvents";
 import SendTokensDrawer from "@/components/SendTokensDrawer";
@@ -377,6 +406,27 @@ export default function PublicProfilePage() {
           return;
         }
 
+        // Check if this is the user's own profile
+        const credentials = getStoredCredentials();
+        const isOwn = credentials && credentials.username === data.profile.username;
+        if (isOwn) {
+          setIsOwnProfile(true);
+        }
+
+        // Try to merge cached kind 0 profile data (works for any profile)
+        const cachedKind0 = getCachedProfile(data.profile.npub);
+        if (cachedKind0) {
+          console.log('[Profile] Merging cached kind 0 data with API data');
+          data.profile.profile = {
+            ...data.profile.profile,
+            name: cachedKind0.name as string || data.profile.profile.name,
+            shortbio: cachedKind0.about as string || data.profile.profile.shortbio,
+            talkAbout: cachedKind0.talkAbout as string || data.profile.profile.talkAbout,
+            helpWith: cachedKind0.helpWith as string || data.profile.profile.helpWith,
+            links: (cachedKind0.links as Array<{type: string; url: string}>) || data.profile.profile.links,
+          };
+        }
+
         setProfile(data.profile);
 
         // Fetch live balance from blockchain, token info, and wallet address
@@ -429,12 +479,6 @@ export default function PublicProfilePage() {
             console.error("Failed to fetch balance/token info:", err);
             // Keep using cached balance from profile
           }
-        }
-
-        // Check if this is the user's own profile
-        const credentials = getStoredCredentials();
-        if (credentials && credentials.username === data.profile.username) {
-          setIsOwnProfile(true);
         }
 
         setIsLoading(false);
@@ -506,6 +550,46 @@ export default function PublicProfilePage() {
 
     fetchApiEvents();
   }, [profile?.npub]);
+
+  // Process kind 0 events from NOSTR subscription to update profile data
+  useEffect(() => {
+    if (!profile?.npub || nostrEvents.length === 0) return;
+
+    // Find the most recent kind 0 event authored by this user
+    const profileHex = npubToHex(profile.npub);
+    const kind0Events = nostrEvents
+      .filter(e => e.kind === 0 && e.pubkey.toLowerCase() === profileHex?.toLowerCase())
+      .sort((a, b) => b.created_at - a.created_at);
+
+    if (kind0Events.length === 0) return;
+
+    const latestKind0 = kind0Events[0];
+    try {
+      const content = JSON.parse(latestKind0.content);
+      console.log('[Profile] Found kind 0 event, updating profile:', content);
+
+      // Cache the kind 0 content
+      setCachedProfile(profile.npub, content);
+
+      // Update profile state with kind 0 data
+      setProfile(prev => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          profile: {
+            ...prev.profile,
+            name: content.name || prev.profile.name,
+            shortbio: content.about || prev.profile.shortbio,
+            talkAbout: content.talkAbout || prev.profile.talkAbout,
+            helpWith: content.helpWith || prev.profile.helpWith,
+            links: content.links || prev.profile.links,
+          },
+        };
+      });
+    } catch (e) {
+      console.error('[Profile] Failed to parse kind 0 content:', e);
+    }
+  }, [nostrEvents, profile?.npub]);
 
   // Automatically request invite code when profile loads (if not already stored)
   const requestInviteCodeAutomatically = async () => {

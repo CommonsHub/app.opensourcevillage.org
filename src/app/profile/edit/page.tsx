@@ -10,6 +10,9 @@ import { useRouter } from 'next/navigation';
 import { getStoredCredentials, deriveNostrKeypair, getSerialNumberFromURL, publishToAllRelays } from '@/lib/nostr';
 import { getStoredSecretKey, decodeNsec, createProfileEvent, storeSecretKey } from '@/lib/nostr-events';
 
+// localStorage key prefix for storing kind 0 profile event content (keyed by npub)
+const PROFILE_CACHE_PREFIX = 'osv_profile_kind0_';
+
 interface SocialLink {
   type: string;
   url: string;
@@ -41,7 +44,7 @@ export default function ProfileEditPage() {
     }
 
     setCredentials(creds);
-    loadProfile(creds.username);
+    loadProfile(creds);
 
     // Check if secret key exists
     const nsec = getStoredSecretKey();
@@ -50,9 +53,28 @@ export default function ProfileEditPage() {
     }
   }, [router]);
 
-  const loadProfile = async (username: string) => {
+  const loadProfile = async (creds: { username: string; npub: string }) => {
     try {
-      const response = await fetch(`/api/profile/${username}`);
+      // First, try to load from localStorage (cached kind 0 event, keyed by npub)
+      const cachedProfile = localStorage.getItem(PROFILE_CACHE_PREFIX + creds.npub);
+      if (cachedProfile) {
+        try {
+          const parsed = JSON.parse(cachedProfile);
+          console.log('[Profile Edit] Loaded from localStorage cache:', parsed);
+          setName(parsed.name || '');
+          setShortbio(parsed.about || '');
+          setTalkAbout(parsed.talkAbout || '');
+          setHelpWith(parsed.helpWith || '');
+          setLinks(parsed.links || []);
+          setIsLoading(false);
+          return; // Use cached data
+        } catch (e) {
+          console.error('[Profile Edit] Failed to parse cached profile:', e);
+        }
+      }
+
+      // Fall back to API if no cache
+      const response = await fetch(`/api/profile/${creds.username}`);
       const data = await response.json();
 
       if (data.success && data.profile) {
@@ -153,67 +175,43 @@ export default function ProfileEditPage() {
     setSuccess(false);
 
     try {
-      const updates = {
-        name: name.trim() || undefined,
-        shortbio: shortbio.trim() || undefined,
-        talkAbout: talkAbout.trim() || undefined,
-        helpWith: helpWith.trim() || undefined,
-        links: links.length > 0 ? links : undefined,
-      };
+      console.log('[Profile Edit] Creating NOSTR profile event...');
 
-      // Create and publish NOSTR profile event
-      let nostrEvent = null;
-      try {
-        console.log('[Profile Edit] Creating NOSTR profile event...');
+      const secretKey = decodeNsec(nsec);
 
-        const secretKey = decodeNsec(nsec);
+      // Build NOSTR profile content (NIP-01 format with custom fields)
+      const profileContent: Record<string, unknown> = {};
+      if (name.trim()) profileContent.name = name.trim();
+      if (shortbio.trim()) profileContent.about = shortbio.trim();
 
-        // Build NOSTR profile content (NIP-01 format)
-        const profileContent: any = {};
-        if (name.trim()) profileContent.name = name.trim();
-        if (shortbio.trim()) profileContent.about = shortbio.trim();
+      // Custom fields for OSV
+      if (talkAbout.trim()) profileContent.talkAbout = talkAbout.trim();
+      if (helpWith.trim()) profileContent.helpWith = helpWith.trim();
+      if (links.length > 0) profileContent.links = links;
 
-        // Add picture if available (from avatar)
-        // TODO: Add picture URL when avatar upload is implemented
+      // Create and sign the event
+      const nostrEvent = createProfileEvent(secretKey, profileContent);
+      console.log('[Profile Edit] NOSTR event created:', nostrEvent.id);
 
-        // Create and sign the event
-        nostrEvent = createProfileEvent(secretKey, profileContent);
-        console.log('[Profile Edit] NOSTR event created:', nostrEvent.id);
+      // Publish to NOSTR relays
+      console.log('[Profile Edit] Publishing event to NOSTR relays...');
+      const publishResult = await publishToAllRelays(nostrEvent, secretKey);
 
-        // Publish to NOSTR relays directly
-        console.log('[Profile Edit] Publishing event to NOSTR relays...');
-        const publishResult = await publishToAllRelays(nostrEvent);
-
-        console.log('[Profile Edit] ✓ Published to', publishResult.successful.length, 'relays');
-        if (publishResult.failed.length > 0) {
-          console.warn('[Profile Edit] Failed to publish to some relays:', publishResult.failed);
-        }
-      } catch (eventError) {
-        console.error('[Profile Edit] Failed to create/publish NOSTR event:', eventError);
-        // Continue without NOSTR event - profile update will still work
-      }
-
-      const response = await fetch(`/api/profile/${credentials.username}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          updates,
-          npub: credentials.npub,
-          nostrEvent, // Include the signed NOSTR event
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!data.success) {
-        setError(data.error || 'Failed to update profile');
+      if (publishResult.successful.length === 0) {
+        setError('Failed to publish profile to any relay. Please try again.');
         setIsSaving(false);
         return;
       }
 
-      console.log('[Profile Edit] ✓ Profile updated successfully');
+      // Save to localStorage for future use (keyed by npub)
+      localStorage.setItem(PROFILE_CACHE_PREFIX + credentials.npub, JSON.stringify(profileContent));
+      console.log('[Profile Edit] ✓ Saved profile to localStorage');
+
+      console.log('[Profile Edit] ✓ Published to', publishResult.successful.length, 'relays');
+      if (publishResult.failed.length > 0) {
+        console.warn('[Profile Edit] Failed to publish to some relays:', publishResult.failed);
+      }
+
       setSuccess(true);
       setIsSaving(false);
 
@@ -223,7 +221,7 @@ export default function ProfileEditPage() {
       }, 1000);
     } catch (err) {
       console.error('[Profile Edit] Failed to update profile:', err);
-      setError('Failed to update profile');
+      setError('Failed to update profile. Please try again.');
       setIsSaving(false);
     }
   };
