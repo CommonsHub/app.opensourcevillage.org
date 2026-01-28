@@ -35,6 +35,7 @@ interface CalendarEvent {
   isOfficial?: boolean;
   proposalStatus?: string;
   offerId?: string;
+  offerType?: string; // 'workshop' | 'private' | '1:1' | 'other'
   minRsvps?: number;
   rsvpCount?: number;
   rsvpList?: Array<{ username: string; npub: string }>;
@@ -793,7 +794,12 @@ export default function CalendarView({
                           </div>
                           {/* Status badge */}
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {event.isProposal && (
+                            {event.isProposal && event.offerType === 'private' && (
+                              <span className="text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap bg-gray-100 text-gray-700">
+                                Private booking
+                              </span>
+                            )}
+                            {event.isProposal && event.offerType !== 'private' && (
                               <span
                                 className={`text-xs font-medium px-2 py-1 rounded-full whitespace-nowrap ${
                                   (event.rsvpCount || 0) >=
@@ -897,8 +903,9 @@ export default function CalendarView({
                             </p>
                           )}
 
-                          {/* RSVP List */}
+                          {/* RSVP List - not shown for private bookings */}
                           {event.isProposal &&
+                            event.offerType !== 'private' &&
                             event.rsvpList &&
                             event.rsvpList.length > 0 && (
                               <div className="mb-3">
@@ -925,8 +932,9 @@ export default function CalendarView({
                               </div>
                             )}
 
-                          {/* Proposal RSVP Progress */}
+                          {/* Proposal RSVP Progress - not shown for private bookings */}
                           {event.isProposal &&
+                            event.offerType !== 'private' &&
                             event.minRsvps &&
                             event.minRsvps > 0 && (
                               <div className="mt-3 pt-3 border-t border-gray-100">
@@ -1022,7 +1030,7 @@ export default function CalendarView({
                               </div>
                             )}
 
-                          {/* Edit workshop link - only for author */}
+                          {/* Edit link - only for author */}
                           {event.offerId && isAuthor && (
                             <div className="mt-3 pt-3 border-t border-gray-100">
                               <a
@@ -1033,7 +1041,7 @@ export default function CalendarView({
                                 }}
                                 className="text-sm text-blue-600 hover:text-blue-800 hover:underline"
                               >
-                                Edit workshop details →
+                                {event.offerType === 'private' ? 'Edit booking' : 'Edit workshop details'} →
                               </a>
                             </div>
                           )}

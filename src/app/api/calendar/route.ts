@@ -24,15 +24,18 @@ import path from 'path';
 
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 
-// Load offer tags by offerId
-async function getOfferTags(offerId: string): Promise<string[]> {
+// Load offer details by offerId
+async function getOfferDetails(offerId: string): Promise<{ tags: string[]; type: string }> {
   try {
     const offerPath = path.join(DATA_DIR, 'offers', `${offerId}.json`);
     const content = await fs.readFile(offerPath, 'utf-8');
     const offer: Offer = JSON.parse(content);
-    return offer.tags || [];
+    return {
+      tags: offer.tags || [],
+      type: offer.type || 'workshop',
+    };
   } catch {
-    return [];
+    return { tags: [], type: 'workshop' };
   }
 }
 
@@ -163,10 +166,10 @@ export async function GET(request: NextRequest) {
           console.log('[Calendar API] Proposal rooms:', filteredProposals.map(p => p.room));
         }
 
-        // Load tags for each proposal and convert to CalendarEvent format
+        // Load offer details for each proposal and convert to CalendarEvent format
         proposalEvents = await Promise.all(
           filteredProposals.map(async (p) => {
-            const tags = await getOfferTags(p.offerId);
+            const { tags, type } = await getOfferDetails(p.offerId);
             return {
               id: `proposal-${p.offerId}`,
               title: p.title,
@@ -179,6 +182,7 @@ export async function GET(request: NextRequest) {
               isProposal: true,
               proposalStatus: p.status.toLowerCase(),
               offerId: p.offerId,
+              offerType: type,
               minRsvps: p.minRsvps,
               rsvpCount: p.attendees.length,
               rsvpList: p.attendees.map((a) => ({ username: a.username, npub: a.npub })),
