@@ -112,15 +112,15 @@ export default function ScreenDisplay({ date }: ScreenDisplayProps) {
     });
   }, [date, isToday]);
 
-  // Memoize event kinds for Nostr subscription
+  // Memoize event kinds to prevent reconnection on every render
   const eventKinds = useMemo(() => [
-    NOSTR_KINDS.PAYMENT_REQUEST,
     NOSTR_KINDS.PAYMENT_RECEIPT,
     NOSTR_KINDS.CALENDAR_EVENT,
+    NOSTR_KINDS.NOTE,
   ], []);
 
   // Subscribe to all Nostr events (no filter by user)
-  const { events: nostrEvents } = useNostrEvents({
+  const { events: nostrEvents, isConnected, isLoading: eventsLoading, error: eventsError } = useNostrEvents({
     kinds: eventKinds,
     limit: 50,
     autoConnect: true,
@@ -465,7 +465,32 @@ export default function ScreenDisplay({ date }: ScreenDisplayProps) {
             Live Activity
           </div>
           <div className="py-2 text-center">
-            <div className="font-bold text-lg text-gray-300">Real-time</div>
+            <div className="font-bold text-lg text-gray-300 flex items-center justify-center gap-2">
+              {isConnected ? (
+                <>
+                  <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                  Live
+                </>
+              ) : eventsError ? (
+                <>
+                  <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                  Error
+                </>
+              ) : eventsLoading ? (
+                <>
+                  <span className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></span>
+                  Connecting...
+                </>
+              ) : (
+                <>
+                  <span className="w-2 h-2 bg-gray-500 rounded-full"></span>
+                  Offline
+                </>
+              )}
+            </div>
+            {eventsError && (
+              <div className="text-xs text-red-400 mt-1">{eventsError}</div>
+            )}
           </div>
         </div>
 

@@ -18,8 +18,8 @@ set -e
 
 # Script metadata (updated on each commit)
 SCRIPT_VERSION="1.0.0"
-SCRIPT_GIT_SHA="9694fc2"
-SCRIPT_BUILD_DATE="2026-01-28 21:43 UTC"
+SCRIPT_GIT_SHA="90c2806"
+SCRIPT_BUILD_DATE="2026-01-28 21:59 UTC"
 
 # Colors for output
 RED='\033[0;31m'
