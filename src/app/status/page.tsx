@@ -41,7 +41,7 @@ interface StatusData {
   };
   services: {
     paymentProcessor: ServiceStatus;
-    nostrRecorder: ServiceStatus;
+    nostrListener: ServiceStatus;
     mainApp: ServiceStatus;
   };
   wallet: {
@@ -348,7 +348,7 @@ export default function StatusPage() {
           <div className="space-y-2">
             <ServiceBadge service={status.services.mainApp} name="Main App (osv)" />
             <ServiceBadge service={status.services.paymentProcessor} name="Payment Processor" />
-            <ServiceBadge service={status.services.nostrRecorder} name="NOSTR Recorder" />
+            <ServiceBadge service={status.services.nostrListener} name="NOSTR Listener" />
           </div>
         </div>
 

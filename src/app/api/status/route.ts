@@ -45,7 +45,7 @@ interface DataInfo {
 
 interface ServicesInfo {
   paymentProcessor: ServiceStatus;
-  nostrRecorder: ServiceStatus;
+  nostrListener: ServiceStatus;
   mainApp: ServiceStatus;
 }
 
@@ -270,15 +270,15 @@ async function getServiceStatus(serviceName: string): Promise<ServiceStatus> {
 }
 
 async function getServicesStatus(): Promise<ServicesInfo> {
-  const [paymentProcessor, nostrRecorder, mainApp] = await Promise.all([
+  const [paymentProcessor, nostrListener, mainApp] = await Promise.all([
     getServiceStatus('osv-payment-processor'),
-    getServiceStatus('osv-nostr-recorder'),
+    getServiceStatus('osv-nostr-listener'),
     getServiceStatus('osv'),
   ]);
 
   return {
     paymentProcessor,
-    nostrRecorder,
+    nostrListener,
     mainApp,
   };
 }
