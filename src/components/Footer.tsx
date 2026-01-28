@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 
 interface GitInfo {
   shortSha: string;
@@ -9,9 +10,16 @@ interface GitInfo {
 }
 
 export default function Footer() {
+  const pathname = usePathname();
   const [gitInfo, setGitInfo] = useState<GitInfo | null>(null);
 
+  // Check if we should hide the footer (must be before any conditional returns but after hooks)
+  const isScreenRoute = pathname.startsWith('/screen') || pathname.endsWith('/screen');
+
   useEffect(() => {
+    // Don't fetch if we're not going to show the footer
+    if (isScreenRoute) return;
+
     fetch('/api/status')
       .then((res) => res.json())
       .then((data) => {
@@ -22,7 +30,12 @@ export default function Footer() {
       .catch(() => {
         // Silently fail - footer will just not show git info
       });
-  }, []);
+  }, [isScreenRoute]);
+
+  // Hide Footer on screen display routes (/screen and /YYYY/MM/DD/screen)
+  if (isScreenRoute) {
+    return null;
+  }
 
   return (
     <footer className="mt-auto py-6 px-4 bg-gray-100 border-t border-gray-200">

@@ -11,7 +11,7 @@ import { useParams, useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { nip19 } from "nostr-tools";
 import { getStoredCredentials, getOrRequestInviteCode } from "@/lib/nostr";
-import { getSecretKey } from "@/lib/nostr-events";
+import { getSecretKey, getStoredSecretKey } from "@/lib/nostr-events";
 
 // localStorage key prefix for storing kind 0 profile event content (keyed by npub)
 const PROFILE_CACHE_PREFIX = 'osv_profile_kind0_';
@@ -364,6 +364,11 @@ export default function PublicProfilePage() {
   const [notAMember, setNotAMember] = useState(false);
   const [npubCopied, setNpubCopied] = useState(false);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
+
+  // Nostr identity export state
+  const [showExportNsecModal, setShowExportNsecModal] = useState(false);
+  const [nsecCopied, setNsecCopied] = useState(false);
+  const [profileNpubCopied, setProfileNpubCopied] = useState(false);
 
   // Send tokens drawer state
   const [showSendDrawer, setShowSendDrawer] = useState(false);
@@ -1281,6 +1286,146 @@ export default function PublicProfilePage() {
                   )}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Nostr Identity - shown only for own profile */}
+        {isOwnProfile && (
+          <div className="bg-white rounded-lg shadow-sm p-6 mt-4">
+            <h3 className="font-semibold text-gray-900 mb-3">Nostr Identity</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              You can import your nsec into any Nostr client to follow live updates and participate in the conversation.
+            </p>
+
+            {/* npub display */}
+            <div className="mb-4">
+              <label className="block text-xs font-medium text-gray-500 mb-1">
+                Public Key (npub)
+              </label>
+              <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-3">
+                <code className="text-xs text-gray-700 font-mono flex-1 truncate">
+                  {profile.npub}
+                </code>
+                <button
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(profile.npub);
+                      setProfileNpubCopied(true);
+                      setTimeout(() => setProfileNpubCopied(false), 2000);
+                    } catch (err) {
+                      console.error("Failed to copy:", err);
+                    }
+                  }}
+                  className="text-gray-500 hover:text-gray-700 p-1.5 rounded-md hover:bg-gray-200 transition flex-shrink-0"
+                  title="Copy npub"
+                >
+                  {profileNpubCopied ? (
+                    <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                  ) : (
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Export nsec button */}
+            <button
+              onClick={() => setShowExportNsecModal(true)}
+              className="flex items-center gap-2 text-sm text-amber-700 hover:text-amber-900 font-medium"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+              Export my nsec
+            </button>
+          </div>
+        )}
+
+        {/* Export nsec confirmation modal */}
+        {showExportNsecModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                  <svg className="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                  </svg>
+                </div>
+                <h3 className="text-lg font-semibold text-gray-900">Export Secret Key</h3>
+              </div>
+
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+                <p className="text-sm text-amber-800 font-medium mb-2">
+                  Are you sure you want to export your nsec?
+                </p>
+                <p className="text-sm text-amber-700">
+                  Your nsec is your private key. <strong>Never share it with anyone.</strong> Anyone with your nsec can impersonate you and access your account.
+                </p>
+              </div>
+
+              {(() => {
+                const nsec = getStoredSecretKey();
+                if (!nsec) {
+                  return (
+                    <p className="text-sm text-gray-500 mb-4">
+                      No secret key found. Please scan your badge to authenticate first.
+                    </p>
+                  );
+                }
+
+                return (
+                  <div className="mb-4">
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Secret Key (nsec)
+                    </label>
+                    <div className="flex items-center gap-2 bg-gray-50 rounded-lg p-3">
+                      <code className="text-xs text-gray-700 font-mono flex-1">
+                        {nsec.substring(0, 12)}...{nsec.substring(nsec.length - 8)}
+                      </code>
+                      <button
+                        onClick={async () => {
+                          try {
+                            await navigator.clipboard.writeText(nsec);
+                            setNsecCopied(true);
+                            setTimeout(() => setNsecCopied(false), 2000);
+                          } catch (err) {
+                            console.error("Failed to copy:", err);
+                          }
+                        }}
+                        className="text-gray-500 hover:text-gray-700 p-1.5 rounded-md hover:bg-gray-200 transition flex-shrink-0"
+                        title="Copy full nsec"
+                      >
+                        {nsecCopied ? (
+                          <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          </svg>
+                        ) : (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="flex justify-end">
+                <button
+                  onClick={() => {
+                    setShowExportNsecModal(false);
+                    setNsecCopied(false);
+                  }}
+                  className="px-4 py-2 text-gray-700 font-medium hover:bg-gray-100 rounded-lg transition"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         )}
 

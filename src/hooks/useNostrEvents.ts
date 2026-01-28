@@ -34,6 +34,8 @@ interface UseNostrEventsOptions {
   limit?: number;
   /** Whether to auto-connect on mount */
   autoConnect?: boolean;
+  /** Subscribe to all events of specified kinds (no user filter) */
+  subscribeAll?: boolean;
 }
 
 interface UseNostrEventsResult {
@@ -79,6 +81,7 @@ export function useNostrEvents(options: UseNostrEventsOptions): UseNostrEventsRe
     kinds,
     limit = 50,
     autoConnect = true,
+    subscribeAll = false,
   } = options;
 
   const [events, setEvents] = useState<NostrEventData[]>([]);
@@ -113,20 +116,29 @@ export function useNostrEvents(options: UseNostrEventsOptions): UseNostrEventsRe
     // Build filters
     const filters: NostrFilter[] = [];
 
-    if (authorHex) {
-      const authorFilter: NostrFilter = { authors: [authorHex], limit };
+    if (subscribeAll) {
+      // Subscribe to all events of specified kinds (no user filter)
+      const allFilter: NostrFilter = { limit };
       if (kinds && kinds.length > 0) {
-        authorFilter.kinds = kinds;
+        allFilter.kinds = kinds;
       }
-      filters.push(authorFilter);
-    }
+      filters.push(allFilter);
+    } else {
+      if (authorHex) {
+        const authorFilter: NostrFilter = { authors: [authorHex], limit };
+        if (kinds && kinds.length > 0) {
+          authorFilter.kinds = kinds;
+        }
+        filters.push(authorFilter);
+      }
 
-    if (mentionedHex) {
-      const mentionedFilter: NostrFilter = { '#p': [mentionedHex], limit };
-      if (kinds && kinds.length > 0) {
-        mentionedFilter.kinds = kinds;
+      if (mentionedHex) {
+        const mentionedFilter: NostrFilter = { '#p': [mentionedHex], limit };
+        if (kinds && kinds.length > 0) {
+          mentionedFilter.kinds = kinds;
+        }
+        filters.push(mentionedFilter);
       }
-      filters.push(mentionedFilter);
     }
 
     if (filters.length === 0) {
@@ -169,7 +181,7 @@ export function useNostrEvents(options: UseNostrEventsOptions): UseNostrEventsRe
       setError('Failed to subscribe');
       setIsLoading(false);
     }
-  }, [authorHex, mentionedHex, kinds, limit]);
+  }, [authorHex, mentionedHex, kinds, limit, subscribeAll]);
 
   const disconnect = useCallback(() => {
     if (subscriptionIdRef.current && relayUrlRef.current) {
@@ -181,14 +193,14 @@ export function useNostrEvents(options: UseNostrEventsOptions): UseNostrEventsRe
 
   // Auto-connect on mount if enabled
   useEffect(() => {
-    if (autoConnect && (authorPubkey || mentionedPubkey)) {
+    if (autoConnect && (authorPubkey || mentionedPubkey || subscribeAll)) {
       connect();
     }
 
     return () => {
       disconnect();
     };
-  }, [autoConnect, authorPubkey, mentionedPubkey, connect, disconnect]);
+  }, [autoConnect, authorPubkey, mentionedPubkey, subscribeAll, connect, disconnect]);
 
   return {
     events,

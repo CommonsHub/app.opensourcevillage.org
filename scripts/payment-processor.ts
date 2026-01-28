@@ -233,6 +233,62 @@ async function processPaymentRequest(
 
   const method = request.method || 'transfer';
 
+  // Validate signature: only process requests signed by the authorized party
+  const serverPubkey = getPublicKey(secretKey);
+
+  if (method === 'mint' || method === 'burn') {
+    // Mint and burn must be signed by the server
+    if (event.pubkey !== serverPubkey) {
+      logError(`[PaymentProcessor] REJECTED: ${method} request not signed by server`);
+      logError(`[PaymentProcessor] Event details:`, {
+        eventId: event.id,
+        eventPubkey: event.pubkey,
+        expectedPubkey: serverPubkey,
+        method,
+        sender: request.sender,
+        recipient: request.recipient,
+        amount: request.amount,
+        context: request.context,
+      });
+      state.processedEventIds.add(event.id);
+      saveProcessedEvents();
+      return;
+    }
+  } else {
+    // Transfer must be signed by the sender
+    // Decode sender npub to hex pubkey for comparison
+    let senderPubkey: string;
+    try {
+      const decoded = nip19.decode(request.sender);
+      if (decoded.type !== 'npub') {
+        throw new Error('Sender is not an npub');
+      }
+      senderPubkey = decoded.data;
+    } catch (error) {
+      logError(`[PaymentProcessor] REJECTED: Failed to decode sender npub: ${request.sender}`);
+      state.processedEventIds.add(event.id);
+      saveProcessedEvents();
+      return;
+    }
+
+    if (event.pubkey !== senderPubkey) {
+      logError(`[PaymentProcessor] REJECTED: Transfer request not signed by sender`);
+      logError(`[PaymentProcessor] Event details:`, {
+        eventId: event.id,
+        eventPubkey: event.pubkey,
+        expectedPubkey: senderPubkey,
+        method,
+        sender: request.sender,
+        recipient: request.recipient,
+        amount: request.amount,
+        context: request.context,
+      });
+      state.processedEventIds.add(event.id);
+      saveProcessedEvents();
+      return;
+    }
+  }
+
   log(`[PaymentProcessor] Payment details:`, {
     method,
     from: request.sender.slice(0, 15) + '...',

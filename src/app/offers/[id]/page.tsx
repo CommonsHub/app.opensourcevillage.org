@@ -7,6 +7,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getStoredCredentials } from '@/lib/nostr';
+import { useNostrPublisher } from '@/hooks/useNostrPublisher';
+import { formatRelativeDate, formatTime } from '@/lib/nostr-events';
 import { Offer } from '@/types';
 
 interface RSVPData {
@@ -18,6 +20,7 @@ export default function OfferDetailPage() {
   const params = useParams();
   const router = useRouter();
   const offerId = params.id as string;
+  const { publishNote, publishReaction } = useNostrPublisher();
 
   const [credentials, setCredentials] = useState<{ username: string; npub: string } | null>(null);
   const [offer, setOffer] = useState<Offer | null>(null);
@@ -102,6 +105,35 @@ export default function OfferDetailPage() {
 
       // Reload offer data
       await loadOffer();
+
+      // Publish human-readable events for RSVP
+      if (offer) {
+        // Kind 7: Reaction with ✅ emoji referencing the workshop event
+        if (offer.nostrEventId && offer.authors.length > 0) {
+          publishReaction({
+            content: '✅',
+            referencedEventId: offer.nostrEventId,
+            referencedPubkey: offer.authors[0],
+          });
+        }
+
+        // Kind 1: Note "RSVP to :title in :room :date at :time"
+        let noteContent = `RSVP to "${offer.title}"`;
+        if (offer.room) {
+          noteContent += ` in ${offer.room}`;
+        }
+        if (offer.startTime) {
+          const startDate = new Date(offer.startTime);
+          const dateStr = formatRelativeDate(startDate);
+          const timeStr = formatTime(startDate);
+          noteContent += ` ${dateStr} at ${timeStr}`;
+        }
+        publishNote({
+          content: noteContent,
+          referencedEventId: offer.nostrEventId,
+        });
+      }
+
       setIsRSVPing(false);
 
     } catch (err) {

@@ -43,6 +43,7 @@ interface StatusData {
     paymentProcessor: ServiceStatus;
     nostrListener: ServiceStatus;
     mainApp: ServiceStatus;
+    calendarSync: ServiceStatus;
   };
   wallet: {
     address: string;
@@ -349,6 +350,7 @@ export default function StatusPage() {
             <ServiceBadge service={status.services.mainApp} name="Main App (osv)" />
             <ServiceBadge service={status.services.paymentProcessor} name="Payment Processor" />
             <ServiceBadge service={status.services.nostrListener} name="NOSTR Listener" />
+            <ServiceBadge service={status.services.calendarSync} name="Calendar Sync (cron)" />
           </div>
         </div>
 

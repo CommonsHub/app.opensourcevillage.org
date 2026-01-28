@@ -61,6 +61,11 @@ export default function TopBar() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Hide TopBar on screen display routes (/screen and /YYYY/MM/DD/screen)
+  if (pathname.startsWith('/screen') || pathname.endsWith('/screen')) {
+    return null;
+  }
+
   const pageTitle = getPageTitle(pathname);
   const isHome = pathname === '/';
 

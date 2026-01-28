@@ -543,6 +543,18 @@ export async function POST(request: NextRequest) {
 }
 
 /**
+ * Get username for an npub from profile data
+ */
+async function getUsernameByNpub(npub: string): Promise<string | null> {
+  try {
+    const profile = await getProfileByNpub(npub);
+    return profile?.username || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * GET - List all offers
  * Query params: ?type=workshop&status=confirmed
  */
@@ -566,7 +578,7 @@ export async function GET(request: NextRequest) {
 
     // Read all offer files
     const files = await fs.readdir(offersDir);
-    const offers: Offer[] = [];
+    const offers: (Offer & { authorUsername?: string })[] = [];
 
     for (const file of files) {
       if (!file.endsWith(".json")) continue;
@@ -578,6 +590,14 @@ export async function GET(request: NextRequest) {
       // Apply filters
       if (typeFilter && offer.type !== typeFilter) continue;
       if (statusFilter && offer.status !== statusFilter) continue;
+
+      // Get author username for the first author
+      if (offer.authors && offer.authors.length > 0) {
+        const authorUsername = await getUsernameByNpub(offer.authors[0]);
+        if (authorUsername) {
+          offer.authorUsername = authorUsername;
+        }
+      }
 
       offers.push(offer);
     }

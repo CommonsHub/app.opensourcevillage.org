@@ -47,6 +47,7 @@ interface ServicesInfo {
   paymentProcessor: ServiceStatus;
   nostrListener: ServiceStatus;
   mainApp: ServiceStatus;
+  calendarSync: ServiceStatus;
 }
 
 interface WalletInfo {
@@ -269,17 +270,55 @@ async function getServiceStatus(serviceName: string): Promise<ServiceStatus> {
   }
 }
 
+async function getCalendarSyncStatus(): Promise<ServiceStatus> {
+  const logFile = '/var/log/osv/calendar-sync.log';
+  let logs: string[] = [];
+  let lastRun: Date | null = null;
+
+  try {
+    // Read last 20 lines from the log file
+    const result = await execAsync(`tail -n 20 ${logFile} 2>/dev/null`);
+    logs = result.stdout
+      .trim()
+      .split('\n')
+      .filter(line => line.length > 0);
+
+    // Try to get the last modification time of the log file
+    const statResult = await execAsync(`stat -c %Y ${logFile} 2>/dev/null || stat -f %m ${logFile} 2>/dev/null`);
+    const timestamp = parseInt(statResult.stdout.trim(), 10);
+    if (!isNaN(timestamp)) {
+      lastRun = new Date(timestamp * 1000);
+    }
+  } catch {
+    // Log file doesn't exist or can't be read
+  }
+
+  // Consider it "running" if there's a log file and it was modified in the last 10 minutes
+  const isRecent = lastRun && (Date.now() - lastRun.getTime()) < 10 * 60 * 1000;
+  const status = logs.length > 0
+    ? (isRecent ? 'active (cron)' : 'idle')
+    : 'no logs';
+
+  return {
+    running: logs.length > 0,
+    status,
+    logs,
+  };
+}
+
 async function getServicesStatus(): Promise<ServicesInfo> {
-  const [paymentProcessor, nostrListener, mainApp] = await Promise.all([
+  const [paymentProcessor, nostrListener, mainApp, calendarSync] = await Promise.all([
     getServiceStatus('osv-payment-processor'),
     getServiceStatus('osv-nostr-listener'),
     getServiceStatus('osv'),
+    getCalendarSyncStatus(),
   ]);
 
   return {
     paymentProcessor,
     nostrListener,
     mainApp,
+    calendarSync,
   };
 }
 

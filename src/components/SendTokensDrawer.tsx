@@ -11,6 +11,7 @@ interface SendTokensDrawerProps {
   recipient: string;
   senderBalance: number;
   onSuccess?: (newBalance: number) => void;
+  defaultDescription?: string;
 }
 
 export function SendTokensDrawer({
@@ -20,6 +21,7 @@ export function SendTokensDrawer({
   recipient,
   senderBalance,
   onSuccess,
+  defaultDescription,
 }: SendTokensDrawerProps) {
   const [amount, setAmount] = useState(1);
   const [description, setDescription] = useState('');
@@ -28,18 +30,18 @@ export function SendTokensDrawer({
   const [error, setError] = useState('');
   const [animatingBalance, setAnimatingBalance] = useState<number | null>(null);
 
-  const { publishPaymentRequest, isPublishing } = useNostrPublisher();
+  const { publishPaymentRequest, publishNote, isPublishing } = useNostrPublisher();
 
   // Reset state when drawer opens
   useEffect(() => {
     if (isOpen) {
       setAmount(1);
-      setDescription('');
+      setDescription(defaultDescription || '');
       setError('');
       setShowSuccess(false);
       setAnimatingBalance(null);
     }
-  }, [isOpen]);
+  }, [isOpen, defaultDescription]);
 
   const handleIncrement = useCallback(() => {
     setAmount((prev) => Math.min(prev + 1, senderBalance));
@@ -83,6 +85,16 @@ export function SendTokensDrawer({
       if (!result.success) {
         throw new Error(result.error || 'Failed to send tokens');
       }
+
+      // Publish human-readable kind 1 note
+      let noteContent = `Sending ${amount} token${amount !== 1 ? 's' : ''} to @${recipientUsername}`;
+      if (description) {
+        noteContent += ` for "${description}"`;
+      }
+      publishNote({
+        content: noteContent,
+        mentionedPubkey: recipient,
+      });
 
       // Show success animation
       setShowSuccess(true);
@@ -138,9 +150,9 @@ export function SendTokensDrawer({
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <h3 className="text-2xl font-bold text-gray-900 mb-2">Sent!</h3>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">Thank you 🙏</h3>
               <p className="text-gray-600 mb-4">
-                {amount} tokens sent to @{recipientUsername}
+                {amount} token{amount !== 1 ? 's' : ''} sent to @{recipientUsername}
               </p>
               {animatingBalance !== null && (
                 <div className="bg-blue-50 rounded-xl p-4 inline-block">

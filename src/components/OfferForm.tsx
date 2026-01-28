@@ -16,7 +16,7 @@ import { useNostrPublisher } from "@/hooks/useNostrPublisher";
 import BookingGrid, { BookedSlot, RoomConfig } from "@/components/BookingGrid";
 import ProposalCostInfo from "@/components/ProposalCostInfo";
 import { Offer } from "@/types";
-import { getStoredSecretKey, decodeNsec, createCalendarEventClient } from "@/lib/nostr-events";
+import { getStoredSecretKey, decodeNsec, createCalendarEventClient, formatRelativeDate, formatTime } from "@/lib/nostr-events";
 import settings from "../../settings.json";
 
 // Get the configured timezone (defaults to Europe/Brussels)
@@ -88,18 +88,8 @@ interface ConflictsResponse {
   conflicts: ConflictInfo[];
 }
 
-export const SUGGESTED_TAGS = [
-  "web3",
-  "ai",
-  "workshop",
-  "talk",
-  "security",
-  "1:1",
-  "mentorship",
-  "design",
-  "networking",
-  "open-source",
-];
+// Use suggested tags from settings.json
+export const SUGGESTED_TAGS: string[] = settings.suggestedTags || [];
 
 // Duration options moved to BookingGrid component
 
@@ -167,7 +157,7 @@ export default function OfferForm({
   onSuccess,
 }: OfferFormProps) {
   const router = useRouter();
-  const { publishPaymentRequest, isPublishing } = useNostrPublisher();
+  const { publishPaymentRequest, publishNote, isPublishing } = useNostrPublisher();
 
   // Form state
   const [type, setType] = useState<OfferType>(
@@ -651,6 +641,39 @@ export default function OfferForm({
             burnResult.eventId
           );
         }
+
+        // Publish human-readable note (kind 1) for regular Nostr clients
+        if (data.offer.startTime) {
+          const startDate = new Date(data.offer.startTime);
+          const dateStr = formatRelativeDate(startDate);
+          const timeStr = formatTime(startDate);
+          const roomName = data.offer.room || 'TBD';
+
+          const noteContent = `New workshop proposal: "${data.offer.title}" in ${roomName} ${dateStr} at ${timeStr}`;
+
+          publishNote({
+            content: noteContent,
+            referencedEventId: data.offer.nostrEventId,
+          }).then(result => {
+            if (result.success) {
+              console.log("[OfferForm] Human-readable note published:", result.eventId);
+            } else {
+              console.warn("[OfferForm] Failed to publish human-readable note:", result.error);
+            }
+          });
+        }
+      }
+
+      // For non-workshop offers (no burn), also publish a note
+      if (mode === "create" && !data.pendingBurn && data.offer && type !== "workshop") {
+        const noteContent = `New offer: "${data.offer.title}"`;
+        publishNote({
+          content: noteContent,
+        }).then(result => {
+          if (result.success) {
+            console.log("[OfferForm] Human-readable note for offer published:", result.eventId);
+          }
+        });
       }
 
       // Call success callback or redirect
@@ -711,6 +734,18 @@ export default function OfferForm({
       onSubmit={handleSubmit}
       className="bg-white rounded-lg shadow-sm p-6 space-y-6"
     >
+      {/* Intro text - only show in create mode */}
+      {mode === "create" && type === "workshop" && (
+        <p className="text-gray-600 text-sm">
+          Share your knowledge with the community, or host a conversation table. It will only be recorded in the calendar once the minimum amount of attendees is reached. You will receive one token per person that RSVP.
+        </p>
+      )}
+      {mode === "create" && type !== "workshop" && (
+        <p className="text-gray-600 text-sm">
+          Offer your skill to other villagers. Let people know what you have to offer and receive tokens for it.
+        </p>
+      )}
+
       {/* Type Selection - only show if type not fixed */}
       {!isTypeFixed && (
         <div>
@@ -1018,10 +1053,14 @@ export default function OfferForm({
         {isLoading || isPublishing
           ? mode === "edit"
             ? "Saving..."
-            : "Creating proposal..."
+            : type === "workshop"
+            ? "Proposing workshop..."
+            : "Publishing offer..."
           : mode === "edit"
           ? "Save Changes"
-          : "Propose Workshop"}
+          : type === "workshop"
+          ? "Propose Workshop"
+          : "Publish offer"}
       </button>
 
       {/* Proposal Cost Info (create mode only) */}

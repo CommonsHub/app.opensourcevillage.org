@@ -12,10 +12,14 @@ import {
   createRSVPEvent,
   createRSVPCancellationEvent,
   createPaymentRequestEvent,
+  createNoteEvent,
+  createReactionEvent,
   getStoredSecretKey,
   decodeNsec,
   type OfferEventOptions,
   type PaymentRequestOptions,
+  type NoteEventOptions,
+  type ReactionEventOptions,
 } from '@/lib/nostr-events';
 import { publishToAllRelays, getRelayUrls } from '@/lib/nostr';
 
@@ -365,12 +369,98 @@ export function useNostrPublisher() {
     }
   }, []);
 
+  /**
+   * Publish a human-readable note (kind 1)
+   * Used for activity that regular Nostr clients can display
+   */
+  const publishNote = useCallback(async (
+    options: NoteEventOptions
+  ): Promise<PublishResult> => {
+    console.log('[useNostrPublisher] Publishing note event...');
+
+    try {
+      const nsec = getStoredSecretKey();
+      if (!nsec) {
+        throw new Error('No secret key found. Please log in again.');
+      }
+
+      const secretKey = decodeNsec(nsec);
+      const event = createNoteEvent(secretKey, options);
+      console.log('[useNostrPublisher] Note event created:', event.id);
+
+      const result = await publishToAllRelays(event, secretKey);
+
+      if (result.successful.length === 0) {
+        throw new Error('Failed to publish to any relay');
+      }
+
+      console.log('[useNostrPublisher] ✓ Note event published successfully');
+      return {
+        success: true,
+        eventId: event.id,
+        published: result.successful,
+        failed: result.failed,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[useNostrPublisher] ✗ Failed to publish note:', errorMsg);
+      return {
+        success: false,
+        error: errorMsg,
+      };
+    }
+  }, []);
+
+  /**
+   * Publish a reaction event (kind 7)
+   * Used for reactions like RSVP confirmations with custom emoji
+   */
+  const publishReaction = useCallback(async (
+    options: ReactionEventOptions
+  ): Promise<PublishResult> => {
+    console.log('[useNostrPublisher] Publishing reaction event...');
+
+    try {
+      const nsec = getStoredSecretKey();
+      if (!nsec) {
+        throw new Error('No secret key found. Please log in again.');
+      }
+
+      const secretKey = decodeNsec(nsec);
+      const event = createReactionEvent(secretKey, options);
+      console.log('[useNostrPublisher] Reaction event created:', event.id);
+
+      const result = await publishToAllRelays(event, secretKey);
+
+      if (result.successful.length === 0) {
+        throw new Error('Failed to publish to any relay');
+      }
+
+      console.log('[useNostrPublisher] ✓ Reaction event published successfully');
+      return {
+        success: true,
+        eventId: event.id,
+        published: result.successful,
+        failed: result.failed,
+      };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      console.error('[useNostrPublisher] ✗ Failed to publish reaction:', errorMsg);
+      return {
+        success: false,
+        error: errorMsg,
+      };
+    }
+  }, []);
+
   return {
     publishProfile,
     publishOffer,
     publishRSVP,
     cancelRSVP,
     publishPaymentRequest,
+    publishNote,
+    publishReaction,
     isPublishing,
     lastError,
   };

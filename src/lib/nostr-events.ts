@@ -1107,3 +1107,142 @@ export function parsePaymentReceiptEvent(event: NostrEvent): {
     embeddedRequest,
   };
 }
+
+// ============================================================================
+// Human-readable activity events (kind 1 notes and kind 7 reactions)
+// These are published IN ADDITION to the structured events above, so that
+// regular Nostr clients can display activity in a human-readable way.
+// ============================================================================
+
+/**
+ * Format a date relative to today for human-readable messages
+ * Returns "today", "tomorrow", or formatted date
+ */
+export function formatRelativeDate(date: Date): string {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const targetDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((targetDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return 'today';
+  if (diffDays === 1) return 'tomorrow';
+  if (diffDays === -1) return 'yesterday';
+
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+/**
+ * Format time from a Date object (HH:MM format)
+ */
+export function formatTime(date: Date): string {
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  });
+}
+
+/**
+ * Options for creating a human-readable note (kind 1)
+ */
+export interface NoteEventOptions {
+  /** The note content (human-readable message) */
+  content: string;
+  /** Event ID to reference (e.g., workshop event) */
+  referencedEventId?: string;
+  /** Author pubkey to mention (hex format) */
+  mentionedPubkey?: string;
+}
+
+/**
+ * Create a human-readable note event (kind 1)
+ * Used for activity feed that regular Nostr clients can display
+ *
+ * @param secretKey - User's NOSTR secret key (32 bytes)
+ * @param options - Note options
+ * @returns Signed NOSTR event
+ */
+export function createNoteEvent(
+  secretKey: Uint8Array,
+  options: NoteEventOptions
+): NostrEvent {
+  console.log('[NOSTR] Creating note event (kind 1)...');
+
+  const tags: string[][] = [];
+
+  // Add event reference if provided
+  if (options.referencedEventId) {
+    tags.push(['e', options.referencedEventId, '', 'mention']);
+  }
+
+  // Add pubkey mention if provided
+  if (options.mentionedPubkey) {
+    const pubkeyHex = npubToHex(options.mentionedPubkey);
+    tags.push(['p', pubkeyHex]);
+  }
+
+  const event: EventTemplate = {
+    kind: NOSTR_KINDS.NOTE,
+    created_at: Math.floor(Date.now() / 1000),
+    tags,
+    content: options.content,
+  };
+
+  const signedEvent = finalizeEvent(event, secretKey);
+
+  console.log('[NOSTR] Note event created:', signedEvent.id);
+  console.log('[NOSTR]   Content:', options.content.substring(0, 100) + (options.content.length > 100 ? '...' : ''));
+
+  return signedEvent;
+}
+
+/**
+ * Options for creating a reaction event (kind 7)
+ */
+export interface ReactionEventOptions {
+  /** The emoji or reaction content (e.g., "✅", "+", "🎉") */
+  content: string;
+  /** Event ID being reacted to */
+  referencedEventId: string;
+  /** Author pubkey of the event being reacted to (hex format) */
+  authorPubkey: string;
+}
+
+/**
+ * Create a reaction event (kind 7)
+ * Used for reactions like RSVP confirmations
+ *
+ * @param secretKey - User's NOSTR secret key (32 bytes)
+ * @param options - Reaction options
+ * @returns Signed NOSTR event
+ */
+export function createReactionEvent(
+  secretKey: Uint8Array,
+  options: ReactionEventOptions
+): NostrEvent {
+  console.log('[NOSTR] Creating reaction event (kind 7)...');
+
+  const authorPubkeyHex = npubToHex(options.authorPubkey);
+
+  const event: EventTemplate = {
+    kind: NOSTR_KINDS.REACTION,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [
+      ['e', options.referencedEventId],
+      ['p', authorPubkeyHex],
+    ],
+    content: options.content,
+  };
+
+  const signedEvent = finalizeEvent(event, secretKey);
+
+  console.log('[NOSTR] Reaction event created:', signedEvent.id);
+  console.log('[NOSTR]   Reaction:', options.content);
+  console.log('[NOSTR]   To event:', options.referencedEventId);
+
+  return signedEvent;
+}

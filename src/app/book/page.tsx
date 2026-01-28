@@ -9,7 +9,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getStoredCredentials, getServerNpub, publishToAllRelays } from '@/lib/nostr';
-import { getStoredSecretKey, decodeNsec, createCalendarEventClient, NOSTR_KINDS } from '@/lib/nostr-events';
+import { getStoredSecretKey, decodeNsec, createCalendarEventClient, NOSTR_KINDS, formatTime, formatRelativeDate } from '@/lib/nostr-events';
 import { useNostrPublisher } from '@/hooks/useNostrPublisher';
 import BookingGrid, { BookedSlot, RoomConfig, PendingSlot } from '@/components/BookingGrid';
 import settings from '../../../settings.json';
@@ -86,7 +86,7 @@ export default function BookRoomPage() {
   const [pendingBooking, setPendingBooking] = useState<{ room: string; time: string } | null>(null);
 
   // Payment publisher hook
-  const { publishPaymentRequest, isPublishing } = useNostrPublisher();
+  const { publishPaymentRequest, publishNote, isPublishing } = useNostrPublisher();
 
   // WebSocket ref for subscribing to server calendar updates
   const wsRef = useRef<WebSocket | null>(null);
@@ -439,6 +439,16 @@ export default function BookRoomPage() {
               : b
           )
         );
+
+        // Publish human-readable kind 1 note for the booking
+        const startTimeFormatted = formatTime(startDate);
+        const endTimeFormatted = formatTime(endDate);
+        const dateStr = formatRelativeDate(startDate);
+        const noteContent = `Booking ${roomName} ${dateStr} from ${startTimeFormatted} to ${endTimeFormatted}`;
+        publishNote({
+          content: noteContent,
+          referencedEventId: bookingId,
+        });
       } else {
         throw new Error(paymentResult.error || 'Failed to publish payment request');
       }

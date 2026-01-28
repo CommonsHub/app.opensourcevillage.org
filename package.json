@@ -19,6 +19,7 @@
     "mint": "bun scripts/mint.ts",
     "refresh-calendars": "tsx scripts/refresh-calendars.ts",
     "sync-calendars": "tsx scripts/sync-calendars.ts",
+    "import-ics": "tsx scripts/import-ics.ts",
     "reset": "tsx scripts/reset-data.ts"
   },
   "dependencies": {

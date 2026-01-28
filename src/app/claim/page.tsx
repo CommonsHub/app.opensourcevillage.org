@@ -14,6 +14,7 @@
 
 import { useState, useEffect, lazy, Suspense } from 'react';
 import { useRouter } from 'next/navigation';
+import { nip19 } from 'nostr-tools';
 import {
   deriveNostrKeypair,
   storeCredentials,
@@ -22,6 +23,7 @@ import {
   redeemInviteCode,
 } from '@/lib/nostr';
 import { storeSecretKey } from '@/lib/nostr-events';
+import { useNostrPublisher } from '@/hooks/useNostrPublisher';
 
 const QRScanner = lazy(() => import('@/components/QRScanner'));
 
@@ -29,6 +31,7 @@ type Step = 'loading' | 1 | 2 | 3 | 4;
 
 export default function ClaimPage() {
   const router = useRouter();
+  const { publishNote } = useNostrPublisher();
   const [step, setStep] = useState<Step>('loading');
   const [serialNumber, setSerialNumber] = useState<string | null>(null);
   const [isFirstUser, setIsFirstUser] = useState(false);
@@ -242,6 +245,15 @@ export default function ClaimPage() {
       storeSecretKey(keypair.nsec);
       localStorage.setItem('osv_displayName', displayName);
 
+      // Publish kind 1 note for first user joining
+      try {
+        publishNote({
+          content: 'Just joined the Open Source Village!',
+        });
+      } catch (err) {
+        console.error('[Claim] Failed to publish join note:', err);
+      }
+
       // Redirect to onboarding
       router.push('/onboarding');
 
@@ -304,7 +316,34 @@ export default function ClaimPage() {
       storeSecretKey(keypair.nsec);
       localStorage.setItem('osv_displayName', displayName);
 
-      // 4. Redirect to onboarding
+      // 4. Publish kind 1 note: "Just joined the Open Source Village"
+      try {
+        // Get inviter's npub from the invite code (first 64 chars are their pubkey)
+        const inviterPubkeyHex = cleanCode.substring(0, 64);
+        const inviterNpub = nip19.npubEncode(inviterPubkeyHex);
+
+        // Fetch inviter's profile to get their username
+        const inviterResponse = await fetch(`/api/profile/${inviterNpub}`);
+        const inviterData = await inviterResponse.json();
+
+        if (inviterData.success && inviterData.profile?.username) {
+          const inviterUsername = inviterData.profile.username;
+          publishNote({
+            content: `Just joined the Open Source Village, onboarded by @${inviterUsername}`,
+            mentionedPubkey: inviterNpub,
+          });
+        } else {
+          // Fallback if we can't get the inviter's username
+          publishNote({
+            content: 'Just joined the Open Source Village!',
+          });
+        }
+      } catch (err) {
+        console.error('[Claim] Failed to publish join note:', err);
+        // Don't block the onboarding flow if note publishing fails
+      }
+
+      // 5. Redirect to onboarding
       router.push('/onboarding');
 
     } catch (err) {
