@@ -10,18 +10,10 @@
  * - Filter by npub (shows username if available, cached in localStorage)
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-
-interface NostrEvent {
-  id: string;
-  pubkey: string;
-  created_at: number;
-  kind: number;
-  tags: string[][];
-  content: string;
-  sig: string;
-}
+import { getRelayUrls, subscribe, unsubscribe, disconnectAll, type NostrEvent } from '@/lib/nostr';
+import { nip19 } from 'nostr-tools';
 
 interface KindInfo {
   name: string;
@@ -35,6 +27,7 @@ interface EventEntry {
   event: NostrEvent;
   npub: string;
   kindInfo: KindInfo;
+  isLive?: boolean; // True if event came from live subscription
 }
 
 interface PubkeyInfo {
@@ -56,6 +49,10 @@ export default function NostrEventsPage() {
   const [selectedKinds, setSelectedKinds] = useState<number[]>([]);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const [usernameCache, setUsernameCache] = useState<Record<string, string>>({});
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
+  const [liveEventCount, setLiveEventCount] = useState(0);
+  const subscriptionIds = useRef<Map<string, string>>(new Map());
+  const seenEventIds = useRef<Set<string>>(new Set());
 
   // Load username cache from localStorage
   useEffect(() => {
@@ -106,6 +103,7 @@ export default function NostrEventsPage() {
   const fetchEvents = useCallback(async () => {
     setIsLoading(true);
     setError(null);
+    setLiveEventCount(0); // Reset live event count on refresh
 
     try {
       const params = new URLSearchParams();
@@ -142,6 +140,88 @@ export default function NostrEventsPage() {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  // Mark existing events as seen (to avoid duplicates from live subscription)
+  useEffect(() => {
+    events.forEach(e => seenEventIds.current.add(e.event.id));
+  }, [events]);
+
+  // Live subscription to NOSTR relays
+  useEffect(() => {
+    const setupLiveSubscription = async () => {
+      const relayUrls = getRelayUrls();
+      if (relayUrls.length === 0) {
+        console.log('[NostrPage] No relay URLs configured');
+        return;
+      }
+
+      console.log('[NostrPage] Setting up live subscriptions to', relayUrls.length, 'relays');
+      setIsLiveConnected(false);
+
+      for (const relayUrl of relayUrls) {
+        try {
+          // Subscribe to all events (no filter = all events)
+          // Use since: now to only get new events
+          const subId = await subscribe(relayUrl, [{ since: Math.floor(Date.now() / 1000) }], {
+            onEvent: (event: NostrEvent) => {
+              // Skip if we've already seen this event
+              if (seenEventIds.current.has(event.id)) {
+                return;
+              }
+              seenEventIds.current.add(event.id);
+
+              console.log('[NostrPage] Live event received:', event.kind, event.id.slice(0, 8));
+
+              // Convert to EventEntry format
+              const npub = nip19.npubEncode(event.pubkey);
+              const newEntry: EventEntry = {
+                timestamp: new Date(event.created_at * 1000).toISOString(),
+                source: relayUrl,
+                event,
+                npub,
+                kindInfo: kindInfo[event.kind] || { name: `Kind ${event.kind}`, description: `Event kind ${event.kind}` },
+                isLive: true,
+              };
+
+              // Prepend new event to the list
+              setEvents(prev => [newEntry, ...prev]);
+              setLiveEventCount(prev => prev + 1);
+
+              // Fetch username for this npub if not cached
+              fetchUsername(npub);
+            },
+            onEose: () => {
+              console.log('[NostrPage] EOSE received from', relayUrl);
+              setIsLiveConnected(true);
+            },
+            onError: (error) => {
+              console.error('[NostrPage] Subscription error from', relayUrl, ':', error);
+            },
+          });
+
+          if (subId) {
+            subscriptionIds.current.set(relayUrl, subId);
+            console.log('[NostrPage] Subscribed to', relayUrl, 'with subId', subId);
+            setIsLiveConnected(true);
+          }
+        } catch (err) {
+          console.error('[NostrPage] Failed to subscribe to', relayUrl, ':', err);
+        }
+      }
+    };
+
+    setupLiveSubscription();
+
+    // Cleanup on unmount
+    return () => {
+      console.log('[NostrPage] Cleaning up subscriptions');
+      for (const [relayUrl, subId] of subscriptionIds.current) {
+        unsubscribe(relayUrl, subId);
+      }
+      subscriptionIds.current.clear();
+      disconnectAll();
+    };
+  }, [kindInfo, fetchUsername]);
 
   // Toggle event expansion
   const toggleExpand = (eventId: string) => {
@@ -199,12 +279,30 @@ export default function NostrEventsPage() {
             <h1 className="font-semibold text-gray-900">NOSTR Events</h1>
           </div>
 
-          <button
-            onClick={fetchEvents}
-            className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-          >
-            Refresh
-          </button>
+          <div className="flex items-center gap-3">
+            {/* Live connection indicator */}
+            <div className="flex items-center gap-1.5">
+              <div
+                className={`w-2 h-2 rounded-full ${isLiveConnected ? 'bg-green-500 animate-pulse' : 'bg-gray-400'}`}
+                title={isLiveConnected ? 'Live updates active' : 'Connecting...'}
+              />
+              <span className="text-xs text-gray-500">
+                {isLiveConnected ? 'Live' : 'Offline'}
+              </span>
+              {liveEventCount > 0 && (
+                <span className="text-xs text-green-600 font-medium">
+                  +{liveEventCount}
+                </span>
+              )}
+            </div>
+
+            <button
+              onClick={fetchEvents}
+              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
+            >
+              Refresh
+            </button>
+          </div>
         </div>
       </header>
 
@@ -328,6 +426,9 @@ export default function NostrEventsPage() {
                           {getDisplayName(entry.npub)}
                           {entry.mentioned && (
                             <span className="ml-2 text-orange-600">(mentioned)</span>
+                          )}
+                          {entry.isLive && (
+                            <span className="ml-2 text-green-600 font-medium">(live)</span>
                           )}
                         </p>
                       </div>

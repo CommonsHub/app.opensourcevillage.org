@@ -33,8 +33,12 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
         (decodedText) => {
           // Stop scanning after successful read
           scanner.stop().then(() => {
+            scannerRef.current = null; // Clear ref to prevent double-stop on unmount
             setIsScanning(false);
             onScan(decodedText);
+          }).catch(() => {
+            // Ignore stop errors
+            scannerRef.current = null;
           });
         },
         () => {
@@ -63,9 +67,13 @@ export default function QRScanner({ onScan, onError }: QRScannerProps) {
 
   useEffect(() => {
     return () => {
-      // Cleanup on unmount
-      if (scannerRef.current) {
-        scannerRef.current.stop().catch(() => {});
+      // Cleanup on unmount - only stop if scanner ref still exists
+      const scanner = scannerRef.current;
+      if (scanner) {
+        scannerRef.current = null; // Clear immediately to prevent race conditions
+        scanner.stop().catch(() => {
+          // Ignore errors - scanner may already be stopped
+        });
       }
     };
   }, []);

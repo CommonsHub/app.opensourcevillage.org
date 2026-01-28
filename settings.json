@@ -45,8 +45,8 @@
       "capacity": 80,
       "location": "2nd floor, main room",
       "furniture": "chairs, podium, large TV, sound system, microphones, boxes",
-      "image": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=lg&w=3840",
-      "thumbnail": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=sm"
+      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=lg&w=3840",
+      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=sm"
     },
     {
       "name": "Satoshi Room",
@@ -56,8 +56,8 @@
       "capacity": 15,
       "location": "2nd floor, across the bridge",
       "furniture": "3 tables, 15 chairs, flipchart",
-      "image": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=lg&w=3840",
-      "thumbnail": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=sm"
+      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=lg&w=3840",
+      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=sm"
     },
     {
       "name": "Angel Room",
@@ -66,8 +66,8 @@
       "calendarId": "c_3950a43f7dcd7c13415ca8d85ec6f96daffa9baf952ea653a063d03f22a5a6fe@group.calendar.google.com",
       "capacity": 12,
       "location": "2nd floor, in the back",
-      "image": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=lg&w=3840",
-      "thumbnail": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=sm"
+      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=lg&w=3840",
+      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=sm"
     },
     {
       "name": "Mush Room",
@@ -77,8 +77,27 @@
       "capacity": 10,
       "location": "1st floor in the back (mezzanine)",
       "furniture": "8 chairs",
-      "image": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=lg&w=3840",
-      "thumbnail": "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=sm"
+      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=lg&w=3840",
+      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=sm"
+    },
+    {
+      "name": "Play Room",
+      "slug": "playroom",
+      "calendarId": "c_ad230673df41d5a50f7df599d34e5104717f7a56c9012710c79781b49e960ffc@group.calendar.google.com",
+      "hourlyCost": 1,
+      "capacity": 10,
+      "location": "1st floor in the back, next to the kitchen",
+      "furniture": "Kicker ⚽️",
+      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=lg&w=3840",
+      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=sm"
+    },
+    {
+      "name": "Outside",
+      "slug": "outside",
+      "calendarId": "c_c5c032ff4f13c1066827b469a731dca1bc416bf6ccd736adc267c79b95de6a6a@group.calendar.google.com",
+      "hourlyCost": 1,
+      "capacity": 30,
+      "location": "Outside activitiy. Meeting point in front of the hub or in the coworking on the 1st floor",
     },
     {
       "name": "Phone Booth",
