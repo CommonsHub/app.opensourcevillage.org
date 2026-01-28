@@ -139,23 +139,42 @@ export async function POST(
       }
     }
 
+    // Determine if refund is eligible
+    // For private bookings: only refund if cancelling more than 1 hour before start time
+    // For workshops: always refund
+    const isPrivateBooking = offer.type === 'private';
+    const startTime = offer.startTime ? new Date(offer.startTime) : null;
+    const now = new Date();
+    const hoursUntilStart = startTime ? (startTime.getTime() - now.getTime()) / (1000 * 60 * 60) : 0;
+    const eligibleForRefund = isPrivateBooking ? hoursUntilStart > 1 : true;
+
+    console.log('[Cancel API] Refund eligibility:', {
+      isPrivateBooking,
+      hoursUntilStart: hoursUntilStart.toFixed(2),
+      eligibleForRefund,
+    });
+
     // Publish refund NOSTR events
-    // - Author refund: mint tokens (proposal creation cost)
+    // - Author refund: mint tokens (proposal creation cost) - only if eligible
     // - Attendee refunds: transfer from author back to attendees (RSVP tokens)
     const nsec = process.env.NOSTR_NSEC;
     const tokenInfo = getTokenInfo();
 
-    if (nsec && tokenInfo) {
+    if (nsec && tokenInfo && eligibleForRefund) {
       try {
         const { data: serverSecretKey } = nip19.decode(nsec);
         const serverPublicKey = getPublicKey(serverSecretKey as Uint8Array);
         const serverNpub = nip19.npubEncode(serverPublicKey);
 
-        // Refund the author (proposal cost = 1 token for now) via mint
+        // Refund the author (proposal cost) via mint
         const authorRefundAmount = offer.cost || 1;
         const authorWalletAddress = await getWalletAddressForNpub(npub);
 
         if (authorWalletAddress) {
+          const refundDescription = isPrivateBooking
+            ? `Refund ${authorRefundAmount} token${authorRefundAmount !== 1 ? 's' : ''} for cancelled booking: ${offer.title}`
+            : `Refund ${authorRefundAmount} token${authorRefundAmount !== 1 ? 's' : ''} for cancelled workshop: ${offer.title}`;
+
           const authorRefundEvent = createPaymentRequestEvent(serverSecretKey as Uint8Array, {
             recipient: npub,
             recipientAddress: authorWalletAddress,
@@ -166,7 +185,7 @@ export async function POST(
             tokenSymbol: tokenInfo.symbol,
             context: 'refund',
             method: 'mint',
-            description: `Refund ${authorRefundAmount} token${authorRefundAmount !== 1 ? 's' : ''} for cancelled workshop: ${offer.title}`,
+            description: refundDescription,
           });
 
           publishNostrEvent(authorRefundEvent).then((result) => {
@@ -182,46 +201,50 @@ export async function POST(
         }
 
         // Refund each attendee (1 token each for RSVP) via transfer from author
-        // The author received tokens when attendees RSVPed, so they need to send them back
-        for (const attendee of attendees) {
-          try {
-            const attendeeWalletAddress = await getWalletAddressForNpub(attendee.npub);
-            if (attendeeWalletAddress) {
-              const attendeeRefundEvent = createPaymentRequestEvent(serverSecretKey as Uint8Array, {
-                recipient: attendee.npub,
-                recipientAddress: attendeeWalletAddress,
-                sender: npub, // Author is the sender (returning RSVP tokens)
-                amount: 1,
-                tokenAddress: tokenInfo.address,
-                chainId: tokenInfo.chainId,
-                tokenSymbol: tokenInfo.symbol,
-                context: 'refund',
-                method: 'transfer',
-                description: `Refund 1 token for cancelled workshop RSVP: ${offer.title}`,
-              });
-
-              publishNostrEvent(attendeeRefundEvent).then((result) => {
-                console.log('[Cancel API] Published attendee refund (transfer from author):', {
-                  eventId: attendeeRefundEvent.id,
-                  attendee: attendee.npub.substring(0, 16) + '...',
-                  published: result.published.length,
+        // Only for non-private bookings (private bookings don't have RSVPs)
+        if (!isPrivateBooking) {
+          for (const attendee of attendees) {
+            try {
+              const attendeeWalletAddress = await getWalletAddressForNpub(attendee.npub);
+              if (attendeeWalletAddress) {
+                const attendeeRefundEvent = createPaymentRequestEvent(serverSecretKey as Uint8Array, {
+                  recipient: attendee.npub,
+                  recipientAddress: attendeeWalletAddress,
+                  sender: npub, // Author is the sender (returning RSVP tokens)
+                  amount: 1,
+                  tokenAddress: tokenInfo.address,
+                  chainId: tokenInfo.chainId,
+                  tokenSymbol: tokenInfo.symbol,
+                  context: 'refund',
+                  method: 'transfer',
+                  description: `Refund 1 token for cancelled workshop RSVP: ${offer.title}`,
                 });
-              }).catch((err) => {
-                console.error('[Cancel API] Failed to publish attendee refund:', err);
-              });
+
+                publishNostrEvent(attendeeRefundEvent).then((result) => {
+                  console.log('[Cancel API] Published attendee refund (transfer from author):', {
+                    eventId: attendeeRefundEvent.id,
+                    attendee: attendee.npub.substring(0, 16) + '...',
+                    published: result.published.length,
+                  });
+                }).catch((err) => {
+                  console.error('[Cancel API] Failed to publish attendee refund:', err);
+                });
+              }
+            } catch (err) {
+              console.error('[Cancel API] Failed to refund attendee:', attendee.npub, err);
             }
-          } catch (err) {
-            console.error('[Cancel API] Failed to refund attendee:', attendee.npub, err);
           }
         }
 
         console.log('[Cancel API] Refund events published:', {
           authorRefund: authorRefundAmount,
-          attendeeRefunds: attendees.length,
+          attendeeRefunds: isPrivateBooking ? 0 : attendees.length,
         });
       } catch (err) {
         console.error('[Cancel API] Failed to create refund events:', err);
       }
+    } else if (!eligibleForRefund) {
+      console.log('[Cancel API] Skipping refund - private booking cancelled less than 1 hour before start');
     } else {
       console.log('[Cancel API] Skipping refunds - NOSTR_NSEC or token not configured');
     }
@@ -245,11 +268,11 @@ export async function POST(
 
     return NextResponse.json({
       success: true,
-      message: 'Event cancelled successfully',
-      refunds: {
+      message: isPrivateBooking ? 'Booking cancelled successfully' : 'Event cancelled successfully',
+      refunds: eligibleForRefund ? {
         author: offer.cost || 1,
-        attendees: attendees.length,
-      },
+        attendees: isPrivateBooking ? 0 : attendees.length,
+      } : null,
     });
 
   } catch (error) {

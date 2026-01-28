@@ -62,8 +62,8 @@ export default function OfferEditPage() {
   };
 
   const handleSuccess = (updatedOffer: Offer) => {
-    // Redirect to calendar (for workshops) or marketplace (for others)
-    if (updatedOffer.type === 'workshop' || updatedOffer.type === '1:1') {
+    // Redirect to calendar (for workshops, private bookings, 1:1) or marketplace (for others)
+    if (updatedOffer.type === 'workshop' || updatedOffer.type === '1:1' || updatedOffer.type === 'private') {
       router.push('/calendar');
     } else {
       router.push('/marketplace');

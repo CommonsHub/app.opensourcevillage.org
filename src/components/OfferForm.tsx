@@ -401,7 +401,8 @@ export default function OfferForm({
     return () => clearTimeout(timeoutId);
   }, [checkConflicts]);
 
-  const showScheduleFields = type === "workshop" || type === "1:1";
+  const showScheduleFields = type === "workshop" || type === "1:1" || type === "private";
+  const isPrivateBooking = type === "private";
   const isTypeFixed = mode === "edit" || !!prefill?.type;
 
   // Calculate proposal cost based on room and duration
@@ -718,59 +719,61 @@ export default function OfferForm({
         </p>
       </div>
 
-      {/* Tags */}
-      <div>
-        <label
-          htmlFor="tags"
-          className="block text-sm font-medium text-gray-700 mb-1"
-        >
-          Tags
-        </label>
-        <input
-          type="text"
-          id="tags"
-          value={tagInput}
-          onChange={(e) => setTagInput(e.target.value)}
-          onKeyDown={handleTagInputKeyDown}
-          placeholder="Start typing or select below..."
-          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400"
-        />
+      {/* Tags - not shown for private bookings */}
+      {type !== 'private' && (
+        <div>
+          <label
+            htmlFor="tags"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Tags
+          </label>
+          <input
+            type="text"
+            id="tags"
+            value={tagInput}
+            onChange={(e) => setTagInput(e.target.value)}
+            onKeyDown={handleTagInputKeyDown}
+            placeholder="Start typing or select below..."
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400"
+          />
 
-        {/* Selected Tags */}
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-2">
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1"
-              >
-                {tag}
-                <button
-                  type="button"
-                  onClick={() => removeTag(tag)}
-                  className="text-blue-600 hover:text-blue-800"
+          {/* Selected Tags */}
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1"
                 >
-                  ×
-                </button>
-              </span>
+                  {tag}
+                  <button
+                    type="button"
+                    onClick={() => removeTag(tag)}
+                    className="text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+
+          {/* Suggested Tags */}
+          <div className="flex flex-wrap gap-2 mt-2">
+            {SUGGESTED_TAGS.filter((tag) => !tags.includes(tag)).map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                onClick={() => addTag(tag)}
+                className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs hover:bg-gray-200"
+              >
+                + {tag}
+              </button>
             ))}
           </div>
-        )}
-
-        {/* Suggested Tags */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          {SUGGESTED_TAGS.filter((tag) => !tags.includes(tag)).map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              onClick={() => addTag(tag)}
-              className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs hover:bg-gray-200"
-            >
-              + {tag}
-            </button>
-          ))}
         </div>
-      </div>
+      )}
 
       {/* Schedule Section (Workshop/1:1 only) */}
       {showScheduleFields && (
@@ -978,7 +981,7 @@ export default function OfferForm({
       {/* Proposal Cost Info (create mode only) */}
       {mode === "create" && <ProposalCostInfo cost={proposalCost} className="mt-2" />}
 
-      {/* Cancel Event Link (edit mode only) */}
+      {/* Cancel Event/Booking Link (edit mode only) */}
       {mode === "edit" && initialData && (
         <div className="text-center mt-4">
           <button
@@ -986,7 +989,7 @@ export default function OfferForm({
             onClick={() => setShowCancelConfirm(true)}
             className="text-red-600 hover:text-red-800 text-sm font-medium hover:underline"
           >
-            Cancel event
+            {isPrivateBooking ? "Cancel booking" : "Cancel event"}
           </button>
         </div>
       )}
@@ -996,22 +999,54 @@ export default function OfferForm({
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-3">
-              Cancel this event?
+              {isPrivateBooking ? "Cancel this booking?" : "Cancel this event?"}
             </h3>
             <p className="text-sm text-gray-600 mb-4">
-              Are you sure you want to cancel this event? This action cannot be undone.
+              {isPrivateBooking
+                ? "Are you sure you want to cancel this booking? This action cannot be undone."
+                : "Are you sure you want to cancel this event? This action cannot be undone."}
             </p>
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-              <p className="text-sm text-blue-800">
-                <strong>Refunds will be issued:</strong>
-              </p>
-              <ul className="text-sm text-blue-700 mt-2 space-y-1">
-                <li>• You will be refunded {proposalCost} token{proposalCost !== 1 ? "s" : ""} (booking cost)</li>
-                {(initialData.rsvpCount || 0) > 0 && (
-                  <li>• {initialData.rsvpCount} attendee{initialData.rsvpCount !== 1 ? "s" : ""} will be refunded 1 token each</li>
-                )}
-              </ul>
-            </div>
+            {(() => {
+              // Check if cancellation is more than 1 hour before start time
+              const startTime = initialData.startTime ? new Date(initialData.startTime) : null;
+              const now = new Date();
+              const hoursUntilStart = startTime ? (startTime.getTime() - now.getTime()) / (1000 * 60 * 60) : 0;
+              const eligibleForRefund = hoursUntilStart > 1;
+
+              if (isPrivateBooking) {
+                if (eligibleForRefund) {
+                  return (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-blue-800">
+                        <strong>Refund:</strong> You will be refunded {proposalCost} token{proposalCost !== 1 ? "s" : ""} (booking cost)
+                      </p>
+                    </div>
+                  );
+                } else {
+                  return (
+                    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
+                      <p className="text-sm text-yellow-800">
+                        <strong>No refund:</strong> Cancellations less than 1 hour before the booking are not refunded.
+                      </p>
+                    </div>
+                  );
+                }
+              } else {
+                return (
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                    <p className="text-sm text-blue-800">
+                      <strong>Refunds will be issued:</strong>
+                    </p>
+                    <ul className="text-sm text-blue-700 mt-2 space-y-1">
+                      <li>• You will be refunded {proposalCost} token{proposalCost !== 1 ? "s" : ""} (proposal cost)</li>
+                      {(initialData.rsvpCount || 0) > 0 && (
+                        <li>• {initialData.rsvpCount} attendee{initialData.rsvpCount !== 1 ? "s" : ""} will be refunded 1 token each</li>
+                      )}
+                    </ul>
+                  </div>
+                );
+              }
+            })()}
             <div className="flex gap-3">
               <button
                 type="button"
@@ -1019,7 +1054,7 @@ export default function OfferForm({
                 disabled={isCancelling}
                 className="flex-1 bg-gray-100 text-gray-700 font-medium py-2 px-4 rounded-lg hover:bg-gray-200 transition disabled:opacity-50"
               >
-                Keep event
+                {isPrivateBooking ? "Keep booking" : "Keep event"}
               </button>
               <button
                 type="button"
@@ -1033,7 +1068,7 @@ export default function OfferForm({
                     Cancelling...
                   </>
                 ) : (
-                  "Cancel event"
+                  isPrivateBooking ? "Cancel booking" : "Cancel event"
                 )}
               </button>
             </div>
