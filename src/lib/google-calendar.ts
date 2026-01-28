@@ -70,9 +70,49 @@ export const ROOMS: Room[] = [
 ];
 
 /**
- * Convert room name to slug (e.g., "Ostrom Room" -> "ostrom-room")
+ * Load room slugs from settings.json
+ */
+function loadRoomSlugsFromSettings(): Map<string, string> {
+  const slugMap = new Map<string, string>();
+  try {
+    const settingsPath = join(process.cwd(), 'settings.json');
+    if (existsSync(settingsPath)) {
+      const content = readFileSync(settingsPath, 'utf-8');
+      const settings = JSON.parse(content);
+      if (settings.rooms) {
+        for (const room of settings.rooms) {
+          if (room.name && room.slug) {
+            slugMap.set(room.name, room.slug);
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error('[Calendar] Error loading room slugs from settings:', error);
+  }
+  return slugMap;
+}
+
+// Cache the room slugs
+let roomSlugCache: Map<string, string> | null = null;
+
+/**
+ * Convert room name to slug using settings.json slugs
+ * Falls back to generating slug from name if not found in settings
  */
 export function toRoomSlug(name: string): string {
+  // Load and cache room slugs from settings
+  if (!roomSlugCache) {
+    roomSlugCache = loadRoomSlugsFromSettings();
+  }
+
+  // Check if room has a slug defined in settings
+  const settingsSlug = roomSlugCache.get(name);
+  if (settingsSlug) {
+    return settingsSlug;
+  }
+
+  // Fallback: generate slug from name
   return name
     .toLowerCase()
     .replace(/\s+/g, '-')

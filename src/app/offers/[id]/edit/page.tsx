@@ -45,6 +45,12 @@ export default function OfferEditPage() {
             setIsLoading(false);
             return;
           }
+          // Check if event has already started
+          if (foundOffer.startTime && new Date(foundOffer.startTime) <= new Date()) {
+            setError('You cannot edit an event that has already started');
+            setIsLoading(false);
+            return;
+          }
           setOffer(foundOffer);
         } else {
           setError('Offer not found');

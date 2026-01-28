@@ -179,6 +179,7 @@ export default function OfferDetailPage() {
   const minAttendees = offer.maxAttendees || 5;
   const isPending = offer.status === 'pending';
   const remainingRSVPs = Math.max(0, minAttendees - rsvpData.count);
+  const eventHasStarted = offer.startTime ? new Date(offer.startTime) <= new Date() : false;
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -276,7 +277,15 @@ export default function OfferDetailPage() {
           {/* RSVP Actions */}
           {!isAuthor && credentials && (
             <div>
-              {rsvpData.userHasRSVP ? (
+              {eventHasStarted ? (
+                <div className="bg-gray-100 rounded-lg p-3">
+                  <p className="text-sm text-gray-600 text-center">
+                    {rsvpData.userHasRSVP
+                      ? "You're attending this event"
+                      : "This event has already started"}
+                  </p>
+                </div>
+              ) : rsvpData.userHasRSVP ? (
                 <button
                   onClick={handleCancelRSVP}
                   disabled={isRSVPing}
@@ -304,13 +313,21 @@ export default function OfferDetailPage() {
             </div>
           )}
 
-          {!credentials && (
+          {!credentials && !eventHasStarted && (
             <button
               onClick={() => router.push('/badge')}
               className="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
             >
               Sign In to RSVP
             </button>
+          )}
+
+          {!credentials && eventHasStarted && (
+            <div className="bg-gray-100 rounded-lg p-3">
+              <p className="text-sm text-gray-600 text-center">
+                This event has already started
+              </p>
+            </div>
           )}
         </div>
       </main>

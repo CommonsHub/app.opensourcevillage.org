@@ -124,6 +124,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Cannot RSVP to an event that has already started
+    if (offer.startTime && new Date(offer.startTime) <= new Date()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Cannot RSVP to an event that has already started.',
+        } as CreateRSVPResponse,
+        { status: 400 }
+      );
+    }
+
     // Check if user already has an active RSVP
     const existingRSVP = profile.rsvps.find(
       (r) => r.offerId === offerId && r.status === 'active'
@@ -319,6 +330,24 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Load the offer to check if event has started
+    const offerPath = path.join(DATA_DIR, 'offers', `${offerId}.json`);
+    let offer;
+    try {
+      const offerContent = await fs.readFile(offerPath, 'utf-8');
+      offer = JSON.parse(offerContent);
+
+      // Cannot cancel RSVP for an event that has already started
+      if (offer.startTime && new Date(offer.startTime) <= new Date()) {
+        return NextResponse.json(
+          { success: false, error: 'Cannot cancel RSVP for an event that has already started.' },
+          { status: 400 }
+        );
+      }
+    } catch {
+      // Offer doesn't exist, allow cancellation anyway
+    }
+
     // Cancel the RSVP
     profile.rsvps[rsvpIndex].status = 'cancelled';
 
@@ -349,14 +378,8 @@ export async function DELETE(request: NextRequest) {
       amount: 1,
     });
 
-    // Load the offer to update rsvpCount
-    const offerPath = path.join(DATA_DIR, 'offers', `${offerId}.json`);
-    let offer;
-    try {
-      const offerContent = await fs.readFile(offerPath, 'utf-8');
-      offer = JSON.parse(offerContent);
-    } catch {
-      // Offer doesn't exist, just return success
+    // If offer wasn't loaded earlier, just return success
+    if (!offer) {
       return NextResponse.json({
         success: true,
         message: 'RSVP cancelled and token refunded',

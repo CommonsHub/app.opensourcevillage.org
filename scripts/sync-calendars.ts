@@ -2,12 +2,12 @@
 /**
  * Google Calendar Sync Script
  *
- * Syncs local proposals.ics files to Google Calendar.
+ * Bidirectional sync between local calendar files and Google Calendar.
  * Run via: npm run sync-calendars
  *
  * This script:
- * 1. Checks each room's proposals.ics modification time vs last sync
- * 2. If changed, parses the ICS and syncs events to Google Calendar
+ * 1. Downloads events FROM Google Calendar and saves to local calendar.ics files
+ * 2. Uploads local proposals.ics events TO Google Calendar
  * 3. Updates .sync-metadata with the new sync timestamp
  *
  * Requires: google-account-key.json in project root
@@ -23,9 +23,193 @@ const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), 'data');
 const CALENDARS_DIR = path.join(DATA_DIR, 'calendars');
 const CREDENTIALS_PATH = path.join(process.cwd(), 'google-account-key.json');
 
-// Load settings to get room calendar IDs
+/**
+ * Format date to ICS format (YYYYMMDDTHHMMSSZ)
+ */
+function formatIcsDate(date: Date): string {
+  return date.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+}
+
+/**
+ * Escape text for ICS format
+ */
+function escapeIcsText(text: string): string {
+  return text
+    .replace(/\\/g, '\\\\')
+    .replace(/;/g, '\\;')
+    .replace(/,/g, '\\,')
+    .replace(/\n/g, '\\n');
+}
+
+/**
+ * Convert Google Calendar events to ICS format
+ */
+function eventsToIcs(events: calendar_v3.Schema$Event[], calendarName: string): string {
+  const lines: string[] = [
+    'BEGIN:VCALENDAR',
+    'PRODID:-//Open Source Village//Calendar Sync//EN',
+    'VERSION:2.0',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    `X-WR-CALNAME:${escapeIcsText(calendarName)}`,
+    'X-WR-TIMEZONE:Europe/Brussels',
+  ];
+
+  for (const event of events) {
+    if (!event.start || !event.id) continue;
+
+    const startDate = event.start.dateTime
+      ? new Date(event.start.dateTime)
+      : event.start.date
+      ? new Date(event.start.date)
+      : null;
+
+    const endDate = event.end?.dateTime
+      ? new Date(event.end.dateTime)
+      : event.end?.date
+      ? new Date(event.end.date)
+      : startDate;
+
+    if (!startDate || !endDate) continue;
+
+    lines.push('BEGIN:VEVENT');
+    lines.push(`DTSTART:${formatIcsDate(startDate)}`);
+    lines.push(`DTEND:${formatIcsDate(endDate)}`);
+    lines.push(`DTSTAMP:${formatIcsDate(new Date())}`);
+    lines.push(`UID:${event.id}@google.com`);
+    lines.push(`SUMMARY:${escapeIcsText(event.summary || 'Untitled')}`);
+
+    if (event.description) {
+      lines.push(`DESCRIPTION:${escapeIcsText(event.description)}`);
+    }
+
+    if (event.location) {
+      lines.push(`LOCATION:${escapeIcsText(event.location)}`);
+    }
+
+    const status = event.status?.toUpperCase() || 'CONFIRMED';
+    lines.push(`STATUS:${status}`);
+
+    lines.push('END:VEVENT');
+  }
+
+  lines.push('END:VCALENDAR');
+  return lines.join('\r\n');
+}
+
+/**
+ * Download events from Google Calendar using authenticated API and save to local calendar.ics file
+ */
+async function downloadFromGoogleCalendar(
+  calendar: calendar_v3.Calendar,
+  roomName: string,
+  calendarId: string,
+  eventDates: { start: string; end: string }
+): Promise<boolean> {
+  const roomSlug = getRoomSlug(roomName);
+  const calendarDir = path.join(CALENDARS_DIR, roomSlug);
+  const calendarPath = path.join(calendarDir, 'calendar.ics');
+
+  try {
+    // Create directory if it doesn't exist
+    await fs.mkdir(calendarDir, { recursive: true });
+
+    console.log(`  Fetching events from Google Calendar API...`);
+
+    // Use event dates from settings (start at midnight, end at end of day)
+    const timeMin = new Date(`${eventDates.start}T00:00:00Z`);
+    const timeMax = new Date(`${eventDates.end}T23:59:59Z`);
+
+    console.log(`  Date range: ${eventDates.start} to ${eventDates.end}`);
+
+    const response = await calendar.events.list({
+      calendarId,
+      timeMin: timeMin.toISOString(),
+      timeMax: timeMax.toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+      maxResults: 2500,
+    });
+
+    const events = response.data.items || [];
+    console.log(`  Found ${events.length} events`);
+
+    // Convert to ICS format
+    const icsContent = eventsToIcs(events, roomName);
+
+    // Save to local file
+    await fs.writeFile(calendarPath, icsContent, 'utf-8');
+    console.log(`  Saved to ${calendarPath}`);
+
+    return true;
+  } catch (error: any) {
+    console.error(`  Error downloading calendar:`, error.message || error);
+    return false;
+  }
+}
+
+/**
+ * Download all room calendars from Google using authenticated API
+ */
+async function downloadAllCalendars(
+  calendar: calendar_v3.Calendar,
+  settings: {
+    rooms: Array<{ name: string; slug?: string; calendarId: string }>;
+    eventDates?: { start: string; end: string };
+  }
+): Promise<{ success: number; failed: number }> {
+  console.log('\n--- Downloading events FROM Google Calendar ---');
+
+  // Get event dates from settings or use defaults
+  const eventDates = settings.eventDates || {
+    start: new Date().toISOString().split('T')[0],
+    end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  };
+
+  console.log(`Event date range: ${eventDates.start} to ${eventDates.end}`);
+
+  let success = 0;
+  let failed = 0;
+
+  for (const room of settings.rooms) {
+    if (!room.calendarId) {
+      console.log(`\nSkipping ${room.name}: no calendarId configured`);
+      continue;
+    }
+
+    console.log(`\nDownloading ${room.name}...`);
+    const result = await downloadFromGoogleCalendar(calendar, room.name, room.calendarId, eventDates);
+
+    if (result) {
+      success++;
+    } else {
+      failed++;
+    }
+  }
+
+  // Update metadata
+  const metadataPath = path.join(CALENDARS_DIR, 'metadata.json');
+  const metadata = {
+    lastRefresh: new Date().toISOString(),
+    roomsRefreshed: success,
+    roomsFailed: failed,
+  };
+
+  try {
+    await fs.mkdir(CALENDARS_DIR, { recursive: true });
+    await fs.writeFile(metadataPath, JSON.stringify(metadata, null, 2) + '\n', 'utf-8');
+  } catch (error) {
+    console.error('Error writing metadata:', error);
+  }
+
+  console.log(`\nDownload complete: ${success} succeeded, ${failed} failed`);
+  return { success, failed };
+}
+
+// Load settings to get room calendar IDs and event dates
 async function loadSettings(): Promise<{
   rooms: Array<{ name: string; slug?: string; calendarId: string }>;
+  eventDates?: { start: string; end: string };
 }> {
   const settingsPath = path.join(process.cwd(), 'settings.json');
   const content = await fs.readFile(settingsPath, 'utf-8');
@@ -44,6 +228,76 @@ async function getCalendarClient(): Promise<calendar_v3.Calendar> {
 }
 
 // getRoomSlug is imported from local-calendar.ts
+
+// Offer interface matching the stored JSON format
+interface Offer {
+  id: string;
+  type: string;
+  title: string;
+  description?: string;
+  authors: string[];
+  status: string;
+  startTime?: string;
+  endTime?: string;
+  room?: string;
+  rsvpCount?: number;
+  minRsvps?: number;
+  maxAttendees?: number;
+}
+
+/**
+ * Load all confirmed offers (workshop, private) from data/offers directory
+ */
+async function loadConfirmedOffers(): Promise<Offer[]> {
+  const offersDir = path.join(DATA_DIR, 'offers');
+  const offers: Offer[] = [];
+
+  try {
+    const files = await fs.readdir(offersDir);
+
+    for (const file of files) {
+      if (!file.endsWith('.json')) continue;
+
+      try {
+        const content = await fs.readFile(path.join(offersDir, file), 'utf-8');
+        const offer: Offer = JSON.parse(content);
+
+        // Only include confirmed workshops and private events with a room and time
+        if (
+          offer.status === 'confirmed' &&
+          (offer.type === 'workshop' || offer.type === 'private') &&
+          offer.room &&
+          offer.startTime
+        ) {
+          offers.push(offer);
+        }
+      } catch (err) {
+        console.warn(`  Warning: Could not parse ${file}`);
+      }
+    }
+  } catch (err) {
+    console.warn('  Warning: Could not read offers directory');
+  }
+
+  return offers;
+}
+
+/**
+ * Convert Offer to ProposalEvent format for syncing
+ */
+function offerToProposalEvent(offer: Offer): ProposalEvent {
+  return {
+    offerId: offer.id,
+    title: offer.title,
+    description: offer.description || '',
+    startTime: new Date(offer.startTime!),
+    endTime: offer.endTime ? new Date(offer.endTime) : new Date(new Date(offer.startTime!).getTime() + 60 * 60 * 1000),
+    room: offer.room!,
+    status: 'CONFIRMED',
+    minRsvps: offer.minRsvps || 1,
+    attendees: [], // We don't have attendee details here, but count is in rsvpCount
+  };
+}
 
 // Get last sync time from .sync-metadata
 async function getLastSyncTime(roomSlug: string): Promise<Date | null> {
@@ -288,27 +542,41 @@ async function syncToGoogleCalendar(
 async function syncRoom(
   calendar: calendar_v3.Calendar,
   roomName: string,
-  calendarId: string
+  calendarId: string,
+  confirmedOffers: Offer[]
 ): Promise<void> {
   const roomSlug = getRoomSlug(roomName);
   console.log(`\nSyncing ${roomName} (${roomSlug})...`);
 
-  // Check if sync is needed
-  if (!(await shouldSyncRoom(roomSlug))) {
-    console.log('  No changes detected, skipping');
-    return;
-  }
-
-  // Load local events from ICS
+  // Load local events from proposals.ics (if exists)
   const icsPath = path.join(CALENDARS_DIR, roomSlug, 'proposals.ics');
   let localEvents: ProposalEvent[] = [];
 
   try {
     const icsContent = await fs.readFile(icsPath, 'utf-8');
     localEvents = parseIcsFile(icsContent);
-    console.log(`  Found ${localEvents.length} local events`);
+    console.log(`  Found ${localEvents.length} events from proposals.ics`);
   } catch (error) {
     console.log('  No proposals.ics file found');
+  }
+
+  // Add confirmed offers for this room
+  const roomOffers = confirmedOffers.filter(o => o.room === roomName);
+  const offerEvents = roomOffers.map(offerToProposalEvent);
+  console.log(`  Found ${offerEvents.length} confirmed offers for this room`);
+
+  // Merge events (avoid duplicates by offerId)
+  const existingOfferIds = new Set(localEvents.map(e => e.offerId));
+  for (const offerEvent of offerEvents) {
+    if (!existingOfferIds.has(offerEvent.offerId)) {
+      localEvents.push(offerEvent);
+    }
+  }
+
+  console.log(`  Total events to sync: ${localEvents.length}`);
+
+  if (localEvents.length === 0) {
+    console.log('  No events to sync');
     return;
   }
 
@@ -332,7 +600,7 @@ async function main(): Promise<void> {
   console.log('=== Google Calendar Sync ===');
   console.log(`Time: ${new Date().toISOString()}`);
 
-  // Check for credentials
+  // Check for credentials (required for both download and upload now)
   try {
     await fs.access(CREDENTIALS_PATH);
   } catch {
@@ -353,6 +621,16 @@ async function main(): Promise<void> {
   const calendar = await getCalendarClient();
   console.log('Google Calendar API client initialized');
 
+  // Step 1: Download events FROM Google Calendar (using authenticated API)
+  await downloadAllCalendars(calendar, settings);
+
+  // Step 2: Upload confirmed events TO Google Calendar
+  console.log('\n--- Uploading confirmed events TO Google Calendar ---');
+
+  // Load all confirmed offers
+  const confirmedOffers = await loadConfirmedOffers();
+  console.log(`Found ${confirmedOffers.length} confirmed offers to sync`);
+
   // Sync each room
   for (const room of settings.rooms) {
     if (!room.calendarId) {
@@ -360,7 +638,7 @@ async function main(): Promise<void> {
       continue;
     }
 
-    await syncRoom(calendar, room.name, room.calendarId);
+    await syncRoom(calendar, room.name, room.calendarId, confirmedOffers);
   }
 
   console.log('\n=== Sync Complete ===');

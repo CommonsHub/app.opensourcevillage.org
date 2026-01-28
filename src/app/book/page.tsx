@@ -8,37 +8,41 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { getStoredCredentials, getServerNpub, publishToAllRelays } from '@/lib/nostr';
 import { getStoredSecretKey, decodeNsec, createCalendarEventClient, NOSTR_KINDS } from '@/lib/nostr-events';
 import { useNostrPublisher } from '@/hooks/useNostrPublisher';
+import BookingGrid, { BookedSlot, RoomConfig, PendingSlot } from '@/components/BookingGrid';
 import settings from '../../../settings.json';
 
 const EVENT_TIMEZONE = settings.timezone || 'Europe/Brussels';
 
-// Build room config from settings.json with hourly costs
-interface RoomConfig {
-  id: string;
+// Load rooms from settings.json, filter for "private" type, sorted by capacity (small to large)
+const BOOKING_ROOMS: RoomConfig[] = (settings.rooms as Array<{
   name: string;
   slug: string;
-  hourlyCost: number;
-}
-
-// Get hourly cost from settings.json for a room
-function getRoomHourlyCost(roomName: string): number {
-  const room = (settings.rooms as Array<{ name: string; hourlyCost?: number }>)?.find(
-    r => r.name === roomName
-  );
-  return room?.hourlyCost || 1;
-}
-
-// Rooms to show (in order): phonebooth, mushroom, satoshi, angel
-const BOOKING_ROOMS: RoomConfig[] = [
-  { id: 'Phone Booth', name: 'Phone Booth', slug: 'phonebooth', hourlyCost: getRoomHourlyCost('Phone Booth') },
-  { id: 'Mush Room', name: 'Mush Room', slug: 'mushroom', hourlyCost: getRoomHourlyCost('Mush Room') },
-  { id: 'Satoshi Room', name: 'Satoshi Room', slug: 'satoshi', hourlyCost: getRoomHourlyCost('Satoshi Room') },
-  { id: 'Angel Room', name: 'Angel Room', slug: 'angel', hourlyCost: getRoomHourlyCost('Angel Room') },
-];
+  hourlyCost?: number;
+  capacity?: number;
+  location?: string;
+  furniture?: string;
+  image?: string;
+  thumbnail?: string;
+  types?: string[];
+  floor?: string;
+}>)
+  .filter(room => !room.types || room.types.includes('private'))
+  .map(room => ({
+    id: room.name,
+    name: room.name,
+    slug: room.slug,
+    hourlyCost: room.hourlyCost || 1,
+    capacity: room.capacity,
+    location: room.location,
+    furniture: room.furniture,
+    image: room.image || null,
+    thumbnail: room.thumbnail || null,
+    types: room.types,
+    floor: room.floor,
+  }));
 
 // Calculate booking cost based on room hourly rate and duration
 function calculateBookingCost(roomId: string, durationMinutes: number): number {
@@ -57,28 +61,6 @@ const DURATION_OPTIONS = [
   { value: 90, label: '1h30' },
   { value: 120, label: '2h' },
 ];
-
-// Generate time slots from 8:00 to 22:00 (half-hour increments)
-function generateTimeSlots(): string[] {
-  const slots: string[] = [];
-  for (let hour = 8; hour < 22; hour++) {
-    slots.push(`${hour.toString().padStart(2, '0')}:00`);
-    slots.push(`${hour.toString().padStart(2, '0')}:30`);
-  }
-  return slots;
-}
-
-interface BookedSlot {
-  room: string;
-  startTime: string;
-  endTime: string;
-  title?: string;
-  status?: 'confirmed' | 'pending';
-  eventId?: string;
-  author?: string;
-  authorUsername?: string;
-  isProposal?: boolean;
-}
 
 interface PendingBooking {
   id: string;
@@ -108,8 +90,6 @@ export default function BookRoomPage() {
 
   // WebSocket ref for subscribing to server calendar updates
   const wsRef = useRef<WebSocket | null>(null);
-
-  const timeSlots = generateTimeSlots();
 
   // Check auth on mount
   useEffect(() => {
@@ -159,7 +139,7 @@ export default function BookRoomPage() {
           startTime: event.startTime,
           endTime: event.endTime,
           title: event.title,
-          status: event.proposalStatus === 'tentative' ? 'pending' : 'confirmed',
+          status: event.proposalStatus === 'tentative' ? 'tentative' : 'confirmed',
           eventId: event.offerId || event.id,
           author: event.author,
           authorUsername: event.authorUsername,
@@ -293,150 +273,6 @@ export default function BookRoomPage() {
     };
   }, [credentials, pendingBookings, loadBookedSlots]);
 
-  // Check if a slot is available for a given room and time
-  const isSlotAvailable = (roomId: string, timeStr: string): boolean => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const slotStart = new Date(selectedDate);
-    slotStart.setHours(hours, minutes, 0, 0);
-    const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
-
-    // Check against booked slots
-    for (const booked of bookedSlots) {
-      if (booked.room !== roomId) continue;
-
-      const bookedStart = new Date(booked.startTime);
-      const bookedEnd = new Date(booked.endTime);
-
-      // Check for overlap
-      if (slotStart < bookedEnd && slotEnd > bookedStart) {
-        return false;
-      }
-    }
-
-    // Check against pending bookings
-    for (const pending of pendingBookings) {
-      if (pending.room !== roomId || pending.status === 'failed') continue;
-
-      const pendingStart = new Date(pending.startTime);
-      const pendingEnd = new Date(pending.endTime);
-
-      if (slotStart < pendingEnd && slotEnd > pendingStart) {
-        return false;
-      }
-    }
-
-    // Check if slot is in the past
-    const now = new Date();
-    if (slotStart < now) {
-      return false;
-    }
-
-    return true;
-  };
-
-  // Check if a slot is pending
-  const isSlotPending = (roomId: string, timeStr: string): boolean => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const slotStart = new Date(selectedDate);
-    slotStart.setHours(hours, minutes, 0, 0);
-
-    for (const pending of pendingBookings) {
-      if (pending.room !== roomId || pending.status !== 'pending') continue;
-
-      const pendingStart = new Date(pending.startTime);
-      if (slotStart.getTime() === pendingStart.getTime()) {
-        return true;
-      }
-    }
-
-    return false;
-  };
-
-  // Get booking info for a slot (returns the booking that covers this time slot)
-  const getSlotBooking = (roomId: string, timeStr: string): BookedSlot | null => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const slotStart = new Date(selectedDate);
-    slotStart.setHours(hours, minutes, 0, 0);
-    const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000); // 30 min slot
-
-    for (const booked of bookedSlots) {
-      if (booked.room !== roomId) continue;
-
-      const bookedStart = new Date(booked.startTime);
-      const bookedEnd = new Date(booked.endTime);
-
-      // Check if this slot falls within the booking
-      if (slotStart >= bookedStart && slotStart < bookedEnd) {
-        return booked;
-      }
-    }
-
-    return null;
-  };
-
-  // Get display label for a booking
-  const getBookingLabel = (booking: BookedSlot): string => {
-    if (booking.authorUsername) {
-      return booking.authorUsername;
-    }
-    if (booking.title) {
-      // Truncate long titles
-      return booking.title.length > 10 ? booking.title.slice(0, 8) + '...' : booking.title;
-    }
-    return 'Booked';
-  };
-
-  // Determine if this slot is the start, middle, or end of a multi-slot booking
-  // Returns: 'start' | 'middle' | 'end' | 'single' | null (not booked)
-  const getSlotPosition = (roomId: string, timeStr: string): { position: 'start' | 'middle' | 'end' | 'single' | null; booking: BookedSlot | null } => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const slotStart = new Date(selectedDate);
-    slotStart.setHours(hours, minutes, 0, 0);
-    const slotEnd = new Date(slotStart.getTime() + 30 * 60 * 1000); // 30 min slot
-
-    for (const booked of bookedSlots) {
-      if (booked.room !== roomId) continue;
-
-      const bookedStart = new Date(booked.startTime);
-      const bookedEnd = new Date(booked.endTime);
-
-      // Check if this slot falls within the booking
-      if (slotStart >= bookedStart && slotStart < bookedEnd) {
-        const isFirstSlot = slotStart.getTime() === bookedStart.getTime();
-        const isLastSlot = slotEnd.getTime() >= bookedEnd.getTime();
-
-        // Calculate booking duration in slots
-        const durationMs = bookedEnd.getTime() - bookedStart.getTime();
-        const slotCount = Math.ceil(durationMs / (30 * 60 * 1000));
-
-        if (slotCount === 1) {
-          return { position: 'single', booking: booked };
-        } else if (isFirstSlot) {
-          return { position: 'start', booking: booked };
-        } else if (isLastSlot) {
-          return { position: 'end', booking: booked };
-        } else {
-          return { position: 'middle', booking: booked };
-        }
-      }
-    }
-
-    return { position: null, booking: null };
-  };
-
-  // Check if slot would extend past operating hours (22:00)
-  const isSlotWithinHours = (timeStr: string): boolean => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const slotStart = new Date(selectedDate);
-    slotStart.setHours(hours, minutes, 0, 0);
-    const slotEnd = new Date(slotStart.getTime() + duration * 60 * 1000);
-
-    const closingTime = new Date(selectedDate);
-    closingTime.setHours(22, 0, 0, 0);
-
-    return slotEnd <= closingTime;
-  };
-
   // Convert local time to UTC
   const localTimeToUTC = (dateStr: string, timeStr: string): string => {
     const localDateStr = `${dateStr}T${timeStr}:00`;
@@ -472,11 +308,9 @@ export default function BookRoomPage() {
     return actualUTC.toISOString();
   };
 
-  // Handle slot click - show confirmation dialog
-  const handleSlotClick = (roomId: string, timeStr: string) => {
+  // Handle slot click from BookingGrid - show confirmation dialog
+  const handleSlotSelect = (roomId: string, timeStr: string) => {
     if (!credentials || isBooking) return;
-    if (!isSlotAvailable(roomId, timeStr) || !isSlotWithinHours(timeStr)) return;
-
     setPendingBooking({ room: roomId, time: timeStr });
   };
 
@@ -636,29 +470,25 @@ export default function BookRoomPage() {
     };
   };
 
-  // Navigate dates
-  const changeDate = (days: number) => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + days);
-
-    // Don't allow going to past dates
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    if (newDate < today) return;
-
+  // Handle date change from BookingGrid
+  const handleDateChange = (newDate: Date) => {
     setSelectedDate(newDate);
     // Clear pending bookings when changing date
     setPendingBookings([]);
   };
 
-  const isToday = (date: Date) => {
-    const today = new Date();
-    return (
-      date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear()
-    );
+  // Handle duration change from BookingGrid
+  const handleDurationChange = (newDuration: number) => {
+    setDuration(newDuration);
   };
+
+  // Convert pending bookings to PendingSlot format for BookingGrid
+  const pendingSlots: PendingSlot[] = pendingBookings.map(pb => ({
+    room: pb.room,
+    startTime: pb.startTime,
+    endTime: pb.endTime,
+    status: pb.status,
+  }));
 
   if (!credentials) {
     return null;
@@ -666,186 +496,23 @@ export default function BookRoomPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 sticky top-14 z-10">
-        <div className="max-w-4xl mx-auto px-4 py-4">
-          {/* Duration Selector */}
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
-            <div className="flex gap-2">
-              {DURATION_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setDuration(opt.value)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    duration === opt.value
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Date Navigation */}
-          <div className="flex items-center justify-between">
-            <button
-              onClick={() => changeDate(-1)}
-              disabled={isToday(selectedDate)}
-              className={`p-2 rounded-lg transition ${
-                isToday(selectedDate)
-                  ? 'text-gray-300 cursor-not-allowed'
-                  : 'hover:bg-gray-100 text-gray-600'
-              }`}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
-            </button>
-
-            <div className="text-center">
-              <h2 className="text-lg font-semibold text-gray-900">
-                {isToday(selectedDate) ? 'Today' : selectedDate.toLocaleDateString('en-US', { weekday: 'long' })}
-              </h2>
-              <p className="text-sm text-gray-500">
-                {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-              </p>
-            </div>
-
-            <button
-              onClick={() => changeDate(1)}
-              className="p-2 rounded-lg hover:bg-gray-100 text-gray-600 transition"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Error Message */}
-      {error && (
-        <div className="max-w-4xl mx-auto px-4 pt-4">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-            <p className="text-sm text-red-800">{error}</p>
-          </div>
-        </div>
-      )}
-
-      {/* Time Slot Grid */}
+      {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 py-4">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <span className="ml-3 text-gray-600">Loading availability...</span>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-            {/* Room Headers */}
-            <div className="grid grid-cols-5 border-b border-gray-200">
-              <div className="p-2 text-xs font-medium text-gray-500 text-center">Time</div>
-              {BOOKING_ROOMS.map((room) => (
-                <div key={room.id} className="p-2 text-xs font-medium text-gray-700 text-center border-l border-gray-200">
-                  <Link href={`/rooms/${room.slug}`} className="hover:text-blue-600 hover:underline">
-                    {room.slug}
-                  </Link>
-                </div>
-              ))}
-            </div>
-
-            {/* Time Slots */}
-            <div className="max-h-[60vh] overflow-y-auto">
-              {timeSlots.map((time) => (
-                <div key={time} className="grid grid-cols-5 border-b border-gray-100">
-                  {/* Time Label */}
-                  <div className="p-2 text-xs text-gray-500 text-center flex items-center justify-center">
-                    {time}
-                  </div>
-
-                  {/* Room Slots */}
-                  {BOOKING_ROOMS.map((room) => {
-                    const available = isSlotAvailable(room.id, time) && isSlotWithinHours(time);
-                    const isPending = isSlotPending(room.id, time);
-                    const isCurrentlyBooking = bookingSlot?.room === room.id && bookingSlot?.time === time;
-                    const { position, booking } = getSlotPosition(room.id, time);
-                    const isBooked = position !== null;
-
-                    // Build class names for booked slots
-                    const getBookedClasses = () => {
-                      const base = 'bg-red-100 cursor-not-allowed border-l-4 border-l-red-400';
-                      switch (position) {
-                        case 'start': return `${base} rounded-t border-t-2 border-t-red-400`;
-                        case 'end': return `${base} rounded-b border-b-2 border-b-red-400`;
-                        case 'single': return `${base} rounded border-2 border-red-400 border-l-4`;
-                        case 'middle': return base;
-                        default: return '';
-                      }
-                    };
-
-                    return (
-                      <div
-                        key={`${room.id}-${time}`}
-                        onClick={() => available && !isBooking && !isPending && handleSlotClick(room.id, time)}
-                        className={`p-1 border-l border-gray-200 min-h-[44px] transition flex items-center justify-center ${
-                          isCurrentlyBooking
-                            ? 'bg-blue-100 animate-pulse cursor-wait'
-                            : isPending
-                            ? 'bg-yellow-100 cursor-wait'
-                            : available
-                            ? 'bg-green-50 hover:bg-green-100 cursor-pointer'
-                            : isBooked
-                            ? getBookedClasses()
-                            : 'bg-gray-100 cursor-not-allowed'
-                        }`}
-                        title={booking ? `${booking.title || 'Booked'} (${booking.authorUsername || 'Unknown'})` : undefined}
-                      >
-                        {isCurrentlyBooking && (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                        )}
-                        {isPending && !isCurrentlyBooking && (
-                          <div className="animate-pulse text-yellow-600 text-xs">...</div>
-                        )}
-                        {isBooked && !isCurrentlyBooking && !isPending && (
-                          <>
-                            {/* Only show label on first slot or single slot */}
-                            {(position === 'start' || position === 'single') && (
-                              <span className="text-[10px] text-red-700 font-medium truncate px-0.5">
-                                {getBookingLabel(booking!)}
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Legend */}
-        <div className="mt-4 flex items-center justify-center gap-4 text-xs text-gray-600 flex-wrap">
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-green-50 border border-green-200 rounded"></div>
-            <span>Available</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-yellow-100 border border-yellow-200 rounded"></div>
-            <span>Pending</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-red-50 border border-red-200 rounded"></div>
-            <span>Booked</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-4 h-4 bg-gray-100 border border-gray-200 rounded"></div>
-            <span>Unavailable</span>
-          </div>
-        </div>
+        <BookingGrid
+          rooms={BOOKING_ROOMS}
+          selectedDate={selectedDate}
+          onDateChange={handleDateChange}
+          duration={duration}
+          onDurationChange={handleDurationChange}
+          bookedSlots={bookedSlots}
+          pendingSlots={pendingSlots}
+          onSlotSelect={handleSlotSelect}
+          processingSlot={bookingSlot}
+          isLoading={isLoading}
+          error={error}
+          showDurationSelector={true}
+          showDateNavigation={true}
+        />
 
         {/* Instructions */}
         <p className="mt-4 text-center text-sm text-gray-500">

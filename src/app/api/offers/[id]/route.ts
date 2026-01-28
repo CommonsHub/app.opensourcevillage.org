@@ -90,6 +90,17 @@ export async function PUT(
       );
     }
 
+    // Prevent editing events that have already started
+    if (offer.startTime && new Date(offer.startTime) <= new Date()) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Cannot edit an event that has already started',
+        },
+        { status: 400 }
+      );
+    }
+
     // If NOSTR event is provided, validate it
     if (nostrEvent) {
       // Verify event signature

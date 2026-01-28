@@ -13,7 +13,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useNostrPublisher } from "@/hooks/useNostrPublisher";
-import RoomAvailabilityGrid from "@/components/RoomAvailabilityGrid";
+import BookingGrid, { BookedSlot, RoomConfig } from "@/components/BookingGrid";
 import ProposalCostInfo from "@/components/ProposalCostInfo";
 import { Offer } from "@/types";
 import { getStoredSecretKey, decodeNsec, createCalendarEventClient } from "@/lib/nostr-events";
@@ -101,75 +101,44 @@ export const SUGGESTED_TAGS = [
   "open-source",
 ];
 
-export const DURATION_OPTIONS = [
-  { value: "30", label: "30mn" },
-  { value: "60", label: "1h" },
-  { value: "90", label: "1h30" },
-  { value: "120", label: "2h" },
-];
+// Duration options moved to BookingGrid component
 
-export const ROOMS = [
-  {
-    id: "Ostrom Room",
-    name: "Ostrom Room",
-    slug: "ostrom",
-    capacity: 80,
-    hourlyCost: 3,
-    location: "2nd floor, main room",
-    furniture: "Chairs, podium, large TV, sound system, microphones, boxes",
-    image:
-      "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=lg&w=3840",
-    thumbnail:
-      "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=sm",
-  },
-  {
-    id: "Satoshi Room",
-    name: "Satoshi Room",
-    slug: "satoshi",
-    capacity: 15,
-    hourlyCost: 2,
-    location: "2nd floor, across the bridge",
-    furniture: "3 tables, 15 chairs, flipchart",
-    image:
-      "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=lg&w=3840",
-    thumbnail:
-      "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=sm",
-  },
-  {
-    id: "Angel Room",
-    name: "Angel Room",
-    slug: "angel",
-    capacity: 12,
-    hourlyCost: 1,
-    location: "2nd floor, in the back",
-    image:
-      "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=lg&w=3840",
-    thumbnail:
-      "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=sm",
-  },
-  {
-    id: "Mush Room",
-    name: "Mush Room",
-    slug: "mush",
-    capacity: 10,
-    hourlyCost: 1,
-    location: "1st floor in the back (mezzanine)",
-    furniture: "8 chairs",
-    image:
-      "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=lg&w=3840",
-    thumbnail:
-      "https://staging.commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=sm",
-  },
-  {
-    id: "Phone Booth",
-    name: "Phone Booth",
-    slug: "phone-booth",
-    capacity: 1,
-    hourlyCost: 1,
-    location: "Various locations",
-    thumbnail: null,
-  },
-];
+// Load rooms from settings.json and convert to RoomConfig format
+// Rooms are already sorted by capacity (small to large) in settings.json
+export const ALL_ROOMS: RoomConfig[] = (settings.rooms as Array<{
+  name: string;
+  slug: string;
+  hourlyCost?: number;
+  capacity?: number;
+  location?: string;
+  furniture?: string;
+  image?: string;
+  thumbnail?: string;
+  types?: string[];
+  floor?: string;
+}>).map(room => ({
+  id: room.name,
+  name: room.name,
+  slug: room.slug,
+  hourlyCost: room.hourlyCost || 1,
+  capacity: room.capacity,
+  location: room.location,
+  furniture: room.furniture,
+  image: room.image || null,
+  thumbnail: room.thumbnail || null,
+  types: room.types,
+  floor: room.floor,
+}));
+
+// Helper function to get rooms filtered by booking type
+export function getRoomsForType(bookingType: string): RoomConfig[] {
+  return ALL_ROOMS.filter(room =>
+    !room.types || room.types.includes(bookingType)
+  );
+}
+
+// Legacy export for backwards compatibility
+export const ROOMS = ALL_ROOMS;
 
 interface OfferFormProps {
   mode: "create" | "edit";
@@ -221,6 +190,12 @@ export default function OfferForm({
   const [minRsvps, setMinRsvps] = useState("");
   const [maxAttendees, setMaxAttendees] = useState("");
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+  // BookingGrid state
+  const [selectedGridDate, setSelectedGridDate] = useState<Date>(new Date());
+  const [bookedSlots, setBookedSlots] = useState<BookedSlot[]>([]);
+  const [loadingSlots, setLoadingSlots] = useState(false);
+  const [selectedSlot, setSelectedSlot] = useState<{ room: string; time: string } | null>(null);
 
   // Conflict checking state
   const [conflicts, setConflicts] = useState<ConflictsResponse | null>(null);
@@ -286,6 +261,85 @@ export default function OfferForm({
     }
   }, [room, startDate, startTime, duration, mode, initialData?.id]);
 
+  // Load booked slots for the selected date
+  const loadBookedSlots = useCallback(async () => {
+    setLoadingSlots(true);
+    try {
+      const startOfDay = new Date(selectedGridDate);
+      startOfDay.setHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(selectedGridDate);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      const params = new URLSearchParams({
+        from: startOfDay.toISOString(),
+        to: endOfDay.toISOString(),
+      });
+
+      const response = await fetch(`/api/calendar?${params}`);
+      const data = await response.json();
+
+      if (data.success && data.events) {
+        const slots: BookedSlot[] = data.events.map((event: {
+          room?: string;
+          startTime: string;
+          endTime: string;
+          title?: string;
+          proposalStatus?: string;
+          offerId?: string;
+          id?: string;
+          author?: string;
+          authorUsername?: string;
+          isProposal?: boolean;
+        }) => ({
+          room: event.room || '',
+          startTime: event.startTime,
+          endTime: event.endTime,
+          title: event.title,
+          status: event.proposalStatus === 'tentative' ? 'tentative' : 'confirmed',
+          eventId: event.offerId || event.id,
+          author: event.author,
+          authorUsername: event.authorUsername,
+          isProposal: event.isProposal,
+        }));
+        setBookedSlots(slots);
+      }
+    } catch (err) {
+      console.error('Failed to load booked slots:', err);
+    } finally {
+      setLoadingSlots(false);
+    }
+  }, [selectedGridDate]);
+
+  // Load booked slots when date changes
+  useEffect(() => {
+    loadBookedSlots();
+  }, [loadBookedSlots]);
+
+  // Handle slot selection from BookingGrid
+  const handleSlotSelect = (roomId: string, time: string, date: Date) => {
+    setSelectedSlot({ room: roomId, time });
+    setRoom(roomId);
+    setStartDate(date.toISOString().split('T')[0]);
+    setStartTime(time);
+  };
+
+  // Handle date change from BookingGrid
+  const handleDateChange = (date: Date) => {
+    setSelectedGridDate(date);
+    // Clear selection when changing date
+    setSelectedSlot(null);
+  };
+
+  // Handle duration change from BookingGrid
+  const handleDurationChange = (newDuration: number) => {
+    setDuration(String(newDuration));
+    // Re-validate current selection
+    if (selectedSlot) {
+      // The grid will automatically show if the slot is still available
+    }
+  };
+
   // Load settings from settings.json
   useEffect(() => {
     const loadSettings = async () => {
@@ -338,8 +392,16 @@ export default function OfferForm({
           hour12: false,
         });
 
-        setStartDate(dateFormatter.format(start)); // YYYY-MM-DD format
-        setStartTime(timeFormatter.format(start)); // HH:MM format
+        const dateStr = dateFormatter.format(start); // YYYY-MM-DD format
+        const timeStr = timeFormatter.format(start); // HH:MM format
+        setStartDate(dateStr);
+        setStartTime(timeStr);
+
+        // Set the grid date and selected slot for edit mode
+        setSelectedGridDate(start);
+        if (initialData.room) {
+          setSelectedSlot({ room: initialData.room, time: timeStr });
+        }
 
         // Calculate duration from startTime and endTime
         if (initialData.endTime) {
@@ -364,9 +426,23 @@ export default function OfferForm({
     } else if (prefill) {
       // Create mode with prefill
       if (prefill.date) {
-        setStartDate(prefill.date);
+        const prefillDate = new Date(prefill.date);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        // If prefill date is in the past, use today instead
+        if (prefillDate < today) {
+          const { date } = getDefaultDateTime();
+          setStartDate(date);
+          setSelectedGridDate(new Date(date));
+        } else {
+          setStartDate(prefill.date);
+          setSelectedGridDate(prefillDate);
+        }
       } else {
-        setStartDate(getDefaultDateTime().date);
+        const { date } = getDefaultDateTime();
+        setStartDate(date);
+        setSelectedGridDate(new Date(date));
       }
 
       if (prefill.time) {
@@ -380,6 +456,9 @@ export default function OfferForm({
         const matchedRoom = ROOMS.find((r) => r.slug === prefill.room || r.id === prefill.room);
         if (matchedRoom) {
           setRoom(matchedRoom.id);
+          if (prefill.time) {
+            setSelectedSlot({ room: matchedRoom.id, time: prefill.time });
+          }
         }
       }
       setInitialized(true);
@@ -388,6 +467,7 @@ export default function OfferForm({
       const { date, time } = getDefaultDateTime();
       setStartDate(date);
       setStartTime(time);
+      setSelectedGridDate(new Date(date));
       setInitialized(true);
     }
   }, [initialData, prefill, initialized]);
@@ -781,64 +861,7 @@ export default function OfferForm({
           <div className="border-t pt-6">
             <h3 className="text-sm font-medium text-gray-900 mb-4">Schedule</h3>
 
-            {/* Date and Time */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label
-                  htmlFor="startDate"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Date
-                </label>
-                <input
-                  type="date"
-                  id="startDate"
-                  value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400"
-                />
-              </div>
-              <div>
-                <label
-                  htmlFor="startTime"
-                  className="block text-sm font-medium text-gray-700 mb-1"
-                >
-                  Time
-                </label>
-                <input
-                  type="time"
-                  id="startTime"
-                  value={startTime}
-                  onChange={(e) => setStartTime(e.target.value)}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400"
-                />
-              </div>
-            </div>
-
-            {/* Duration */}
-            <div className="mb-4">
-              <label
-                htmlFor="duration"
-                className="block text-sm font-medium text-gray-700 mb-1"
-              >
-                Duration
-              </label>
-              <select
-                id="duration"
-                value={duration}
-                onChange={(e) => setDuration(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-              >
-                {DURATION_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Min/Max RSVPs */}
+            {/* Min/Max RSVPs (Workshop only) */}
             {type === "workshop" && (
               <div className="grid grid-cols-2 gap-4 mb-4">
                 <div>
@@ -879,17 +902,40 @@ export default function OfferForm({
               </div>
             )}
 
-            {/* Room Selection with Availability Grid */}
-            <RoomAvailabilityGrid
-              rooms={ROOMS}
-              selectedDate={startDate}
-              selectedTime={startTime}
+            {/* Room and Time Selection with BookingGrid */}
+            <BookingGrid
+              rooms={getRoomsForType(type)}
+              selectedDate={selectedGridDate}
+              onDateChange={handleDateChange}
               duration={parseInt(duration)}
-              requiredCapacity={parseInt(maxAttendees) || 1}
-              selectedRoom={room}
-              onRoomSelect={setRoom}
+              onDurationChange={handleDurationChange}
+              bookedSlots={bookedSlots}
+              onSlotSelect={handleSlotSelect}
+              selectedSlot={selectedSlot}
+              isLoading={loadingSlots}
               excludeOfferId={mode === "edit" ? initialData?.id : undefined}
+              showDurationSelector={true}
+              showDateNavigation={true}
+              gridHeightClass="max-h-[50vh]"
+              maxAttendees={maxAttendees ? parseInt(maxAttendees) : undefined}
             />
+
+            {/* Selected slot info */}
+            {selectedSlot && (
+              <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <span className="font-medium">Selected:</span>{" "}
+                  {ROOMS.find(r => r.id === selectedSlot.room)?.name || selectedSlot.room}{" "}
+                  from {selectedSlot.time} to {(() => {
+                    const [hours, minutes] = selectedSlot.time.split(':').map(Number);
+                    const endDate = new Date(selectedGridDate);
+                    endDate.setHours(hours, minutes + parseInt(duration), 0, 0);
+                    return endDate.toTimeString().slice(0, 5);
+                  })()} on{" "}
+                  {selectedGridDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                </p>
+              </div>
+            )}
 
             {/* Conflict Warnings */}
             {checkingConflicts && (
@@ -911,7 +957,7 @@ export default function OfferForm({
                   .filter((c) => c.type === "confirmed")
                   .map((c, i) => (
                     <p key={i} className="text-xs text-red-600 mt-1">
-                      "{c.title}" -{" "}
+                      &quot;{c.title}&quot; -{" "}
                       {new Date(c.startTime).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -934,7 +980,7 @@ export default function OfferForm({
                   .filter((c) => c.type === "tentative")
                   .map((c, i) => (
                     <p key={i} className="text-xs text-yellow-600 mt-1">
-                      "{c.title}" -{" "}
+                      &quot;{c.title}&quot; -{" "}
                       {new Date(c.startTime).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",

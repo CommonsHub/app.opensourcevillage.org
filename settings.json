@@ -38,36 +38,14 @@
   },
   "rooms": [
     {
-      "name": "Ostrom Room",
-      "slug": "ostrom",
-      "hourlyCost": 3,
-      "calendarId": "c_72861dcac23416de3fe708f857f5c74f2e2578fe7da94dcee0a55922734417ef@group.calendar.google.com",
-      "capacity": 80,
-      "location": "2nd floor, main room",
-      "furniture": "chairs, podium, large TV, sound system, microphones, boxes",
-      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=lg&w=3840",
-      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=sm"
-    },
-    {
-      "name": "Satoshi Room",
-      "hourlyCost": 2,
-      "slug": "satoshi",
-      "calendarId": "c_fce54b1bddc311791897f8a8723d0b10d7e3b69ea520baee0d267ce9d3266068@group.calendar.google.com",
-      "capacity": 15,
-      "location": "2nd floor, across the bridge",
-      "furniture": "3 tables, 15 chairs, flipchart",
-      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=lg&w=3840",
-      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=sm"
-    },
-    {
-      "name": "Angel Room",
-      "slug": "angel",
+      "name": "Phone Booth",
+      "slug": "phonebooth",
+      "calendarId": "c_d85b07cd944c033724c8b4adbea66840619181e445e2e6c8062cc0f761f15218@group.calendar.google.com",
       "hourlyCost": 1,
-      "calendarId": "c_3950a43f7dcd7c13415ca8d85ec6f96daffa9baf952ea653a063d03f22a5a6fe@group.calendar.google.com",
-      "capacity": 12,
-      "location": "2nd floor, in the back",
-      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=lg&w=3840",
-      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=sm"
+      "capacity": 1,
+      "location": "Various",
+      "floor": "1st floor",
+      "types": ["private", "1:1"]
     },
     {
       "name": "Mush Room",
@@ -76,9 +54,11 @@
       "hourlyCost": 1,
       "capacity": 10,
       "location": "1st floor in the back (mezzanine)",
+      "floor": "1st floor",
       "furniture": "8 chairs",
       "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=lg&w=3840",
-      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=sm"
+      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=sm",
+      "types": ["workshop", "private", "1:1"]
     },
     {
       "name": "Play Room",
@@ -87,9 +67,36 @@
       "hourlyCost": 1,
       "capacity": 10,
       "location": "1st floor in the back, next to the kitchen",
-      "furniture": "Kicker ⚽️",
-      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=lg&w=3840",
-      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=sm"
+      "floor": "1st floor",
+      "furniture": "Kicker",
+      "image": "https://commonshub.brussels/images/playroom.jpg",
+      "thumbnail": "https://commonshub.brussels/images/playroom.jpg",
+      "types": ["workshop", "private", "1:1"]
+    },
+    {
+      "name": "Angel Room",
+      "slug": "angel",
+      "calendarId": "c_3950a43f7dcd7c13415ca8d85ec6f96daffa9baf952ea653a063d03f22a5a6fe@group.calendar.google.com",
+      "hourlyCost": 1,
+      "capacity": 12,
+      "location": "2nd floor, in the back",
+      "floor": "2nd floor",
+      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=lg&w=3840",
+      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443323689541173468.jpeg&size=sm",
+      "types": ["workshop", "private", "1:1"]
+    },
+    {
+      "name": "Satoshi Room",
+      "slug": "satoshi",
+      "calendarId": "c_fce54b1bddc311791897f8a8723d0b10d7e3b69ea520baee0d267ce9d3266068@group.calendar.google.com",
+      "hourlyCost": 2,
+      "capacity": 15,
+      "location": "2nd floor, across the bridge",
+      "floor": "2nd floor",
+      "furniture": "3 tables, 15 chairs, flipchart",
+      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=lg&w=3840",
+      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443338805716451409.jpeg&size=sm",
+      "types": ["workshop", "private", "1:1"]
     },
     {
       "name": "Outside",
@@ -97,15 +104,35 @@
       "calendarId": "c_c5c032ff4f13c1066827b469a731dca1bc416bf6ccd736adc267c79b95de6a6a@group.calendar.google.com",
       "hourlyCost": 1,
       "capacity": 30,
-      "location": "Outside activitiy. Meeting point in front of the hub or in the coworking on the 1st floor"
+      "location": "Outside activity. Meeting point in front of the hub or in the coworking on the 1st floor",
+      "floor": "outside",
+      "types": ["workshop"]
     },
     {
-      "name": "Phone Booth",
-      "slug": "phonebooth",
-      "calendarId": "c_d85b07cd944c033724c8b4adbea66840619181e445e2e6c8062cc0f761f15218@group.calendar.google.com",
+      "name": "Coworking",
+      "slug": "coworking",
+      "calendarId": "c_46409c48af2476b038fed585c06edd93133b5393d8a2b72b3ca98445a3372860@group.calendar.google.com",
       "hourlyCost": 1,
-      "capacity": 1,
-      "location": "Various"
+      "capacity": 40,
+      "location": "Big room on the 1st floor in the front",
+      "floor": "1st floor",
+      "furniture": "17 tables, 40 chairs",
+      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=lg&w=3840",
+      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443324550929584312.jpg&size=sm",
+      "types": ["workshop"]
+    },
+    {
+      "name": "Ostrom Room",
+      "slug": "ostrom",
+      "calendarId": "c_72861dcac23416de3fe708f857f5c74f2e2578fe7da94dcee0a55922734417ef@group.calendar.google.com",
+      "hourlyCost": 3,
+      "capacity": 80,
+      "location": "2nd floor, main room",
+      "floor": "2nd floor",
+      "furniture": "chairs, podium, large TV, sound system, microphones, boxes",
+      "image": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=lg&w=3840",
+      "thumbnail": "https://commonshub.brussels/api/image-proxy?url=%2Fdata%2F2025%2F11%2Fdiscord%2Fimages%2F1443609673751068763.jpeg&size=sm",
+      "types": ["workshop"]
     }
   ]
 }

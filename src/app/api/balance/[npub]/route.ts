@@ -56,6 +56,10 @@ export async function GET(
           total: balanceInTokens,
           lastUpdated: new Date().toISOString()
         }
+      }, {
+        headers: {
+          'Cache-Control': 'no-store',
+        }
       });
     } catch (err) {
       console.error('Error querying blockchain balance:', err);

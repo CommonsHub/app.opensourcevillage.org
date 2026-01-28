@@ -129,7 +129,7 @@ export default function RoomDetailDrawer({
           <div className="overflow-y-auto flex-1">
             {/* Room Image - use image if available, fallback to thumbnail */}
             {(room.image || room.thumbnail) && (
-              <div className="relative h-48 bg-gray-200">
+              <div className="relative h-96 bg-gray-200">
                 <img
                   src={room.image || room.thumbnail || ''}
                   alt={room.name}

@@ -44,9 +44,22 @@ export function useTokenBalance(
       return;
     }
 
+    // Ensure we're in a browser environment
+    if (typeof window === 'undefined') {
+      setIsLoading(false);
+      return;
+    }
+
     try {
       setError(null);
-      const response = await fetch(`/api/balance/${npub}`);
+      const response = await fetch(`/api/balance/${npub}`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+        },
+        // Explicitly set same-origin credentials mode for Safari compatibility
+        credentials: 'same-origin',
+      });
       const data = await response.json();
 
       if (data.success) {
@@ -60,8 +73,15 @@ export function useTokenBalance(
         setError(data.error || 'Failed to fetch balance');
       }
     } catch (err) {
-      console.error('Error fetching balance:', err);
-      setError('Network error');
+      // Handle Safari's access control / ITP errors gracefully
+      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
+      if (errorMessage.includes('access control') || errorMessage.includes('Load failed')) {
+        console.warn('Balance fetch blocked (likely Safari ITP), will retry on next refresh');
+        // Don't set error state for ITP blocks - just leave balance as loading/unknown
+      } else {
+        console.error('Error fetching balance:', err);
+        setError('Network error');
+      }
     } finally {
       setIsLoading(false);
     }

@@ -1030,8 +1030,8 @@ export default function CalendarView({
                               </div>
                             )}
 
-                          {/* Edit link - only for author */}
-                          {event.offerId && isAuthor && (
+                          {/* Edit link - only for author and if event hasn't started yet */}
+                          {event.offerId && isAuthor && new Date(event.startTime) > new Date() && (
                             <div className="mt-3 pt-3 border-t border-gray-100">
                               <a
                                 href={`/offers/${event.offerId}/edit`}
