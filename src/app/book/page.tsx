@@ -21,7 +21,6 @@ interface RoomConfig {
   id: string;
   name: string;
   slug: string;
-  shortName: string;
   hourlyCost: number;
 }
 
@@ -35,10 +34,10 @@ function getRoomHourlyCost(roomName: string): number {
 
 // Rooms to show (in order): phonebooth, mushroom, satoshi, angel
 const BOOKING_ROOMS: RoomConfig[] = [
-  { id: 'Phone Booth', name: 'Phone Booth', slug: 'phonebooth', shortName: 'Phone', hourlyCost: getRoomHourlyCost('Phone Booth') },
-  { id: 'Mush Room', name: 'Mush Room', slug: 'mushroom', shortName: 'Mush', hourlyCost: getRoomHourlyCost('Mush Room') },
-  { id: 'Satoshi Room', name: 'Satoshi Room', slug: 'satoshi', shortName: 'Satoshi', hourlyCost: getRoomHourlyCost('Satoshi Room') },
-  { id: 'Angel Room', name: 'Angel Room', slug: 'angel', shortName: 'Angel', hourlyCost: getRoomHourlyCost('Angel Room') },
+  { id: 'Phone Booth', name: 'Phone Booth', slug: 'phonebooth', hourlyCost: getRoomHourlyCost('Phone Booth') },
+  { id: 'Mush Room', name: 'Mush Room', slug: 'mushroom', hourlyCost: getRoomHourlyCost('Mush Room') },
+  { id: 'Satoshi Room', name: 'Satoshi Room', slug: 'satoshi', hourlyCost: getRoomHourlyCost('Satoshi Room') },
+  { id: 'Angel Room', name: 'Angel Room', slug: 'angel', hourlyCost: getRoomHourlyCost('Angel Room') },
 ];
 
 // Calculate booking cost based on room hourly rate and duration
@@ -751,7 +750,7 @@ export default function BookRoomPage() {
               {BOOKING_ROOMS.map((room) => (
                 <div key={room.id} className="p-2 text-xs font-medium text-gray-700 text-center border-l border-gray-200">
                   <Link href={`/rooms/${room.slug}`} className="hover:text-blue-600 hover:underline">
-                    {room.shortName}
+                    {room.slug}
                   </Link>
                 </div>
               ))}
