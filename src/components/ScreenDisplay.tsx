@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { useNostrEvents } from '@/hooks/useNostrEvents';
 import { NOSTR_KINDS, parsePaymentReceiptEvent, pubkeyTagToNpub } from '@/lib/nostr-events';
+import { nip19 } from 'nostr-tools';
 
 interface CalendarEvent {
   id: string;
@@ -31,7 +32,7 @@ interface CalendarEvent {
 
 interface ActivityItem {
   id: string;
-  type: 'payment' | 'rsvp' | 'workshop';
+  type: 'payment' | 'rsvp' | 'workshop' | 'note';
   message: string;
   timestamp: Date;
   amount?: number;
@@ -234,6 +235,23 @@ export default function ScreenDisplay({ date }: ScreenDisplayProps) {
             type: 'workshop',
             message: `Workshop "${title}" ${status === 'CONFIRMED' ? 'confirmed' : 'proposed'}`,
             timestamp: new Date(event.created_at * 1000),
+          });
+        } else if (event.kind === NOSTR_KINDS.NOTE) {
+          // Kind 1 notes - display in activity feed
+          const npub = nip19.npubEncode(event.pubkey);
+          const username = await fetchUsername(npub);
+
+          // Truncate long messages
+          const content = event.content.length > 100
+            ? event.content.slice(0, 100) + '...'
+            : event.content;
+
+          newActivities.push({
+            id: event.id,
+            type: 'note',
+            message: content,
+            timestamp: new Date(event.created_at * 1000),
+            username: username || undefined,
           });
         }
       }
@@ -510,12 +528,17 @@ export default function ScreenDisplay({ date }: ScreenDisplayProps) {
                   <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm shrink-0 ${
                     activity.type === 'rsvp' ? 'bg-purple-500' :
                     activity.type === 'workshop' ? 'bg-blue-500' :
+                    activity.type === 'note' ? 'bg-indigo-500' :
                     'bg-green-500'
                   }`}>
                     {activity.type === 'rsvp' ? '✋' :
-                     activity.type === 'workshop' ? '📅' : '💰'}
+                     activity.type === 'workshop' ? '📅' :
+                     activity.type === 'note' ? '💬' : '💰'}
                   </div>
                   <div className="flex-1 min-w-0">
+                    {activity.type === 'note' && activity.username && (
+                      <p className="text-xs text-indigo-400 font-medium">@{activity.username}</p>
+                    )}
                     <p className="text-xs text-gray-200">{activity.message}</p>
                     <p className="text-xs text-gray-500 mt-0.5">
                       {formatRelativeTime(activity.timestamp)}
