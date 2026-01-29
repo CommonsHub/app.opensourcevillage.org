@@ -9,7 +9,7 @@
  * - Right: User balance and avatar (links to profile)
  */
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import UserHeader from './UserHeader';
@@ -59,7 +59,7 @@ function getPageTitle(pathname: string): string {
   return 'Open Source Village';
 }
 
-export default function TopBar() {
+function TopBarContent() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -161,5 +161,13 @@ export default function TopBar() {
         </nav>
       )}
     </>
+  );
+}
+
+export default function TopBar() {
+  return (
+    <Suspense fallback={null}>
+      <TopBarContent />
+    </Suspense>
   );
 }
