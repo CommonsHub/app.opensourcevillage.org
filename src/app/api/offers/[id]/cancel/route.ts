@@ -167,7 +167,7 @@ export async function POST(
         const serverNpub = nip19.npubEncode(serverPublicKey);
 
         // Refund the author (proposal cost) via mint
-        const authorRefundAmount = offer.cost || 1;
+        const authorRefundAmount = offer.publicationCost || 1;
         const authorWalletAddress = await getWalletAddressForNpub(npub);
 
         if (authorWalletAddress) {
@@ -270,7 +270,7 @@ export async function POST(
       success: true,
       message: isPrivateBooking ? 'Booking cancelled successfully' : 'Event cancelled successfully',
       refunds: eligibleForRefund ? {
-        author: offer.cost || 1,
+        author: offer.publicationCost || 1,
         attendees: isPrivateBooking ? 0 : attendees.length,
       } : null,
     });

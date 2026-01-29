@@ -165,6 +165,7 @@ interface Offer {
   minRsvps?: number;
   authors?: string[];
   updatedAt?: string;
+  publicationCost?: number;
 }
 
 interface BookingData {
@@ -177,6 +178,7 @@ interface BookingData {
   endTime: string;
   author: string;
   authorUsername: string;
+  publicationCost?: number;
 }
 
 /**
@@ -188,7 +190,7 @@ async function confirmBookingOrOffer(
   relatedEventId: string,
   context: string,
   sender: string,
-  bookingDetails?: { title?: string; description?: string; room?: string; startTime?: string; endTime?: string }
+  bookingDetails?: { title?: string; description?: string; room?: string; startTime?: string; endTime?: string; publicationCost?: number }
 ): Promise<void> {
   // Ensure offers directory exists
   if (!fs.existsSync(OFFERS_DIR)) {
@@ -235,6 +237,7 @@ async function confirmBookingOrOffer(
         endTime,
         authors: [sender],
         updatedAt: new Date().toISOString(),
+        publicationCost: bookingDetails?.publicationCost, // Store the cost for refunds on cancellation
       };
 
       fs.writeFileSync(offerPath, JSON.stringify(offer, null, 2));
@@ -279,7 +282,7 @@ async function confirmBookingOrOffer(
     return;
   }
 
-  // For workshop proposals, update existing offer
+  // For workshop proposals and needs, update existing offer
   const offerPath = path.join(OFFERS_DIR, `${relatedEventId}.json`);
 
   try {
@@ -291,7 +294,8 @@ async function confirmBookingOrOffer(
     const content = fs.readFileSync(offerPath, 'utf-8');
     const offer: Offer = JSON.parse(content);
 
-    const newStatus = 'tentative'; // Workshops need RSVPs to confirm
+    // Needs are confirmed immediately, workshops need RSVPs
+    const newStatus = context === 'need' ? 'confirmed' : 'tentative';
 
     if (offer.status === newStatus || offer.status === 'confirmed') {
       log(`[ReceiptListener] Offer ${relatedEventId} already has status: ${offer.status}`);
@@ -480,21 +484,25 @@ async function processPaymentReceipt(receiptEvent: NostrEvent): Promise<void> {
   });
 
   // Confirm booking/workshop if applicable
-  if (relatedEventId && sender && (context === 'booking' || context === 'workshop_proposal')) {
+  if (relatedEventId && sender && (context === 'booking' || context === 'workshop_proposal' || context === 'need')) {
     // For bookings, extract booking details from embedded request content
-    let bookingDetails: { title?: string; description?: string; room?: string; startTime?: string; endTime?: string } | undefined;
+    let bookingDetails: { title?: string; description?: string; room?: string; startTime?: string; endTime?: string; publicationCost?: number } | undefined;
 
     if (context === 'booking' && receipt.embeddedRequest) {
       try {
         // The payment request content contains JSON booking data
         const bookingData = JSON.parse(receipt.embeddedRequest.content);
         if (bookingData.type === 'booking') {
+          // Get publicationCost from the receipt's amount field (in micro-tokens, so divide by 1e6)
+          const publicationCost = receipt.amount ? Number(receipt.amount) / 1e6 : undefined;
+
           bookingDetails = {
             title: bookingData.title,
             description: `Private room booking for ${bookingData.roomName || bookingData.room}`,
             room: bookingData.room,
             startTime: bookingData.startTime,
             endTime: bookingData.endTime,
+            publicationCost, // Store the cost for refunds on cancellation
           };
           log(`[ReceiptListener] Parsed booking details:`, bookingDetails);
         }

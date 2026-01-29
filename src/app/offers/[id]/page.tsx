@@ -195,10 +195,10 @@ export default function OfferDetailPage() {
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Error</h1>
           <p className="text-red-600 mb-4">{error}</p>
           <button
-            onClick={() => router.push('/marketplace')}
+            onClick={() => router.push('/offers')}
             className="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition"
           >
-            Back to Marketplace
+            Back to Offers
           </button>
         </div>
       </div>

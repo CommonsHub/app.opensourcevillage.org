@@ -18,7 +18,8 @@ import UserHeader from './UserHeader';
 const PAGE_TITLES: Record<string, string> = {
   '/': 'Open Source Village',
   '/calendar': 'Calendar',
-  '/marketplace': 'Marketplace',
+  '/offers': 'Offers',
+  '/needs': 'Needs',
   '/offers/create': 'Propose Workshop',
   '/book': 'Book a Room',
   '/notifications': 'Notifications',
@@ -27,6 +28,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/badge': 'Claim Badge',
   '/transactions': 'Transactions',
   '/onboarding': 'Welcome',
+  '/directory': 'Directory',
 };
 
 // Get title for dynamic routes
@@ -73,7 +75,9 @@ export default function TopBar() {
     { href: '/', label: 'Home' },
     { href: '/calendar', label: 'Calendar' },
     { href: '/book', label: 'Book a Room' },
-    { href: '/marketplace', label: 'Marketplace' },
+    { href: '/offers', label: 'Offers' },
+    { href: '/needs', label: 'Needs' },
+    { href: '/directory', label: 'Directory' },
     { href: '/offers/create', label: 'Propose Workshop' },
     { href: '/notifications', label: 'Notifications' },
     { href: '/settings', label: 'Settings' },

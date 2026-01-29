@@ -47,7 +47,7 @@ describe('RSVP API Endpoints', () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
       status: 'pending',
-      cost: 1,
+      publicationCost: 1,
       rewardPerAttendee: 1,
       maxAttendees: 5, // Minimum 5 to confirm
     };

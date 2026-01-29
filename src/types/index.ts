@@ -37,7 +37,7 @@ export interface BadgeProfile {
 }
 
 // Workshop/Offer Types
-export type OfferType = 'workshop' | '1:1' | 'other' | 'private';
+export type OfferType = 'workshop' | '1:1' | 'other' | 'private' | 'need';
 export type OfferStatus = 'pending' | 'tentative' | 'confirmed' | 'cancelled';
 
 export interface Offer {
@@ -59,7 +59,7 @@ export interface Offer {
   maxAttendees?: number;
 
   // Token economics
-  cost: number; // tokens to create (usually 1)
+  publicationCost: number; // tokens to publish/create the offer (based on room hourly rate × duration)
   rewardPerAttendee: number; // tokens per RSVP (usually 1)
 
   // Workshop proposal fields

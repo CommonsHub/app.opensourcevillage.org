@@ -717,7 +717,7 @@ export interface PaymentRequestOptions {
   /** Related event ID (e.g., offer ID for RSVP) */
   relatedEventId?: string;
   /** Context of the payment */
-  context: 'rsvp' | 'tip' | 'transfer' | 'offer_creation' | 'badge_claim' | 'refund' | 'workshop_proposal' | 'booking';
+  context: 'rsvp' | 'tip' | 'transfer' | 'offer_creation' | 'badge_claim' | 'refund' | 'workshop_proposal' | 'booking' | 'need';
   /** Human-readable description */
   description?: string;
   /** Method: mint (create new tokens), transfer (move existing tokens), or burn (destroy tokens) */

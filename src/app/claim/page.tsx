@@ -24,6 +24,7 @@ import {
 } from '@/lib/nostr';
 import { storeSecretKey } from '@/lib/nostr-events';
 import { useNostrPublisher } from '@/hooks/useNostrPublisher';
+import { QRCodeSVG } from 'qrcode.react';
 
 const QRScanner = lazy(() => import('@/components/QRScanner'));
 
@@ -53,6 +54,12 @@ export default function ClaimPage() {
   // General state
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+
+  // Large screen QR code state
+  const [isLargeScreen, setIsLargeScreen] = useState(false);
+  const [qrDismissed, setQrDismissed] = useState(false);
+  const [redirectCountdown, setRedirectCountdown] = useState(20);
+  const [currentUrl, setCurrentUrl] = useState('');
 
   // Keypair state (created in step 3)
   const [keypair, setKeypair] = useState<{
@@ -143,6 +150,39 @@ export default function ClaimPage() {
 
     return () => clearTimeout(timeoutId);
   }, [username]);
+
+  // Detect large screen and handle QR code redirect countdown
+  useEffect(() => {
+    // Get the current URL for QR code
+    setCurrentUrl(window.location.href);
+
+    // Check if screen is tablet-size or larger (768px)
+    const checkScreenSize = () => {
+      setIsLargeScreen(window.innerWidth >= 768);
+    };
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
+
+  // Countdown timer for large screen redirect
+  useEffect(() => {
+    if (!isLargeScreen || qrDismissed) return;
+
+    const timer = setInterval(() => {
+      setRedirectCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          window.location.href = 'https://opensourcevillage.org';
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isLargeScreen, qrDismissed]);
 
   // Step validation
   const canProceedStep1 = displayName.trim().length >= 2;
@@ -375,6 +415,45 @@ export default function ClaimPage() {
             className="text-blue-600 font-medium hover:text-blue-700"
           >
             Go to Home
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Large screen - show QR code to claim on phone
+  if (isLargeScreen && !qrDismissed && currentUrl) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4 bg-gray-50">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-lg p-8 text-center">
+          <div className="text-5xl mb-4">📱</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            Claim on Your Phone
+          </h1>
+          <p className="text-gray-600 mb-6">
+            For the best experience, scan this QR code with your phone&apos;s camera
+          </p>
+
+          <div className="flex justify-center mb-6">
+            <div className="bg-white p-4 rounded-xl shadow-inner border border-gray-100">
+              <QRCodeSVG
+                value={currentUrl}
+                size={200}
+                level="M"
+                includeMargin={false}
+              />
+            </div>
+          </div>
+
+          <p className="text-sm text-gray-500 mb-4">
+            Redirecting to homepage in {redirectCountdown}s...
+          </p>
+
+          <button
+            onClick={() => setQrDismissed(true)}
+            className="text-blue-600 font-medium hover:text-blue-700 text-sm"
+          >
+            Claim on this device instead
           </button>
         </div>
       </div>

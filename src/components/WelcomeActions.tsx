@@ -3,8 +3,10 @@
 /**
  * WelcomeActions Component - Reusable action box for homepage and calendar
  * Shows "Welcome to the Village" with action buttons
+ * Dismissable with local storage persistence
  */
 
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 
 interface WelcomeActionsProps {
@@ -12,22 +14,52 @@ interface WelcomeActionsProps {
   date?: string; // ISO date string for workshop pre-fill
 }
 
+const STORAGE_KEY = 'osv_welcome_dismissed';
+
 export default function WelcomeActions({ username, date }: WelcomeActionsProps) {
   const router = useRouter();
+  const [isDismissed, setIsDismissed] = useState(true); // Start hidden to prevent flash
+
+  useEffect(() => {
+    // Check local storage on mount
+    const dismissed = localStorage.getItem(STORAGE_KEY);
+    setIsDismissed(dismissed === 'true');
+  }, []);
+
+  const handleDismiss = () => {
+    setIsDismissed(true);
+    localStorage.setItem(STORAGE_KEY, 'true');
+  };
 
   const workshopUrl = date
     ? `/offers/create?type=workshop&date=${date}`
     : '/offers/create?type=workshop';
 
+  // Don't render if dismissed
+  if (isDismissed) {
+    return null;
+  }
+
   return (
-    <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg shadow-lg p-6 text-white">
-      <h1 className="text-2xl font-bold mb-2">
-        Welcome to the Village!
+    <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg shadow-lg p-6 text-white relative">
+      {/* Dismiss button */}
+      <button
+        onClick={handleDismiss}
+        className="absolute top-3 right-3 text-white/70 hover:text-white transition p-1"
+        aria-label="Dismiss"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
+
+      <h1 className="text-2xl font-bold mb-2 pr-8">
+        Welcome to the Village{username ? `, ${username}` : ''}!
       </h1>
-      <p className="text-white/90 mb-6">
-        {username
-          ? `Hi ${username}, what do you want to do today?`
-          : 'What do you want to do today?'}
+
+      <p className="text-white/90 mb-4 text-sm">
+        Make offerings to the community and earn tokens from fellow villagers.
+        Use those tokens to book rooms, participate in workshops, or thank others for their contributions.
       </p>
 
       <div className="space-y-3">
@@ -50,6 +82,18 @@ export default function WelcomeActions({ username, date }: WelcomeActionsProps) 
           </svg>
           <span>Book a room</span>
         </button>
+
+        {username && (
+          <button
+            onClick={() => router.push(`/profile/${username}/edit`)}
+            className="w-full bg-white/10 text-white font-medium py-2 px-4 rounded-lg hover:bg-white/20 transition flex items-center gap-3 text-sm"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            <span>Edit your profile</span>
+          </button>
+        )}
       </div>
     </div>
   );

@@ -1,0 +1,8 @@
+- [x] When canceling event, make sure to refund the amount paid for a private booking.
+- [x] On /claim, if screen is larger than a phone (eg tablet), show a QR code with the current URL to invite the user to claim this badge on their phone. Put below a link "claim this badge on this device instead" to dismiss and proceed with usual flow. Automatically go back to https://opensourcevillage.org after 20s (unless QR code dismissed)
+- [x] Add a link to edit your profile in the call to action box. Make that box dismissable (and remember it in local storage). Explain the principle: Make offerings to the community and earn tokens from fellow villagers. Use those tokens to book rooms, participate in workshops or to thank other villagers for their contribution.
+- [x] Add onboarded by on the profile page with a link to their profile
+- [x] Update the link next to the balance to link to the token contract address on the block explorer filtered by this profile wallet address
+- [x] Add /directory with list of all profiles (might need a new api endpoint)
+- [x] Rename /marketplace to /offers
+- [x] Add /needs which is the exact same as /offers except the type should be need instead of offer and instead of a call to action to send tokens it should be request tokens which should reveal a QR code that links to /profile/:username/pay?eventId=:id&description=:description which should open the profile page with the drawer to send money to that person (reuse the same component than the drawer to send money to someone who made an offer.

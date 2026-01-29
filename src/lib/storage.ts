@@ -292,6 +292,41 @@ export async function createProfile(
 }
 
 /**
+ * Get all profiles
+ */
+export async function getAllProfiles(): Promise<StorageProfile[]> {
+  const npubsDir = path.join(getDataDir(), 'npubs');
+  try {
+    const entries = await fs.readdir(npubsDir, { withFileTypes: true });
+    const profiles: StorageProfile[] = [];
+
+    for (const entry of entries) {
+      if (entry.isDirectory() && entry.name.startsWith('npub1')) {
+        const profilePath = path.join(npubsDir, entry.name, 'profile.json');
+        const profile = await readJsonFile<StorageProfile>(profilePath);
+        if (profile) {
+          profiles.push(profile);
+        }
+      }
+    }
+
+    // Sort by creation date (newest first)
+    profiles.sort((a, b) => {
+      const dateA = a.profile.createdAt ? new Date(a.profile.createdAt).getTime() : 0;
+      const dateB = b.profile.createdAt ? new Date(b.profile.createdAt).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    return profiles;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      return [];
+    }
+    throw error;
+  }
+}
+
+/**
  * Update an existing profile
  */
 export async function updateProfile(

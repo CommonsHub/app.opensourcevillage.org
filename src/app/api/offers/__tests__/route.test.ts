@@ -252,7 +252,7 @@ describe('Offers API Endpoints', () => {
       const data = await response.json();
 
       expect(response.status).toBe(200);
-      expect(data.offer.cost).toBe(3); // 3 tokens/hour * 1 hour
+      expect(data.offer.publicationCost).toBe(3); // 3 tokens/hour * 1 hour
     });
 
     it('should reject workshop if balance is less than room cost', async () => {

@@ -72,7 +72,7 @@ function localTimeToUTC(dateStr: string, timeStr: string): string {
   return actualUTC.toISOString();
 }
 
-export type OfferType = "workshop" | "1:1" | "other" | "private";
+export type OfferType = "workshop" | "1:1" | "other" | "private" | "need";
 
 interface ConflictInfo {
   type: "confirmed" | "tentative";
@@ -129,6 +129,35 @@ export function getRoomsForType(bookingType: string): RoomConfig[] {
 
 // Legacy export for backwards compatibility
 export const ROOMS = ALL_ROOMS;
+
+// Component to show publication cost for needs with current balance
+function NeedPublicationCost({ npub }: { npub: string }) {
+  const [balance, setBalance] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      try {
+        const response = await fetch(`/api/balance/${npub}`);
+        const data = await response.json();
+        if (data.success) {
+          setBalance(data.balance?.confirmed ?? 0);
+        }
+      } catch (err) {
+        console.error("Failed to fetch balance:", err);
+      }
+    };
+    fetchBalance();
+  }, [npub]);
+
+  return (
+    <p className="text-center text-sm text-gray-600 mt-2">
+      1 token to publish
+      {balance !== null && (
+        <span className="text-gray-500">, current balance: {balance} token{balance !== 1 ? 's' : ''}</span>
+      )}
+    </p>
+  );
+}
 
 interface OfferFormProps {
   mode: "create" | "edit";
@@ -614,16 +643,22 @@ export default function OfferForm({
       }
 
       // If pendingBurn is true (create mode only), publish burn payment request
-      if (mode === "create" && data.pendingBurn && data.offer) {
+      // For workshops and needs, we burn 1 token
+      if (mode === "create" && data.pendingBurn && data.offer && (type === "workshop" || type === "need")) {
         console.log("[OfferForm] Publishing burn payment request...");
+
+        const context = type === "need" ? "need" : "workshop_proposal";
+        const description = type === "need"
+          ? `Burn 1 token to publish need: ${data.offer.title}`
+          : `Burn 1 token to propose workshop: ${data.offer.title}`;
 
         const burnResult = await publishPaymentRequest({
           recipient: credentials.npub,
           sender: credentials.npub,
           amount: 1,
-          context: "workshop_proposal",
+          context,
           relatedEventId: data.offer.id,
-          description: `Burn 1 token to propose workshop: ${data.offer.title}`,
+          description,
           method: "burn",
         });
 
@@ -643,7 +678,7 @@ export default function OfferForm({
         }
 
         // Publish human-readable note (kind 1) for regular Nostr clients
-        if (data.offer.startTime) {
+        if (type === "workshop" && data.offer.startTime) {
           const startDate = new Date(data.offer.startTime);
           const dateStr = formatRelativeDate(startDate);
           const timeStr = formatTime(startDate);
@@ -661,11 +696,20 @@ export default function OfferForm({
               console.warn("[OfferForm] Failed to publish human-readable note:", result.error);
             }
           });
+        } else if (type === "need") {
+          const noteContent = `New need: "${data.offer.title}"`;
+          publishNote({
+            content: noteContent,
+          }).then(result => {
+            if (result.success) {
+              console.log("[OfferForm] Human-readable note for need published:", result.eventId);
+            }
+          });
         }
       }
 
-      // For non-workshop offers (no burn), also publish a note
-      if (mode === "create" && !data.pendingBurn && data.offer && type !== "workshop") {
+      // For non-workshop/non-need offers (no burn), also publish a note
+      if (mode === "create" && !data.pendingBurn && data.offer && type !== "workshop" && type !== "need") {
         const noteContent = `New offer: "${data.offer.title}"`;
         publishNote({
           content: noteContent,
@@ -680,7 +724,7 @@ export default function OfferForm({
       if (onSuccess && data.offer) {
         onSuccess(data.offer);
       } else {
-        router.push(showScheduleFields ? "/calendar" : "/marketplace");
+        router.push(showScheduleFields ? "/calendar" : type === "need" ? "/needs" : "/offers");
       }
     } catch (err) {
       console.error(`Failed to ${mode} offer:`, err);
@@ -740,7 +784,12 @@ export default function OfferForm({
           Share your knowledge with the community, or host a conversation table. It will only be recorded in the calendar once the minimum amount of attendees is reached. You will receive one token per person that RSVP.
         </p>
       )}
-      {mode === "create" && type !== "workshop" && (
+      {mode === "create" && type === "need" && (
+        <p className="text-gray-600 text-sm">
+          Let the community know what you need. Fellow villagers can help you and send tokens your way.
+        </p>
+      )}
+      {mode === "create" && type !== "workshop" && type !== "need" && (
         <p className="text-gray-600 text-sm">
           Offer your skill to other villagers. Let people know what you have to offer and receive tokens for it.
         </p>
@@ -786,6 +835,17 @@ export default function OfferForm({
               />
               <span className="text-sm">Other</span>
             </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                name="type"
+                value="need"
+                checked={type === "need"}
+                onChange={(e) => setType(e.target.value as OfferType)}
+                className="mr-2"
+              />
+              <span className="text-sm">Need</span>
+            </label>
           </div>
         </div>
       )}
@@ -804,7 +864,7 @@ export default function OfferForm({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           maxLength={100}
-          placeholder="Intro to NOSTR Protocol"
+          placeholder={type === "need" ? "Looking for a ride to the airport" : "Intro to NOSTR Protocol"}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 placeholder-gray-400"
           required
         />
@@ -825,7 +885,7 @@ export default function OfferForm({
           onChange={(e) => setDescription(e.target.value)}
           rows={4}
           maxLength={1000}
-          placeholder="Learn the basics of NOSTR protocol, how it works, and how to build applications..."
+          placeholder={type === "need" ? "I need a ride to the airport on Friday morning. Happy to pay in tokens!" : "Learn the basics of NOSTR protocol, how it works, and how to build applications..."}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 placeholder-gray-400"
           required
         />
@@ -1055,16 +1115,25 @@ export default function OfferForm({
             ? "Saving..."
             : type === "workshop"
             ? "Proposing workshop..."
+            : type === "need"
+            ? "Publishing..."
             : "Publishing offer..."
           : mode === "edit"
           ? "Save Changes"
           : type === "workshop"
           ? "Propose Workshop"
+          : type === "need"
+          ? "Publish"
           : "Publish offer"}
       </button>
 
       {/* Proposal Cost Info (create mode only) */}
-      {mode === "create" && <ProposalCostInfo cost={proposalCost} className="mt-2" />}
+      {mode === "create" && type !== "need" && <ProposalCostInfo cost={proposalCost} className="mt-2" />}
+
+      {/* Need publication cost info */}
+      {mode === "create" && type === "need" && (
+        <NeedPublicationCost npub={credentials.npub} />
+      )}
 
       {/* Cancel Event/Booking Link (edit mode only) */}
       {mode === "edit" && initialData && (

@@ -387,6 +387,9 @@ export default function PublicProfilePage() {
   // Wallet address for Safe link
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
 
+  // Onboarded by info
+  const [onboardedByUsername, setOnboardedByUsername] = useState<string | null>(null);
+
   // Subscribe to Nostr events for this user
   const {
     events: nostrEvents,
@@ -483,6 +486,19 @@ export default function PublicProfilePage() {
           } catch (err) {
             console.error("Failed to fetch balance/token info:", err);
             // Keep using cached balance from profile
+          }
+
+          // Fetch inviter's username if this user was onboarded by someone
+          if (data.profile.profile.invitedBy) {
+            try {
+              const inviterResponse = await fetch(`/api/profile/${data.profile.profile.invitedBy}`);
+              const inviterData = await inviterResponse.json();
+              if (inviterData.success && inviterData.profile?.username) {
+                setOnboardedByUsername(inviterData.profile.username);
+              }
+            } catch (err) {
+              console.error("Failed to fetch inviter profile:", err);
+            }
           }
         }
 
@@ -850,6 +866,17 @@ export default function PublicProfilePage() {
                       : `@${profile.username}`}
                   </h2>
                   <p className="text-gray-600 text-sm">@{profile.username}</p>
+                  {onboardedByUsername && (
+                    <p className="text-gray-500 text-xs mt-1">
+                      Onboarded by{" "}
+                      <a
+                        href={`/profile/${onboardedByUsername}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        @{onboardedByUsername}
+                      </a>
+                    </p>
+                  )}
                 </div>
                 {isOwnProfile && (
                   <button
@@ -890,11 +917,11 @@ export default function PublicProfilePage() {
               )}
               {tokenInfo && walletAddress && (
                 <a
-                  href={`https://app.safe.global/home?safe=${tokenInfo.chain === "base" || tokenInfo.chain === "base_sepolia" ? "base" : "gno"}:${walletAddress}`}
+                  href={`${tokenInfo.explorer}/token/${tokenInfo.address}?a=${walletAddress}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gray-400 hover:text-blue-600 transition ml-1"
-                  title="View wallet on Safe"
+                  title="View token transactions on block explorer"
                 >
                   <svg
                     className="w-4 h-4"

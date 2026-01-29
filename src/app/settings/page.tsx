@@ -17,7 +17,6 @@ export default function SettingsPage() {
   const [nsecVisible, setNsecVisible] = useState(false);
   const [nsec, setNsec] = useState<string | null>(null);
   const [ethereumAddress, setEthereumAddress] = useState<string>('');
-  const [tokenBalance, setTokenBalance] = useState<number>(0);
 
   // Username editing state
   const [isEditingUsername, setIsEditingUsername] = useState(false);
@@ -44,9 +43,6 @@ export default function SettingsPage() {
     // In production, this should use proper HD wallet derivation
     deriveEthereumAddress(creds.npub);
 
-    // Load token balance
-    loadTokenBalance(creds.username);
-
     setIsLoading(false);
   }, [router]);
 
@@ -56,19 +52,6 @@ export default function SettingsPage() {
     const hash = npub.slice(5, 45); // Take part of the npub
     const address = '0x' + hash.slice(0, 40);
     setEthereumAddress(address);
-  };
-
-  const loadTokenBalance = async (username: string) => {
-    try {
-      const response = await fetch(`/api/profile/${username}`);
-      const data = await response.json();
-
-      if (data.success && data.profile?.balance) {
-        setTokenBalance(data.profile.balance.total || 0);
-      }
-    } catch (err) {
-      console.error('Failed to load token balance:', err);
-    }
   };
 
   const copyToClipboard = async (text: string, label: string) => {
@@ -250,38 +233,6 @@ export default function SettingsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Top App Bar */}
-      <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => router.back()}
-              className="text-gray-600 hover:text-gray-900"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-            </button>
-            <h1 className="font-semibold text-gray-900">Settings</h1>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => router.push('/profile/edit')}
-              className="flex items-center gap-2 hover:bg-gray-50 rounded-lg px-2 py-1 transition"
-            >
-              <div className="text-right hidden sm:block">
-                <p className="text-xs font-semibold text-gray-900">{tokenBalance}</p>
-                <p className="text-xs text-gray-500 -mt-0.5">tokens</p>
-              </div>
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                {credentials.username.charAt(0).toUpperCase()}
-              </div>
-            </button>
-          </div>
-        </div>
-      </header>
-
       {/* Settings Content */}
       <main className="max-w-2xl mx-auto px-4 py-6">
         {/* Account Section */}

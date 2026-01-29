@@ -351,7 +351,7 @@ export async function POST(request: NextRequest) {
       createdAt: now,
       updatedAt: now,
       status: "pending", // Will change to 'tentative' after burn confirmed
-      cost: requiredCost, // Cost to create (will be burned)
+      publicationCost: requiredCost, // Cost to publish/create (will be burned)
       rewardPerAttendee: 1, // Reward per RSVP
       minRsvps: type === "workshop" ? minRsvps : type === "1:1" ? 1 : undefined,
       rsvpCount: 0,
