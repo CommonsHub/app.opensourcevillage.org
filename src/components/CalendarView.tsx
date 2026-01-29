@@ -12,7 +12,6 @@ import { useTokenBalance } from "@/hooks/useTokenBalance";
 import { useNostrPublisher } from "@/hooks/useNostrPublisher";
 import RoomDetailDrawer, { RoomInfo } from "@/components/RoomDetailDrawer";
 import WelcomeActions from "@/components/WelcomeActions";
-import FloatingActionMenu from "@/components/FloatingActionMenu";
 import settings from "../../settings.json";
 
 // Get the configured timezone (defaults to Europe/Brussels)
@@ -1089,11 +1088,6 @@ export default function CalendarView({
           </>
         )}
       </main>
-
-      {/* Floating Action Menu */}
-      {credentials && (
-        <FloatingActionMenu date={formatDateForWorkshop(selectedDate)} />
-      )}
 
       {/* Room Detail Drawer */}
       <RoomDetailDrawer
