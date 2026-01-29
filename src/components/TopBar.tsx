@@ -11,7 +11,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import UserHeader from './UserHeader';
 
 // Map routes to page titles
@@ -61,6 +61,7 @@ function getPageTitle(pathname: string): string {
 
 export default function TopBar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [menuOpen, setMenuOpen] = useState(false);
 
   // Hide TopBar on screen display routes (/screen and /YYYY/MM/DD/screen)
@@ -68,7 +69,14 @@ export default function TopBar() {
     return null;
   }
 
-  const pageTitle = getPageTitle(pathname);
+  // Get page title, with special handling for /offers/create with type param
+  let pageTitle = getPageTitle(pathname);
+  if (pathname === '/offers/create') {
+    const typeParam = searchParams.get('type');
+    if (typeParam === 'need') {
+      pageTitle = 'Post a Need';
+    }
+  }
   const isHome = pathname === '/';
 
   const menuItems = [
