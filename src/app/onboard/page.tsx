@@ -10,6 +10,10 @@ import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { getStoredCredentials, getOrRequestInviteCode } from "@/lib/nostr";
 import { getStoredSecretKey } from "@/lib/nostr-events";
+import settings from "../../../settings.json";
+
+const MAX_INVITES =
+  (settings as { maxInvitesPerUser?: number }).maxInvitesPerUser || 5;
 
 export default function OnboardPage() {
   const router = useRouter();
@@ -21,7 +25,7 @@ export default function OnboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [needsAuth, setNeedsAuth] = useState(false);
-  const [remainingInvites, setRemainingInvites] = useState(4);
+  const [remainingInvites, setRemainingInvites] = useState(MAX_INVITES);
   const [codeCopied, setCodeCopied] = useState(false);
 
   useEffect(() => {
@@ -45,10 +49,12 @@ export default function OnboardPage() {
 
       if (profileData.success && profileData.profile) {
         const invitees = profileData.profile.invitees || [];
-        setRemainingInvites(4 - invitees.length);
+        setRemainingInvites(MAX_INVITES - invitees.length);
 
-        if (invitees.length >= 4) {
-          setError("You have reached your onboarding limit (4 villagers)");
+        if (invitees.length >= MAX_INVITES) {
+          setError(
+            `You have reached your onboarding limit (${MAX_INVITES} villagers)`,
+          );
           setIsLoading(false);
           return;
         }
@@ -160,8 +166,8 @@ export default function OnboardPage() {
               </div>
 
               <p className="text-sm text-gray-600 text-center max-w-xs">
-                Let the new villager scan this QR code with their phone to join
-                the village
+                New villagers need to first scan their NFC tag, then they will
+                be prompted to scan this QR code.
               </p>
 
               <button

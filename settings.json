@@ -12,6 +12,7 @@
     "rsvpCost": 1,
     "claimCost": 1
   },
+  "maxInvitesPerUser": 5,
   "defaults": {
     "workshops": {
       "attendees": {

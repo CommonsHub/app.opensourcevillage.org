@@ -12,6 +12,9 @@ import { QRCodeSVG } from "qrcode.react";
 import { nip19 } from "nostr-tools";
 import { getStoredCredentials, getOrRequestInviteCode } from "@/lib/nostr";
 import { getSecretKey, getStoredSecretKey } from "@/lib/nostr-events";
+import settings from "../../../../settings.json";
+
+const MAX_INVITES = (settings as { maxInvitesPerUser?: number }).maxInvitesPerUser || 5;
 
 // localStorage key prefix for storing kind 0 profile event content (keyed by npub)
 const PROFILE_CACHE_PREFIX = 'osv_profile_kind0_';
@@ -356,7 +359,7 @@ export default function PublicProfilePage() {
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteError, setInviteError] = useState("");
-  const [remainingInvites, setRemainingInvites] = useState(4);
+  const [remainingInvites, setRemainingInvites] = useState(MAX_INVITES);
   const [codeCopied, setCodeCopied] = useState(false);
   const [showInviteQR, setShowInviteQR] = useState(false);
   const [needsAuth, setNeedsAuth] = useState(false);
@@ -514,10 +517,10 @@ export default function PublicProfilePage() {
 
           // Get remaining invites
           const invitees = data.profile.profile.invitees || [];
-          setRemainingInvites(4 - invitees.length);
+          setRemainingInvites(MAX_INVITES - invitees.length);
 
           // Automatically request invite code if not stored and has remaining invites
-          if (!storedCode && invitees.length < 4) {
+          if (!storedCode && invitees.length < MAX_INVITES) {
             requestInviteCodeAutomatically();
           }
         }
@@ -1297,7 +1300,7 @@ export default function PublicProfilePage() {
                     <div className="border-t pt-4 mt-4">
                       <p className="text-sm font-medium text-gray-700 mb-2">
                         Villagers you&apos;ve onboarded (
-                        {profile.profile.invitees.length}/4):
+                        {profile.profile.invitees.length}/{MAX_INVITES}):
                       </p>
                       <div className="space-y-1">
                         {profile.profile.invitees.map((inviteeNpub, index) => (
