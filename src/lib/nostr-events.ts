@@ -22,6 +22,7 @@ export const NOSTR_KINDS = {
   PROFILE: 0,           // NIP-01: User profile metadata
   NOTE: 1,              // NIP-01: Text note (used for offers)
   REACTION: 7,          // NIP-25: Reaction (used for RSVPs)
+  RELAY_LIST: 10002,    // NIP-65: Relay list metadata
   PAYMENT_REQUEST: 1734, // Token payment request (regular kind, stored by relays)
   PAYMENT_RECEIPT: 1735, // Token payment receipt (regular kind, stored by relays)
   CALENDAR_EVENT: 31922, // NIP-52: Calendar event (date-based)
@@ -167,6 +168,48 @@ export function createProfileEvent(
   console.log('[NOSTR]   Event ID:', signedEvent.id);
   console.log('[NOSTR]   Created at:', new Date(signedEvent.created_at * 1000).toISOString());
   console.log('[NOSTR]   Signature:', signedEvent.sig.substring(0, 16) + '...');
+
+  return signedEvent;
+}
+
+/**
+ * Create and sign a NIP-65 relay list metadata event (kind 10002)
+ *
+ * @param secretKey - User's NOSTR secret key (32 bytes)
+ * @param relays - Array of relay URLs
+ * @returns Signed NOSTR event
+ *
+ * @example
+ * ```typescript
+ * const event = createRelayListEvent(secretKey, [
+ *   "wss://relay.example.com",
+ *   "wss://another.relay.com"
+ * ]);
+ * ```
+ */
+export function createRelayListEvent(
+  secretKey: Uint8Array,
+  relays: string[]
+): NostrEvent {
+  console.log('[NOSTR] Creating relay list event (kind 10002)...');
+  console.log('[NOSTR] Relays:', relays);
+
+  // NIP-65 format: each relay is a tag ["r", "<url>"] or ["r", "<url>", "read"|"write"]
+  // We use read+write for all relays (no marker = both)
+  const tags: string[][] = relays.map(relay => ['r', relay]);
+
+  const event: EventTemplate = {
+    kind: NOSTR_KINDS.RELAY_LIST,
+    created_at: Math.floor(Date.now() / 1000),
+    tags,
+    content: '', // NIP-65 specifies empty content
+  };
+
+  const signedEvent = finalizeEvent(event, secretKey);
+
+  console.log('[NOSTR] Relay list event created and signed:');
+  console.log('[NOSTR]   Event ID:', signedEvent.id);
+  console.log('[NOSTR]   Relays count:', relays.length);
 
   return signedEvent;
 }

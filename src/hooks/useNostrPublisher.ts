@@ -8,6 +8,7 @@
 import { useState, useCallback } from 'react';
 import {
   createProfileEvent,
+  createRelayListEvent,
   createOfferEvent,
   createRSVPEvent,
   createRSVPCancellationEvent,
@@ -57,6 +58,7 @@ export function useNostrPublisher() {
 
   /**
    * Publish a profile update event
+   * Also publishes a NIP-65 relay list (kind 10002) if not already published
    */
   const publishProfile = useCallback(async (profile: {
     name: string;
@@ -92,6 +94,33 @@ export function useNostrPublisher() {
       }
 
       console.log('[useNostrPublisher] ✓ Profile event published successfully');
+
+      // Also publish NIP-65 relay list (kind 10002) if not already done
+      const relayListKey = `osv_relay_list_published_${event.pubkey}`;
+      const hasPublishedRelayList = typeof window !== 'undefined' && localStorage.getItem(relayListKey);
+
+      if (!hasPublishedRelayList && relays.length > 0) {
+        try {
+          const relayListEvent = createRelayListEvent(secretKey, relays);
+          console.log('[useNostrPublisher] Publishing NIP-65 relay list event:', relayListEvent.id);
+
+          const relayListResult = await publishToAllRelays(relayListEvent, secretKey);
+
+          if (relayListResult.successful.length > 0) {
+            console.log('[useNostrPublisher] ✓ Relay list event published successfully');
+            // Mark as published so we don't publish again
+            if (typeof window !== 'undefined') {
+              localStorage.setItem(relayListKey, relayListEvent.id);
+            }
+          } else {
+            console.warn('[useNostrPublisher] ⚠ Failed to publish relay list event');
+          }
+        } catch (relayListError) {
+          // Don't fail the profile update if relay list fails
+          console.warn('[useNostrPublisher] ⚠ Failed to publish relay list:', relayListError);
+        }
+      }
+
       return {
         success: true,
         eventId: event.id,
