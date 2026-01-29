@@ -43,7 +43,7 @@ async function hasExistingProfiles(): Promise<boolean> {
   }
 }
 
-const MAX_INVITES_PER_USER = 4;
+const MAX_INVITES_PER_USER = (settings as { maxInvitesPerUser?: number }).maxInvitesPerUser || 10;
 
 // Chain name to ID mapping
 const CHAIN_NAME_TO_ID: Record<string, number> = {
