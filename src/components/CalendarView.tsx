@@ -234,7 +234,23 @@ export default function CalendarView({
       setSelectedTag("all");
     }
 
-    applyFilters();
+    // Apply filters inline to avoid stale closure issues
+    let filtered = [...events];
+
+    if (selectedTag !== "all") {
+      filtered = filtered.filter((e) => e.tags?.includes(selectedTag));
+    }
+
+    if (selectedRoom !== "all") {
+      filtered = filtered.filter((e) => e.room === selectedRoom);
+    }
+
+    filtered.sort(
+      (a, b) =>
+        new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
+    );
+
+    setFilteredEvents(filtered);
   }, [events, selectedTag, selectedRoom]);
 
   const loadRooms = async () => {
@@ -322,25 +338,6 @@ export default function CalendarView({
       setIsLoading(false);
     }
   }, [selectedDate]);
-
-  const applyFilters = () => {
-    let filtered = [...events];
-
-    if (selectedTag !== "all") {
-      filtered = filtered.filter((e) => e.tags?.includes(selectedTag));
-    }
-
-    if (selectedRoom !== "all") {
-      filtered = filtered.filter((e) => e.room === selectedRoom);
-    }
-
-    filtered.sort(
-      (a, b) =>
-        new Date(a.startTime).getTime() - new Date(b.startTime).getTime(),
-    );
-
-    setFilteredEvents(filtered);
-  };
 
   const formatTime = (dateStr: string) => {
     const date = new Date(dateStr);
