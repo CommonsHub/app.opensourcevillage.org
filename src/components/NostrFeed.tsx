@@ -33,6 +33,7 @@ const fetchingPubkeys = new Set<string>();
 
 export default function NostrFeed() {
   const [localProfiles, setLocalProfiles] = useState<Map<string, { username: string; npub: string }>>(new Map());
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const isMounted = useRef(true);
 
   // Subscribe to kind 1 (notes) and kind 0 (profiles)
@@ -42,6 +43,13 @@ export default function NostrFeed() {
     limit: 100, // Get more to include profiles
     autoConnect: true,
   });
+
+  // Mark as loaded once we finish loading for the first time
+  useEffect(() => {
+    if (!isLoading && !hasLoadedOnce) {
+      setHasLoadedOnce(true);
+    }
+  }, [isLoading, hasLoadedOnce]);
 
   // Separate notes and profiles from events
   const { notes, nostrProfiles } = useMemo(() => {
@@ -151,7 +159,7 @@ export default function NostrFeed() {
     return !hasReplyTag;
   });
 
-  if (isLoading && topLevelNotes.length === 0) {
+  if (!hasLoadedOnce && topLevelNotes.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
         <p className="text-gray-500 text-center py-4">Loading feed...</p>
@@ -159,7 +167,7 @@ export default function NostrFeed() {
     );
   }
 
-  if (topLevelNotes.length === 0) {
+  if (hasLoadedOnce && topLevelNotes.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow-sm p-6">
         <p className="text-gray-500 text-center py-4">No messages yet. Be the first to post!</p>
