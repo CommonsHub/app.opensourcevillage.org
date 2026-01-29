@@ -32,7 +32,7 @@ type Step = 'loading' | 1 | 2 | 3 | 4;
 
 export default function ClaimPage() {
   const router = useRouter();
-  const { publishNote } = useNostrPublisher();
+  const { publishNote, publishProfile } = useNostrPublisher();
   const [step, setStep] = useState<Step>('loading');
   const [serialNumber, setSerialNumber] = useState<string | null>(null);
   const [isFirstUser, setIsFirstUser] = useState(false);
@@ -285,7 +285,15 @@ export default function ClaimPage() {
       storeSecretKey(keypair.nsec);
       localStorage.setItem('osv_displayName', displayName);
 
-      // Publish kind 1 note for first user joining
+      // Publish kind 0 profile event and kind 1 join note
+      try {
+        await publishProfile({
+          name: displayName,
+        });
+      } catch (err) {
+        console.error('[Claim] Failed to publish profile:', err);
+      }
+
       try {
         publishNote({
           content: 'Just joined the Open Source Village!',
@@ -356,7 +364,16 @@ export default function ClaimPage() {
       storeSecretKey(keypair.nsec);
       localStorage.setItem('osv_displayName', displayName);
 
-      // 4. Publish kind 1 note: "Just joined the Open Source Village"
+      // 4. Publish kind 0 profile event
+      try {
+        await publishProfile({
+          name: displayName,
+        });
+      } catch (err) {
+        console.error('[Claim] Failed to publish profile:', err);
+      }
+
+      // 5. Publish kind 1 note: "Just joined the Open Source Village"
       try {
         // Get inviter's npub from the invite code (first 64 chars are their pubkey)
         const inviterPubkeyHex = cleanCode.substring(0, 64);
@@ -383,7 +400,7 @@ export default function ClaimPage() {
         // Don't block the onboarding flow if note publishing fails
       }
 
-      // 5. Redirect to onboarding
+      // 6. Redirect to onboarding
       router.push('/onboarding');
 
     } catch (err) {

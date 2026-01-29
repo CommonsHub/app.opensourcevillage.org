@@ -275,20 +275,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Add user to relay's allowed list via NIP-86 (async, don't block response)
-    addUserToAllRelays(npub).then((result) => {
+    // Add user to relay's allowed list via NIP-86 (blocking - must complete before client publishes)
+    try {
+      const nip86Result = await addUserToAllRelays(npub);
       console.log('[Claim API] NIP-86 add user results:', {
         npub: npub.substring(0, 16) + '...',
-        successful: result.successful.length,
-        failed: result.failed.length,
+        successful: nip86Result.successful.length,
+        failed: nip86Result.failed.length,
       });
 
-      if (result.failed.length > 0) {
-        console.warn('[Claim API] Some relays failed NIP-86 add user:', result.failed);
+      if (nip86Result.failed.length > 0) {
+        console.warn('[Claim API] Some relays failed NIP-86 add user:', nip86Result.failed);
       }
-    }).catch((err) => {
+    } catch (err) {
       console.error('[Claim API] Failed to add user to relays via NIP-86:', err);
-    });
+      // Don't fail the claim - profile is created, user may still have access via invite code
+    }
 
     return NextResponse.json({
       success: true,

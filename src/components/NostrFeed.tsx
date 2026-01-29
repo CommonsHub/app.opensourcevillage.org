@@ -2,10 +2,10 @@
 
 /**
  * NostrFeed Component - Display a feed of kind 1 nostr notes
- * Fetches profiles (kind 0) from nostr to show author names
+ * Subscribes to kind 0 profiles directly from relay for live updates
  */
 
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useNostrEvents, type NostrEvent } from '@/hooks/useNostrEvents';
 import { Avatar } from '@/components/Avatar';
@@ -28,20 +28,15 @@ interface UserProfile {
   picture?: string;
 }
 
-// Cache for profiles - module level to persist across renders
-const nostrProfileCache = new Map<string, UserProfile>();
-const localProfileCache = new Map<string, { username: string; npub: string } | null>();
-const fetchingPubkeys = new Set<string>();
-
 // Define kinds array outside component to prevent recreation on every render
 const NOTE_KINDS = [1];
 
 export default function NostrFeed() {
-  const [nostrProfiles, setNostrProfiles] = useState<Map<string, UserProfile>>(new Map());
-  const [localProfiles, setLocalProfiles] = useState<Map<string, { username: string; npub: string }>>(new Map());
+  const [profiles, setProfiles] = useState<Map<string, UserProfile>>(new Map());
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const isMounted = useRef(true);
   const profileSubRef = useRef<string | null>(null);
+  const subscribedPubkeysRef = useRef<Set<string>>(new Set());
 
   // Subscribe to kind 1 (notes) only
   const { events, isLoading, isConnected } = useNostrEvents({
@@ -69,41 +64,50 @@ export default function NostrFeed() {
     return () => { isMounted.current = false; };
   }, []);
 
-  // Fetch nostr profiles (kind 0) for note authors
+  // Extract all pubkeys from notes (authors + mentions)
+  const allPubkeys = useMemo(() => {
+    const pubkeys = new Set<string>();
+    for (const note of notes) {
+      // Add author
+      pubkeys.add(note.pubkey);
+      // Add mentioned pubkeys from p tags
+      for (const tag of note.tags) {
+        if (tag[0] === 'p' && tag[1]) {
+          pubkeys.add(tag[1]);
+        }
+      }
+    }
+    return pubkeys;
+  }, [notes]);
+
+  // Subscribe to kind 0 profiles - keep subscription open for live updates
   useEffect(() => {
-    if (notes.length === 0) return;
+    if (allPubkeys.size === 0) return;
 
-    const authorPubkeys = [...new Set(notes.map(e => e.pubkey))];
-    const pubkeysToFetch = authorPubkeys.filter(pk => !nostrProfileCache.has(pk));
+    const relayUrl = getPrimaryRelayUrl();
+    const pubkeysArray = [...allPubkeys];
 
-    if (pubkeysToFetch.length === 0) {
-      // Update state from cache if needed
-      const cached = new Map<string, UserProfile>();
-      for (const pk of authorPubkeys) {
-        const profile = nostrProfileCache.get(pk);
-        if (profile) cached.set(pk, profile);
-      }
-      if (cached.size > 0 && cached.size !== nostrProfiles.size) {
-        setNostrProfiles(cached);
-      }
+    // Check if we need to update the subscription (new pubkeys added)
+    const newPubkeys = pubkeysArray.filter(pk => !subscribedPubkeysRef.current.has(pk));
+
+    if (newPubkeys.length === 0 && profileSubRef.current) {
+      // No new pubkeys and we already have a subscription
       return;
     }
 
-    // Subscribe to kind 0 for specific authors
-    const fetchProfiles = async () => {
-      const relayUrl = getPrimaryRelayUrl();
+    // Update tracked pubkeys
+    pubkeysArray.forEach(pk => subscribedPubkeysRef.current.add(pk));
 
-      // Unsubscribe from previous profile subscription
+    const setupProfileSubscription = async () => {
+      // Unsubscribe from previous subscription if exists
       if (profileSubRef.current) {
         unsubscribe(relayUrl, profileSubRef.current);
         profileSubRef.current = null;
       }
 
-      const newProfiles = new Map(nostrProfiles);
-
-      const subId = await subscribe(relayUrl, [{ kinds: [0], authors: pubkeysToFetch }], {
+      const subId = await subscribe(relayUrl, [{ kinds: [0], authors: pubkeysArray }], {
         onEvent: (event: NostrEvent) => {
-          if (event.kind === 0 && !nostrProfileCache.has(event.pubkey)) {
+          if (event.kind === 0) {
             try {
               const content: NostrProfile = JSON.parse(event.content);
               const npub = nip19.npubEncode(event.pubkey);
@@ -114,21 +118,29 @@ export default function NostrFeed() {
                 picture: content.picture,
                 username: content.nip05?.split('@')[0],
               };
-              nostrProfileCache.set(event.pubkey, profile);
-              newProfiles.set(event.pubkey, profile);
+
+              if (isMounted.current) {
+                setProfiles(prev => {
+                  const existing = prev.get(event.pubkey);
+                  // Only update if this is a newer event or we don't have this profile
+                  if (!existing) {
+                    const newMap = new Map(prev);
+                    newMap.set(event.pubkey, profile);
+                    return newMap;
+                  }
+                  // Always update to get latest profile changes
+                  const newMap = new Map(prev);
+                  newMap.set(event.pubkey, profile);
+                  return newMap;
+                });
+              }
             } catch {
               // Invalid profile content
             }
           }
         },
         onEose: () => {
-          if (isMounted.current) {
-            setNostrProfiles(new Map(newProfiles));
-          }
-          // Unsubscribe after getting stored events
-          if (subId) {
-            unsubscribe(relayUrl, subId);
-          }
+          // Don't unsubscribe - keep listening for profile updates
         },
         onError: (err: string) => {
           console.error('[NostrFeed] Error fetching profiles:', err);
@@ -138,70 +150,15 @@ export default function NostrFeed() {
       profileSubRef.current = subId;
     };
 
-    fetchProfiles();
+    setupProfileSubscription();
 
     return () => {
-      const relayUrl = getPrimaryRelayUrl();
       if (profileSubRef.current) {
         unsubscribe(relayUrl, profileSubRef.current);
         profileSubRef.current = null;
       }
     };
-  }, [notes.length]); // Only re-run when notes count changes
-
-  // Fetch local profiles for username lookup (for linking to profile pages)
-  useEffect(() => {
-    if (notes.length === 0) return;
-
-    const pubkeys = [...new Set(notes.map(e => e.pubkey))];
-    const pubkeysToFetch = pubkeys.filter(pk =>
-      !localProfileCache.has(pk) && !fetchingPubkeys.has(pk)
-    );
-
-    if (pubkeysToFetch.length === 0) {
-      // Check if we need to update state from cache
-      const cached = new Map<string, { username: string; npub: string }>();
-      for (const pk of pubkeys) {
-        const profile = localProfileCache.get(pk);
-        if (profile) cached.set(pk, profile);
-      }
-      if (cached.size > 0 && cached.size !== localProfiles.size) {
-        setLocalProfiles(cached);
-      }
-      return;
-    }
-
-    // Mark as fetching
-    pubkeysToFetch.forEach(pk => fetchingPubkeys.add(pk));
-
-    const fetchProfiles = async () => {
-      const newProfiles = new Map(localProfiles);
-
-      for (const pubkey of pubkeysToFetch) {
-        try {
-          const response = await fetch(`/api/profile/${pubkey}`);
-          const data = await response.json();
-
-          if (data.success && data.profile) {
-            const profile = { username: data.profile.username, npub: data.profile.npub };
-            localProfileCache.set(pubkey, profile);
-            newProfiles.set(pubkey, profile);
-          } else {
-            localProfileCache.set(pubkey, null);
-          }
-        } catch {
-          localProfileCache.set(pubkey, null);
-        }
-        fetchingPubkeys.delete(pubkey);
-      }
-
-      if (isMounted.current && newProfiles.size > localProfiles.size) {
-        setLocalProfiles(new Map(newProfiles));
-      }
-    };
-
-    fetchProfiles();
-  }, [notes.length]); // Only depend on notes count
+  }, [allPubkeys.size]); // Re-run when pubkey count changes
 
   // Format relative time
   const formatRelativeTime = (timestamp: number) => {
@@ -254,14 +211,11 @@ export default function NostrFeed() {
 
       <div className="divide-y divide-gray-100">
         {topLevelNotes.map((event) => {
-          const nostrProfile = nostrProfiles.get(event.pubkey);
-          const localProfile = localProfiles.get(event.pubkey);
-
-          // Prefer nostr profile for display, local profile for username/linking
-          const displayName = nostrProfile?.name || localProfile?.username || event.pubkey.slice(0, 8);
-          const username = localProfile?.username || nostrProfile?.username;
-          const npub = localProfile?.npub || nostrProfile?.npub || '';
-          const profileLink = username ? `/profile/${username}` : '#';
+          const profile = profiles.get(event.pubkey);
+          const displayName = profile?.name || event.pubkey.slice(0, 8);
+          const username = profile?.username;
+          const npub = profile?.npub || nip19.npubEncode(event.pubkey);
+          const profileLink = username ? `/profile/${username}` : `/profile/${npub}`;
 
           return (
             <div key={event.id} className="p-4 hover:bg-gray-50 transition">
