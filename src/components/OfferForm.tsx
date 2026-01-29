@@ -72,7 +72,7 @@ function localTimeToUTC(dateStr: string, timeStr: string): string {
   return actualUTC.toISOString();
 }
 
-export type OfferType = "workshop" | "1:1" | "other" | "private" | "need";
+export type OfferType = "workshop" | "1:1" | "other" | "offer" | "private" | "need";
 
 interface ConflictInfo {
   type: "confirmed" | "tentative";
@@ -828,12 +828,12 @@ export default function OfferForm({
               <input
                 type="radio"
                 name="type"
-                value="other"
-                checked={type === "other"}
+                value="offer"
+                checked={type === "offer" || type === "other"}
                 onChange={(e) => setType(e.target.value as OfferType)}
                 className="mr-2"
               />
-              <span className="text-sm">Other</span>
+              <span className="text-sm">Offer</span>
             </label>
             <label className="flex items-center">
               <input

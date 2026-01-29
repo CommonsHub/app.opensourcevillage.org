@@ -37,7 +37,7 @@ export interface BadgeProfile {
 }
 
 // Workshop/Offer Types
-export type OfferType = 'workshop' | '1:1' | 'other' | 'private' | 'need';
+export type OfferType = 'workshop' | '1:1' | 'other' | 'offer' | 'private' | 'need';
 export type OfferStatus = 'pending' | 'tentative' | 'confirmed' | 'cancelled';
 
 export interface Offer {

@@ -48,7 +48,7 @@ export default function FloatingActionMenu({ date }: FloatingActionMenuProps) {
         </svg>
       ),
       onClick: () => {
-        router.push('/offers/create?type=other');
+        router.push('/offers/create?type=offer');
         setIsOpen(false);
       },
     },

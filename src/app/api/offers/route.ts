@@ -244,11 +244,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate type
-    if (!["workshop", "1:1", "other", "private"].includes(type)) {
+    if (!["workshop", "1:1", "other", "offer", "private", "need"].includes(type)) {
       return NextResponse.json(
         {
           success: false,
-          error: "Invalid type. Must be: workshop, 1:1, other, or private",
+          error: "Invalid type. Must be: workshop, 1:1, offer, private, or need",
         } as CreateOfferResponse,
         { status: 400 },
       );

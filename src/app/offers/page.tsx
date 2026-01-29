@@ -38,7 +38,7 @@ export default function OffersPage() {
 
   const loadOffers = async () => {
     try {
-      const response = await fetch('/api/offers?type=other');
+      const response = await fetch('/api/offers?type=offer');
       const data = await response.json();
 
       if (data.success) {
@@ -98,7 +98,7 @@ export default function OffersPage() {
           <p className="text-sm opacity-90 mb-4">Share your skills, time, or resources with the community</p>
           <div className="flex flex-col sm:flex-row gap-3">
             <button
-              onClick={() => router.push('/offers/create?type=other')}
+              onClick={() => router.push('/offers/create?type=offer')}
               className="bg-white text-blue-600 font-semibold py-2 px-6 rounded-lg hover:bg-gray-100 transition text-sm"
             >
               Make an Offer
@@ -205,7 +205,7 @@ export default function OffersPage() {
       {/* Floating Action Button */}
       {credentials && (
         <button
-          onClick={() => router.push('/offers/create?type=other')}
+          onClick={() => router.push('/offers/create?type=offer')}
           className="fixed bottom-6 right-6 bg-blue-600 text-white w-14 h-14 rounded-full shadow-lg hover:bg-blue-700 transition flex items-center justify-center"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

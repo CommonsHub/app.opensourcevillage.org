@@ -1043,7 +1043,7 @@ export default function PublicProfilePage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-3">
               <button
-                onClick={() => router.push("/offers/create?type=other")}
+                onClick={() => router.push("/offers/create?type=offer")}
                 className="bg-white text-blue-600 font-semibold py-2 px-6 rounded-lg hover:bg-gray-100 transition text-sm"
               >
                 🎁 Make an Offer

@@ -37,7 +37,7 @@ function CreateOfferContent() {
   const getPrefillFromParams = () => {
     const typeParam = searchParams.get("type");
     const type =
-      typeParam === "workshop" || typeParam === "1:1" || typeParam === "other" || typeParam === "private" || typeParam === "need"
+      typeParam === "workshop" || typeParam === "1:1" || typeParam === "other" || typeParam === "offer" || typeParam === "private" || typeParam === "need"
         ? (typeParam as OfferType)
         : undefined;
 
