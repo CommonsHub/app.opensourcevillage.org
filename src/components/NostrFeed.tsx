@@ -31,6 +31,9 @@ interface UserProfile {
 const localProfileCache = new Map<string, { username: string; npub: string } | null>();
 const fetchingPubkeys = new Set<string>();
 
+// Define kinds array outside component to prevent recreation on every render
+const FEED_KINDS = [0, 1];
+
 export default function NostrFeed() {
   const [localProfiles, setLocalProfiles] = useState<Map<string, { username: string; npub: string }>>(new Map());
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
@@ -38,7 +41,7 @@ export default function NostrFeed() {
 
   // Subscribe to kind 1 (notes) and kind 0 (profiles)
   const { events, isLoading, isConnected } = useNostrEvents({
-    kinds: [0, 1],
+    kinds: FEED_KINDS,
     subscribeAll: true,
     limit: 100, // Get more to include profiles
     autoConnect: true,
