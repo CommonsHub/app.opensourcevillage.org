@@ -75,6 +75,8 @@ function TopBarContent() {
     const typeParam = searchParams.get('type');
     if (typeParam === 'need') {
       pageTitle = 'Post a Need';
+    } else if (typeParam === 'offer' || typeParam === 'other') {
+      pageTitle = 'Share an Offering';
     }
   }
   const isHome = pathname === '/';
