@@ -108,7 +108,7 @@ export default function UserHeader() {
       {/* Balance */}
       <span className="text-sm font-medium text-gray-700">
         {!balanceLoading && balance !== null ? (
-          <span className="flex items-center gap-1">
+          <span className="flex flex-col items-end leading-tight">
             <span className="text-green-600">{balance.confirmed}</span>
             <span className="text-gray-400 text-xs">tokens</span>
           </span>
