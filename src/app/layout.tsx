@@ -5,6 +5,7 @@ import NostrStatus from "@/components/NostrStatus";
 import DebugInfo from "@/components/DebugInfo";
 import TopBar from "@/components/TopBar";
 import Footer from "@/components/Footer";
+import FloatingActionMenu from "@/components/FloatingActionMenu";
 import { getRelayUrls, getServerNpub } from "@/lib/nostr-server";
 
 export const metadata: Metadata = {
@@ -44,6 +45,7 @@ export default function RootLayout({
         <main className="flex-1">
           {children}
         </main>
+        <FloatingActionMenu />
         <Footer />
       </body>
     </html>

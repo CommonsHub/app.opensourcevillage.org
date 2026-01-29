@@ -3,19 +3,52 @@
 /**
  * FloatingActionMenu Component - Floating action button with expandable menu
  * Shows options for: Offer, Workshop, Book a room
+ *
+ * Shown globally when logged in, hidden on create/edit pages
  */
 
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
+import { getStoredCredentials } from '@/lib/nostr';
 
 interface FloatingActionMenuProps {
   date?: string; // ISO date string for workshop pre-fill
 }
 
+// Pages where the FAB should be hidden (create/edit forms)
+const HIDDEN_PATHS = [
+  '/offers/create',
+  '/profile/edit',
+  '/book',
+  '/badge',
+  '/claim',
+  '/onboarding',
+];
+
 export default function FloatingActionMenu({ date }: FloatingActionMenuProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  // Check login status on mount
+  useEffect(() => {
+    setMounted(true);
+    const creds = getStoredCredentials();
+    setIsLoggedIn(!!creds);
+  }, []);
+
+  // Listen for storage changes (login/logout)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const creds = getStoredCredentials();
+      setIsLoggedIn(!!creds);
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
 
   // Close menu when clicking outside
   useEffect(() => {
@@ -33,6 +66,16 @@ export default function FloatingActionMenu({ date }: FloatingActionMenuProps) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen]);
+
+  // Don't render until mounted (to avoid hydration issues)
+  if (!mounted) return null;
+
+  // Don't show if not logged in
+  if (!isLoggedIn) return null;
+
+  // Hide on create/edit pages
+  const shouldHide = HIDDEN_PATHS.some(p => pathname.startsWith(p)) || pathname.endsWith('/edit');
+  if (shouldHide) return null;
 
   const workshopUrl = date
     ? `/offers/create?type=workshop&date=${date}`
@@ -94,7 +137,7 @@ export default function FloatingActionMenu({ date }: FloatingActionMenuProps) {
   ];
 
   return (
-    <div ref={menuRef} className="fixed bottom-6 right-6 z-50">
+    <div ref={menuRef} className="fixed bottom-6 right-6 z-40">
       {/* Menu Items */}
       <div
         className={`absolute bottom-16 right-0 transition-all duration-200 ${
