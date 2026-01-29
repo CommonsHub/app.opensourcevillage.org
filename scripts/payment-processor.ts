@@ -236,10 +236,10 @@ async function processPaymentRequest(
   // Validate signature: only process requests signed by the authorized party
   const serverPubkey = getPublicKey(secretKey);
 
-  if (method === 'mint' || method === 'burn') {
-    // Mint and burn must be signed by the server
+  if (method === 'mint') {
+    // Mint must be signed by the server
     if (event.pubkey !== serverPubkey) {
-      logError(`[PaymentProcessor] REJECTED: ${method} request not signed by server`);
+      logError(`[PaymentProcessor] REJECTED: mint request not signed by server`);
       logError(`[PaymentProcessor] Event details:`, {
         eventId: event.id,
         eventPubkey: event.pubkey,
@@ -254,6 +254,40 @@ async function processPaymentRequest(
       saveProcessedEvents();
       return;
     }
+  } else if (method === 'burn') {
+    // Burn can be signed by server OR by the sender (user can burn their own tokens)
+    let senderPubkey: string | null = null;
+    try {
+      const decoded = nip19.decode(request.sender);
+      if (decoded.type === 'npub') {
+        senderPubkey = decoded.data;
+      }
+    } catch {
+      // Failed to decode sender
+    }
+
+    const isSignedByServer = event.pubkey === serverPubkey;
+    const isSignedBySender = senderPubkey && event.pubkey === senderPubkey;
+
+    if (!isSignedByServer && !isSignedBySender) {
+      logError(`[PaymentProcessor] REJECTED: burn request not signed by server or sender`);
+      logError(`[PaymentProcessor] Event details:`, {
+        eventId: event.id,
+        eventPubkey: event.pubkey,
+        expectedServerPubkey: serverPubkey,
+        expectedSenderPubkey: senderPubkey,
+        method,
+        sender: request.sender,
+        recipient: request.recipient,
+        amount: request.amount,
+        context: request.context,
+      });
+      state.processedEventIds.add(event.id);
+      saveProcessedEvents();
+      return;
+    }
+
+    log(`[PaymentProcessor] Burn request authorized by ${isSignedByServer ? 'server' : 'sender'}`);
   } else {
     // Transfer must be signed by the sender
     // Decode sender npub to hex pubkey for comparison
