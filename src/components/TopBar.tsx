@@ -30,6 +30,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/onboarding': 'Welcome',
   '/onboard': 'Onboard a Villager',
   '/directory': 'Directory',
+  '/post': 'Post a Message',
 };
 
 // Get title for dynamic routes
