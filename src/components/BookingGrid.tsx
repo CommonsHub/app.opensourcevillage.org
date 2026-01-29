@@ -691,7 +691,7 @@ export default function BookingGrid({
                                 <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                               )}
                               {isPending && !isProcessing && (
-                                <div className="animate-pulse text-yellow-600 text-xs">...</div>
+                                <div className="animate-spin rounded-full h-4 w-4 border-2 border-yellow-400 border-t-yellow-600"></div>
                               )}
                               {isFirstSelected && !isProcessing && !isPending && (
                                 <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">

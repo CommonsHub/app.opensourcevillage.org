@@ -65,11 +65,19 @@ const DURATION_OPTIONS = [
 interface PendingBooking {
   id: string;
   room: string;
+  roomName: string;
   time: string;
   startTime: string;
   endTime: string;
   paymentRequestId?: string;
   status: 'pending' | 'confirmed' | 'failed';
+}
+
+interface ConfirmedBooking {
+  roomName: string;
+  date: string;
+  time: string;
+  endTime: string;
 }
 
 export default function BookRoomPage() {
@@ -84,6 +92,7 @@ export default function BookRoomPage() {
   const [bookingSlot, setBookingSlot] = useState<{ room: string; time: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pendingBooking, setPendingBooking] = useState<{ room: string; time: string } | null>(null);
+  const [confirmedBooking, setConfirmedBooking] = useState<ConfirmedBooking | null>(null);
 
   // Payment publisher hook
   const { publishPaymentRequest, publishNote, isPublishing } = useNostrPublisher();
@@ -246,6 +255,20 @@ export default function BookRoomPage() {
             const newStatus = (statusTag === 'CONFIRMED' || statusTag === 'TENTATIVE') ? 'confirmed' : null;
             if (newStatus) {
               console.log('[Book] Booking status updated by server:', dTag, statusTag);
+
+              // Find the booking to show in success modal
+              const confirmedPendingBooking = pendingBookings.find(b => b.id === dTag);
+              if (confirmedPendingBooking) {
+                const startDate = new Date(confirmedPendingBooking.startTime);
+                const endDate = new Date(confirmedPendingBooking.endTime);
+                setConfirmedBooking({
+                  roomName: confirmedPendingBooking.roomName,
+                  date: startDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+                  time: startDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+                  endTime: endDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+                });
+              }
+
               setPendingBookings(prev =>
                 prev.map(b =>
                   b.id === dTag ? { ...b, status: newStatus } : b
@@ -396,6 +419,7 @@ export default function BookRoomPage() {
       const newPendingBooking: PendingBooking = {
         id: bookingId,
         room: roomId,
+        roomName,
         time: timeStr,
         startTime: startTimeUTC,
         endTime: endTimeUTC,
@@ -578,6 +602,39 @@ export default function BookRoomPage() {
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium disabled:opacity-50"
               >
                 {isBooking || isPublishing ? 'Booking...' : 'Confirm'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      {confirmedBooking && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full p-6 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">Booking Confirmed</h3>
+            <div className="text-gray-600 mb-6">
+              <p className="font-medium text-gray-900">{confirmedBooking.roomName}</p>
+              <p>{confirmedBooking.date}</p>
+              <p>{confirmedBooking.time} - {confirmedBooking.endTime}</p>
+            </div>
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => router.push('/')}
+                className="w-full px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+              >
+                Go to Home
+              </button>
+              <button
+                onClick={() => setConfirmedBooking(null)}
+                className="w-full px-4 py-2 text-gray-600 hover:text-gray-800 transition font-medium"
+              >
+                Book another room
               </button>
             </div>
           </div>
