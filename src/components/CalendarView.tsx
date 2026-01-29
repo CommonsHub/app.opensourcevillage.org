@@ -107,6 +107,7 @@ export default function CalendarView({
   const [filteredEvents, setFilteredEvents] = useState<CalendarEvent[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [selectedTag, setSelectedTag] = useState<string>("all");
+  const [selectedRoom, setSelectedRoom] = useState<string>("all");
   const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(initialDate);
   const [isLoading, setIsLoading] = useState(true);
@@ -235,7 +236,7 @@ export default function CalendarView({
     }
 
     applyFilters();
-  }, [events, selectedTag]);
+  }, [events, selectedTag, selectedRoom]);
 
   const loadRooms = async () => {
     try {
@@ -328,6 +329,10 @@ export default function CalendarView({
 
     if (selectedTag !== "all") {
       filtered = filtered.filter((e) => e.tags?.includes(selectedTag));
+    }
+
+    if (selectedRoom !== "all") {
+      filtered = filtered.filter((e) => e.room === selectedRoom);
     }
 
     filtered.sort(
@@ -640,6 +645,35 @@ export default function CalendarView({
               >
                 Go to Today
               </button>
+            </div>
+          )}
+
+          {/* Room Filter */}
+          {rooms.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-2 -mx-4 px-4 scrollbar-hide">
+              <button
+                onClick={() => setSelectedRoom("all")}
+                className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
+                  selectedRoom === "all"
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                All rooms
+              </button>
+              {rooms.map((room) => (
+                <button
+                  key={room.name}
+                  onClick={() => setSelectedRoom(room.name)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition ${
+                    selectedRoom === room.name
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  }`}
+                >
+                  {room.name}
+                </button>
+              ))}
             </div>
           )}
 
