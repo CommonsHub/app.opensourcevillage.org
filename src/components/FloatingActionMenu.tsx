@@ -23,6 +23,7 @@ const HIDDEN_PATHS = [
   '/badge',
   '/claim',
   '/onboarding',
+  '/onboard',
 ];
 
 export default function FloatingActionMenu({ date }: FloatingActionMenuProps) {

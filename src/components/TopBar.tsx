@@ -28,6 +28,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/badge': 'Claim Badge',
   '/transactions': 'Transactions',
   '/onboarding': 'Welcome',
+  '/onboard': 'Onboard a Villager',
   '/directory': 'Directory',
 };
 
