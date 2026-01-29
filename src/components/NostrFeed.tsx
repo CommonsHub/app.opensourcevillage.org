@@ -2,80 +2,115 @@
 
 /**
  * NostrFeed Component - Display a feed of kind 1 nostr notes
+ * Fetches profiles (kind 0) from nostr to show author names
  */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
 import { useNostrEvents, type NostrEvent } from '@/hooks/useNostrEvents';
 import { Avatar } from '@/components/Avatar';
+import { nip19 } from 'nostr-tools';
 
-interface UserProfile {
-  username: string;
-  npub: string;
+interface NostrProfile {
   name?: string;
+  display_name?: string;
+  about?: string;
+  picture?: string;
+  nip05?: string;
 }
 
-// Cache for user profiles
-const profileCache = new Map<string, UserProfile | null>();
+interface UserProfile {
+  pubkey: string;
+  npub: string;
+  name?: string;
+  username?: string; // from nip05 or local API
+  picture?: string;
+}
+
+// Cache for local API profiles (username lookup)
+const localProfileCache = new Map<string, { username: string; npub: string } | null>();
 
 export default function NostrFeed() {
-  const [profiles, setProfiles] = useState<Map<string, UserProfile>>(new Map());
+  const [localProfiles, setLocalProfiles] = useState<Map<string, { username: string; npub: string }>>(new Map());
 
-  // Subscribe to all kind 1 notes
+  // Subscribe to kind 1 (notes) and kind 0 (profiles)
   const { events, isLoading, isConnected } = useNostrEvents({
-    kinds: [1],
+    kinds: [0, 1],
     subscribeAll: true,
-    limit: 30,
+    limit: 100, // Get more to include profiles
     autoConnect: true,
   });
 
-  // Fetch profiles for event authors
+  // Separate notes and profiles from events
+  const { notes, nostrProfiles } = useMemo(() => {
+    const noteEvents: NostrEvent[] = [];
+    const profileMap = new Map<string, UserProfile>();
+
+    for (const event of events) {
+      if (event.kind === 1) {
+        noteEvents.push(event);
+      } else if (event.kind === 0) {
+        // Parse profile content
+        try {
+          const content: NostrProfile = JSON.parse(event.content);
+          const npub = nip19.npubEncode(event.pubkey);
+          profileMap.set(event.pubkey, {
+            pubkey: event.pubkey,
+            npub,
+            name: content.display_name || content.name,
+            picture: content.picture,
+            username: content.nip05?.split('@')[0], // Extract username from nip05
+          });
+        } catch {
+          // Invalid profile content
+        }
+      }
+    }
+
+    return { notes: noteEvents, nostrProfiles: profileMap };
+  }, [events]);
+
+  // Fetch local profiles for username lookup (for linking to profile pages)
   useEffect(() => {
-    const fetchProfiles = async () => {
-      const pubkeys = [...new Set(events.map(e => e.pubkey))];
-      const newProfiles = new Map(profiles);
+    const fetchLocalProfiles = async () => {
+      const pubkeys = [...new Set(notes.map(e => e.pubkey))];
+      const newProfiles = new Map(localProfiles);
 
       for (const pubkey of pubkeys) {
         // Skip if already fetched or in cache
-        if (newProfiles.has(pubkey) || profileCache.has(pubkey)) {
-          if (profileCache.has(pubkey) && !newProfiles.has(pubkey)) {
-            const cached = profileCache.get(pubkey);
+        if (newProfiles.has(pubkey) || localProfileCache.has(pubkey)) {
+          if (localProfileCache.has(pubkey) && !newProfiles.has(pubkey)) {
+            const cached = localProfileCache.get(pubkey);
             if (cached) newProfiles.set(pubkey, cached);
           }
           continue;
         }
 
         try {
-          // Try to fetch profile by pubkey
           const response = await fetch(`/api/profile/${pubkey}`);
           const data = await response.json();
 
           if (data.success && data.profile) {
-            const profile: UserProfile = {
-              username: data.profile.username,
-              npub: data.profile.npub,
-              name: data.profile.profile?.name,
-            };
+            const profile = { username: data.profile.username, npub: data.profile.npub };
             newProfiles.set(pubkey, profile);
-            profileCache.set(pubkey, profile);
+            localProfileCache.set(pubkey, profile);
           } else {
-            profileCache.set(pubkey, null);
+            localProfileCache.set(pubkey, null);
           }
-        } catch (err) {
-          console.error('Failed to fetch profile:', err);
-          profileCache.set(pubkey, null);
+        } catch {
+          localProfileCache.set(pubkey, null);
         }
       }
 
-      if (newProfiles.size !== profiles.size) {
-        setProfiles(newProfiles);
+      if (newProfiles.size !== localProfiles.size) {
+        setLocalProfiles(newProfiles);
       }
     };
 
-    if (events.length > 0) {
-      fetchProfiles();
+    if (notes.length > 0) {
+      fetchLocalProfiles();
     }
-  }, [events, profiles]);
+  }, [notes, localProfiles]);
 
   // Format relative time
   const formatRelativeTime = (timestamp: number) => {
@@ -91,8 +126,7 @@ export default function NostrFeed() {
   };
 
   // Filter out notes that reference other events (replies) - only show top-level notes
-  const topLevelNotes = events.filter(event => {
-    // Check if this note has an 'e' tag (reply to another event)
+  const topLevelNotes = notes.filter(event => {
     const hasReplyTag = event.tags.some(tag => tag[0] === 'e');
     return !hasReplyTag;
   });
@@ -122,7 +156,7 @@ export default function NostrFeed() {
         <h2 className="font-semibold text-gray-900">Village Feed</h2>
         {isConnected && (
           <span className="text-xs text-green-600 flex items-center gap-1">
-            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
             Live
           </span>
         )}
@@ -130,16 +164,23 @@ export default function NostrFeed() {
 
       <div className="divide-y divide-gray-100">
         {topLevelNotes.map((event) => {
-          const profile = profiles.get(event.pubkey);
+          const nostrProfile = nostrProfiles.get(event.pubkey);
+          const localProfile = localProfiles.get(event.pubkey);
+
+          // Prefer nostr profile for display, local profile for username/linking
+          const displayName = nostrProfile?.name || localProfile?.username || event.pubkey.slice(0, 8);
+          const username = localProfile?.username || nostrProfile?.username;
+          const npub = localProfile?.npub || nostrProfile?.npub || '';
+          const profileLink = username ? `/profile/${username}` : '#';
 
           return (
             <div key={event.id} className="p-4 hover:bg-gray-50 transition">
               <div className="flex gap-3">
                 {/* Avatar */}
-                <Link href={profile ? `/profile/${profile.username}` : '#'} className="flex-shrink-0">
+                <Link href={profileLink} className="flex-shrink-0">
                   <Avatar
-                    name={profile?.username || event.pubkey.slice(0, 8)}
-                    npub={profile?.npub || ''}
+                    name={displayName}
+                    npub={npub}
                     size="md"
                   />
                 </Link>
@@ -148,20 +189,14 @@ export default function NostrFeed() {
                 <div className="flex-1 min-w-0">
                   {/* Header */}
                   <div className="flex items-center gap-2 mb-1">
-                    {profile ? (
-                      <Link
-                        href={`/profile/${profile.username}`}
-                        className="font-medium text-gray-900 hover:underline truncate"
-                      >
-                        {profile.name || `@${profile.username}`}
-                      </Link>
-                    ) : (
-                      <span className="font-medium text-gray-600 truncate">
-                        {event.pubkey.slice(0, 8)}...
-                      </span>
-                    )}
-                    {profile && profile.name && (
-                      <span className="text-gray-500 text-sm truncate">@{profile.username}</span>
+                    <Link
+                      href={profileLink}
+                      className="font-medium text-gray-900 hover:underline truncate"
+                    >
+                      {displayName}
+                    </Link>
+                    {username && displayName !== username && displayName !== `@${username}` && (
+                      <span className="text-gray-500 text-sm truncate">@{username}</span>
                     )}
                     <span className="text-gray-400 text-sm flex-shrink-0">
                       {formatRelativeTime(event.created_at)}
