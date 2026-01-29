@@ -108,9 +108,10 @@ export async function GET(request: NextRequest) {
     const officialEvents = await fetchAllRoomEvents(roomNames, timeMin, timeMax, forceRefresh);
 
     // Mark official events - convert from google-calendar format to API format
+    // Include room in ID to differentiate same event across multiple room calendars
     const markedOfficialEvents: (CalendarEvent & { isProposal?: boolean; proposalStatus?: string })[] =
       officialEvents.map((e) => ({
-        id: e.id,
+        id: `${e.room || 'unknown'}-${e.id}`,
         title: e.title,
         description: e.description,
         startTime: e.startTime instanceof Date ? e.startTime.toISOString() : e.startTime,
