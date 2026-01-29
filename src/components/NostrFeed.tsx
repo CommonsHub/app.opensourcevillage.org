@@ -5,7 +5,7 @@
  * Fetches profiles (kind 0) from nostr to show author names
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { useNostrEvents, type NostrEvent } from '@/hooks/useNostrEvents';
 import { Avatar } from '@/components/Avatar';
@@ -27,11 +27,13 @@ interface UserProfile {
   picture?: string;
 }
 
-// Cache for local API profiles (username lookup)
+// Cache for local API profiles (username lookup) - module level to persist across renders
 const localProfileCache = new Map<string, { username: string; npub: string } | null>();
+const fetchingPubkeys = new Set<string>();
 
 export default function NostrFeed() {
   const [localProfiles, setLocalProfiles] = useState<Map<string, { username: string; npub: string }>>(new Map());
+  const isMounted = useRef(true);
 
   // Subscribe to kind 1 (notes) and kind 0 (profiles)
   const { events, isLoading, isConnected } = useNostrEvents({
@@ -70,47 +72,65 @@ export default function NostrFeed() {
     return { notes: noteEvents, nostrProfiles: profileMap };
   }, [events]);
 
+  // Track mounted state
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
+  }, []);
+
   // Fetch local profiles for username lookup (for linking to profile pages)
   useEffect(() => {
-    const fetchLocalProfiles = async () => {
-      const pubkeys = [...new Set(notes.map(e => e.pubkey))];
+    if (notes.length === 0) return;
+
+    const pubkeys = [...new Set(notes.map(e => e.pubkey))];
+    const pubkeysToFetch = pubkeys.filter(pk =>
+      !localProfileCache.has(pk) && !fetchingPubkeys.has(pk)
+    );
+
+    if (pubkeysToFetch.length === 0) {
+      // Check if we need to update state from cache
+      const cached = new Map<string, { username: string; npub: string }>();
+      for (const pk of pubkeys) {
+        const profile = localProfileCache.get(pk);
+        if (profile) cached.set(pk, profile);
+      }
+      if (cached.size > 0 && cached.size !== localProfiles.size) {
+        setLocalProfiles(cached);
+      }
+      return;
+    }
+
+    // Mark as fetching
+    pubkeysToFetch.forEach(pk => fetchingPubkeys.add(pk));
+
+    const fetchProfiles = async () => {
       const newProfiles = new Map(localProfiles);
 
-      for (const pubkey of pubkeys) {
-        // Skip if already fetched or in cache
-        if (newProfiles.has(pubkey) || localProfileCache.has(pubkey)) {
-          if (localProfileCache.has(pubkey) && !newProfiles.has(pubkey)) {
-            const cached = localProfileCache.get(pubkey);
-            if (cached) newProfiles.set(pubkey, cached);
-          }
-          continue;
-        }
-
+      for (const pubkey of pubkeysToFetch) {
         try {
           const response = await fetch(`/api/profile/${pubkey}`);
           const data = await response.json();
 
           if (data.success && data.profile) {
             const profile = { username: data.profile.username, npub: data.profile.npub };
-            newProfiles.set(pubkey, profile);
             localProfileCache.set(pubkey, profile);
+            newProfiles.set(pubkey, profile);
           } else {
             localProfileCache.set(pubkey, null);
           }
         } catch {
           localProfileCache.set(pubkey, null);
         }
+        fetchingPubkeys.delete(pubkey);
       }
 
-      if (newProfiles.size !== localProfiles.size) {
-        setLocalProfiles(newProfiles);
+      if (isMounted.current && newProfiles.size > localProfiles.size) {
+        setLocalProfiles(new Map(newProfiles));
       }
     };
 
-    if (notes.length > 0) {
-      fetchLocalProfiles();
-    }
-  }, [notes, localProfiles]);
+    fetchProfiles();
+  }, [notes]); // Only depend on notes, not localProfiles
 
   // Format relative time
   const formatRelativeTime = (timestamp: number) => {
