@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 import { getStoredCredentials, getOrRequestInviteCode } from "@/lib/nostr";
-import { getStoredSecretKey } from "@/lib/nostr-events";
+import { getSecretKey, getStoredSecretKey } from "@/lib/nostr-events";
 import settings from "../../../settings.json";
 
 const MAX_INVITES =
@@ -60,16 +60,24 @@ export default function OnboardPage() {
         }
       }
 
-      // Check for stored secret key
-      const nsec = getStoredSecretKey();
-      if (!nsec) {
+      // Check for stored invite code first
+      const storedCode = localStorage.getItem("osv_invite_code");
+      if (storedCode) {
+        setInviteCode(storedCode);
+        setIsLoading(false);
+        return;
+      }
+
+      // Check for stored secret key (need Uint8Array for signing)
+      const secretKey = getSecretKey();
+      if (!secretKey) {
         setNeedsAuth(true);
         setIsLoading(false);
         return;
       }
 
-      // Request invite code
-      const result = await getOrRequestInviteCode(nsec);
+      // Request invite code from relay
+      const result = await getOrRequestInviteCode(secretKey);
 
       if (result.success && result.inviteCode) {
         setInviteCode(result.inviteCode);
