@@ -21,6 +21,7 @@ export type { NostrEvent };
 export const NOSTR_KINDS = {
   PROFILE: 0,           // NIP-01: User profile metadata
   NOTE: 1,              // NIP-01: Text note (used for offers)
+  CONTACT_LIST: 3,      // NIP-02: Contact list (follows)
   REACTION: 7,          // NIP-25: Reaction (used for RSVPs)
   RELAY_LIST: 10002,    // NIP-65: Relay list metadata
   PAYMENT_REQUEST: 1734, // Token payment request (regular kind, stored by relays)
@@ -210,6 +211,57 @@ export function createRelayListEvent(
   console.log('[NOSTR] Relay list event created and signed:');
   console.log('[NOSTR]   Event ID:', signedEvent.id);
   console.log('[NOSTR]   Relays count:', relays.length);
+
+  return signedEvent;
+}
+
+/**
+ * Create a NIP-02 Contact List event (kind 3)
+ * Contains the list of pubkeys the user follows
+ *
+ * @param secretKey - The user's secret key for signing
+ * @param contacts - Array of objects with pubkey (hex) and optional relay URL
+ * @returns Signed NOSTR event
+ *
+ * @example
+ * ```typescript
+ * const event = createContactListEvent(secretKey, [
+ *   { pubkey: "abc123...", relay: "wss://relay.example.com" },
+ *   { pubkey: "def456..." }
+ * ]);
+ * ```
+ */
+export function createContactListEvent(
+  secretKey: Uint8Array,
+  contacts: Array<{ pubkey: string; relay?: string; petname?: string }>
+): NostrEvent {
+  console.log('[NOSTR] Creating contact list event (kind 3)...');
+  console.log('[NOSTR] Contacts count:', contacts.length);
+
+  // NIP-02 format: ["p", <pubkey-hex>, <relay-url>, <petname>]
+  // relay and petname are optional
+  const tags: string[][] = contacts.map(contact => {
+    const tag = ['p', contact.pubkey];
+    if (contact.relay) tag.push(contact.relay);
+    if (contact.petname) {
+      if (!contact.relay) tag.push(''); // relay is required before petname
+      tag.push(contact.petname);
+    }
+    return tag;
+  });
+
+  const event: EventTemplate = {
+    kind: NOSTR_KINDS.CONTACT_LIST,
+    created_at: Math.floor(Date.now() / 1000),
+    tags,
+    content: '', // NIP-02 specifies empty content (legacy field)
+  };
+
+  const signedEvent = finalizeEvent(event, secretKey);
+
+  console.log('[NOSTR] Contact list event created and signed:');
+  console.log('[NOSTR]   Event ID:', signedEvent.id);
+  console.log('[NOSTR]   Contacts count:', contacts.length);
 
   return signedEvent;
 }

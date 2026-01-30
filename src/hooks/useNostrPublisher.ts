@@ -9,6 +9,7 @@ import { useState, useCallback } from 'react';
 import {
   createProfileEvent,
   createRelayListEvent,
+  createContactListEvent,
   createOfferEvent,
   createRSVPEvent,
   createRSVPCancellationEvent,
@@ -17,6 +18,7 @@ import {
   createReactionEvent,
   getStoredSecretKey,
   decodeNsec,
+  npubToHex,
   type OfferEventOptions,
   type PaymentRequestOptions,
   type NoteEventOptions,
@@ -119,6 +121,39 @@ export function useNostrPublisher() {
           // Don't fail the profile update if relay list fails
           console.warn('[useNostrPublisher] ⚠ Failed to publish relay list:', relayListError);
         }
+      }
+
+      // Also publish NIP-02 contact list (kind 3) with all village members
+      try {
+        const profilesResponse = await fetch('/api/profiles');
+        const profilesData = await profilesResponse.json();
+
+        if (profilesData.success && profilesData.profiles?.length > 0) {
+          // Convert npubs to hex pubkeys for the contact list
+          const contacts = profilesData.profiles
+            .filter((p: { npub: string }) => npubToHex(p.npub) !== event.pubkey) // Exclude self
+            .map((p: { npub: string; username?: string }) => ({
+              pubkey: npubToHex(p.npub),
+              relay: relays[0], // Use primary relay
+              petname: p.username,
+            }));
+
+          if (contacts.length > 0) {
+            const contactListEvent = createContactListEvent(secretKey, contacts);
+            console.log('[useNostrPublisher] Publishing NIP-02 contact list event:', contactListEvent.id);
+
+            const contactListResult = await publishToAllRelays(contactListEvent, secretKey);
+
+            if (contactListResult.successful.length > 0) {
+              console.log('[useNostrPublisher] ✓ Contact list event published successfully');
+            } else {
+              console.warn('[useNostrPublisher] ⚠ Failed to publish contact list event');
+            }
+          }
+        }
+      } catch (contactListError) {
+        // Don't fail the profile update if contact list fails
+        console.warn('[useNostrPublisher] ⚠ Failed to publish contact list:', contactListError);
       }
 
       return {
