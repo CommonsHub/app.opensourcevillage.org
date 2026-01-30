@@ -393,6 +393,9 @@ export default function PublicProfilePage() {
   // Onboarded by info
   const [onboardedByUsername, setOnboardedByUsername] = useState<string | null>(null);
 
+  // Invitees info (npub -> username mapping)
+  const [inviteesProfiles, setInviteesProfiles] = useState<Map<string, string>>(new Map());
+
   // Subscribe to Nostr events for this user
   const {
     events: nostrEvents,
@@ -502,6 +505,25 @@ export default function PublicProfilePage() {
             } catch (err) {
               console.error("Failed to fetch inviter profile:", err);
             }
+          }
+
+          // Fetch invitees' usernames
+          if (data.profile.profile.invitees && data.profile.profile.invitees.length > 0) {
+            const inviteesMap = new Map<string, string>();
+            await Promise.all(
+              data.profile.profile.invitees.map(async (inviteeNpub: string) => {
+                try {
+                  const inviteeResponse = await fetch(`/api/profile/${inviteeNpub}`);
+                  const inviteeData = await inviteeResponse.json();
+                  if (inviteeData.success && inviteeData.profile?.username) {
+                    inviteesMap.set(inviteeNpub, inviteeData.profile.username);
+                  }
+                } catch (err) {
+                  console.error("Failed to fetch invitee profile:", err);
+                }
+              })
+            );
+            setInviteesProfiles(inviteesMap);
           }
         }
 
@@ -1303,14 +1325,25 @@ export default function PublicProfilePage() {
                         {profile.profile.invitees.length}/{MAX_INVITES}):
                       </p>
                       <div className="space-y-1">
-                        {profile.profile.invitees.map((inviteeNpub, index) => (
-                          <p
-                            key={index}
-                            className="text-xs text-gray-500 font-mono truncate"
-                          >
-                            {inviteeNpub.substring(0, 20)}...
-                          </p>
-                        ))}
+                        {profile.profile.invitees.map((inviteeNpub, index) => {
+                          const inviteeUsername = inviteesProfiles.get(inviteeNpub);
+                          return inviteeUsername ? (
+                            <a
+                              key={index}
+                              href={`/profile/${inviteeUsername}`}
+                              className="block text-sm text-blue-600 hover:underline"
+                            >
+                              @{inviteeUsername}
+                            </a>
+                          ) : (
+                            <p
+                              key={index}
+                              className="text-xs text-gray-500 font-mono truncate"
+                            >
+                              {inviteeNpub.substring(0, 20)}...
+                            </p>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
