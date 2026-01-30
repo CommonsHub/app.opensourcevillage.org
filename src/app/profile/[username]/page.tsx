@@ -393,8 +393,11 @@ export default function PublicProfilePage() {
   // Onboarded by info
   const [onboardedByUsername, setOnboardedByUsername] = useState<string | null>(null);
 
-  // Invitees info (npub -> username mapping)
-  const [inviteesProfiles, setInviteesProfiles] = useState<Map<string, string>>(new Map());
+  // Invitees info (npub -> { username, inviteesCount } mapping)
+  const [inviteesProfiles, setInviteesProfiles] = useState<Map<string, { username: string; inviteesCount: number }>>(new Map());
+
+  // Follower profiles for kind 3 events (hex pubkey -> username)
+  const [followerProfiles, setFollowerProfiles] = useState<Map<string, string>>(new Map());
 
   // Subscribe to Nostr events for this user
   const {
@@ -507,16 +510,20 @@ export default function PublicProfilePage() {
             }
           }
 
-          // Fetch invitees' usernames
+          // Fetch invitees' usernames and their invitee counts
           if (data.profile.profile.invitees && data.profile.profile.invitees.length > 0) {
-            const inviteesMap = new Map<string, string>();
+            const inviteesMap = new Map<string, { username: string; inviteesCount: number }>();
             await Promise.all(
               data.profile.profile.invitees.map(async (inviteeNpub: string) => {
                 try {
                   const inviteeResponse = await fetch(`/api/profile/${inviteeNpub}`);
                   const inviteeData = await inviteeResponse.json();
                   if (inviteeData.success && inviteeData.profile?.username) {
-                    inviteesMap.set(inviteeNpub, inviteeData.profile.username);
+                    const inviteesCount = inviteeData.profile.profile?.invitees?.length || 0;
+                    inviteesMap.set(inviteeNpub, {
+                      username: inviteeData.profile.username,
+                      inviteesCount,
+                    });
                   }
                 } catch (err) {
                   console.error("Failed to fetch invitee profile:", err);
@@ -596,6 +603,55 @@ export default function PublicProfilePage() {
 
     fetchApiEvents();
   }, [profile?.npub]);
+
+  // Fetch follower usernames for kind 3 events where the user is mentioned
+  useEffect(() => {
+    if (!profile?.npub || nostrEvents.length === 0) return;
+
+    const profileHex = npubToHex(profile.npub);
+    if (!profileHex) return;
+
+    // Find kind 3 events where this user is mentioned (not authored)
+    const kind3MentionedEvents = nostrEvents.filter(
+      (e) => e.kind === 3 && e.pubkey.toLowerCase() !== profileHex.toLowerCase()
+    );
+
+    if (kind3MentionedEvents.length === 0) return;
+
+    // Get unique follower pubkeys that we haven't fetched yet
+    const newFollowerPubkeys = kind3MentionedEvents
+      .map((e) => e.pubkey.toLowerCase())
+      .filter((pubkey) => !followerProfiles.has(pubkey));
+
+    const uniqueNewPubkeys = [...new Set(newFollowerPubkeys)];
+    if (uniqueNewPubkeys.length === 0) return;
+
+    // Fetch usernames for new followers
+    const fetchFollowerUsernames = async () => {
+      const newProfiles = new Map(followerProfiles);
+
+      await Promise.all(
+        uniqueNewPubkeys.map(async (hexPubkey) => {
+          try {
+            const npub = nip19.npubEncode(hexPubkey);
+            const response = await fetch(`/api/profile/${npub}`);
+            const data = await response.json();
+            if (data.success && data.profile?.username) {
+              newProfiles.set(hexPubkey, data.profile.username);
+            }
+          } catch (err) {
+            console.error("Failed to fetch follower profile:", err);
+          }
+        })
+      );
+
+      if (newProfiles.size > followerProfiles.size) {
+        setFollowerProfiles(newProfiles);
+      }
+    };
+
+    fetchFollowerUsernames();
+  }, [nostrEvents, profile?.npub, followerProfiles]);
 
   // Process kind 0 events from NOSTR subscription to update profile data
   useEffect(() => {
@@ -1326,15 +1382,21 @@ export default function PublicProfilePage() {
                       </p>
                       <div className="space-y-1">
                         {profile.profile.invitees.map((inviteeNpub, index) => {
-                          const inviteeUsername = inviteesProfiles.get(inviteeNpub);
-                          return inviteeUsername ? (
-                            <a
-                              key={index}
-                              href={`/profile/${inviteeUsername}`}
-                              className="block text-sm text-blue-600 hover:underline"
-                            >
-                              @{inviteeUsername}
-                            </a>
+                          const inviteeInfo = inviteesProfiles.get(inviteeNpub);
+                          return inviteeInfo ? (
+                            <div key={index} className="flex items-center gap-2">
+                              <a
+                                href={`/profile/${inviteeInfo.username}`}
+                                className="text-sm text-blue-600 hover:underline"
+                              >
+                                @{inviteeInfo.username}
+                              </a>
+                              {inviteeInfo.inviteesCount > 0 && (
+                                <span className="text-xs text-gray-500">
+                                  ({inviteeInfo.inviteesCount} onboarded)
+                                </span>
+                              )}
+                            </div>
                           ) : (
                             <p
                               key={index}
@@ -1578,7 +1640,22 @@ export default function PublicProfilePage() {
 
                         {/* Summary and datetime */}
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm text-gray-800">{summary}</p>
+                          <p className="text-sm text-gray-800">
+                            {event.kind === 3 && !isAuthor ? (
+                              <>
+                                Followed by{" "}
+                                <a
+                                  href={`/profile/${followerProfiles.get(event.pubkey.toLowerCase()) || nip19.npubEncode(event.pubkey)}`}
+                                  className="text-blue-600 hover:underline"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  @{followerProfiles.get(event.pubkey.toLowerCase()) || `${nip19.npubEncode(event.pubkey).substring(0, 12)}...`}
+                                </a>
+                              </>
+                            ) : (
+                              summary
+                            )}
+                          </p>
                           <p className="text-xs text-gray-400 mt-0.5">
                             {new Date(event.created_at * 1000).toLocaleString(
                               undefined,
