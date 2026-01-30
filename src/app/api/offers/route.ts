@@ -561,10 +561,41 @@ async function getUsernameByNpub(npub: string): Promise<string | null> {
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    const idFilter = searchParams.get("id");
     const typeFilter = searchParams.get("type");
     const statusFilter = searchParams.get("status");
 
     const offersDir = path.join(getDataDir(), "offers");
+
+    // If fetching a single offer by ID
+    if (idFilter) {
+      try {
+        const offerPath = path.join(offersDir, `${idFilter}.json`);
+        const content = await fs.readFile(offerPath, "utf-8");
+        const offer = JSON.parse(content);
+
+        // Get author username
+        if (offer.authors && offer.authors.length > 0) {
+          const authorUsername = await getUsernameByNpub(offer.authors[0]);
+          if (authorUsername) {
+            offer.authorUsername = authorUsername;
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          offer,
+        });
+      } catch {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Offer not found",
+          },
+          { status: 404 }
+        );
+      }
+    }
 
     // Ensure directory exists
     try {

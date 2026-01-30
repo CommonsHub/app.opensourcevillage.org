@@ -396,8 +396,11 @@ export default function PublicProfilePage() {
   // Invitees info (npub -> { username, inviteesCount } mapping)
   const [inviteesProfiles, setInviteesProfiles] = useState<Map<string, { username: string; inviteesCount: number }>>(new Map());
 
-  // Follower profiles for kind 3 events (hex pubkey -> username)
-  const [followerProfiles, setFollowerProfiles] = useState<Map<string, string>>(new Map());
+  // User profiles cache (hex pubkey -> username) - used for followers and payment senders
+  const [userProfiles, setUserProfiles] = useState<Map<string, string>>(new Map());
+
+  // Offer/workshop titles cache (offer ID -> title)
+  const [offerTitles, setOfferTitles] = useState<Map<string, string>>(new Map());
 
   // Subscribe to Nostr events for this user
   const {
@@ -604,34 +607,42 @@ export default function PublicProfilePage() {
     fetchApiEvents();
   }, [profile?.npub]);
 
-  // Fetch follower usernames for kind 3 events where the user is mentioned
+  // Fetch usernames for followers (kind 3) and payment senders (kind 1735)
   useEffect(() => {
     if (!profile?.npub || nostrEvents.length === 0) return;
 
     const profileHex = npubToHex(profile.npub);
     if (!profileHex) return;
 
-    // Find kind 3 events where this user is mentioned (not authored)
-    const kind3MentionedEvents = nostrEvents.filter(
-      (e) => e.kind === 3 && e.pubkey.toLowerCase() !== profileHex.toLowerCase()
-    );
+    // Collect pubkeys we need to fetch
+    const pubkeysToFetch = new Set<string>();
 
-    if (kind3MentionedEvents.length === 0) return;
+    // From kind 3 events (followers) - get the event author
+    nostrEvents
+      .filter((e) => e.kind === 3 && e.pubkey.toLowerCase() !== profileHex.toLowerCase())
+      .forEach((e) => pubkeysToFetch.add(e.pubkey.toLowerCase()));
 
-    // Get unique follower pubkeys that we haven't fetched yet
-    const newFollowerPubkeys = kind3MentionedEvents
-      .map((e) => e.pubkey.toLowerCase())
-      .filter((pubkey) => !followerProfiles.has(pubkey));
+    // From kind 1735 events (payment receipts) - get the sender (P tag)
+    nostrEvents
+      .filter((e) => e.kind === 1735)
+      .forEach((e) => {
+        const senderPubkey = e.tags.find((t) => t[0] === "P")?.[1];
+        if (senderPubkey && senderPubkey.toLowerCase() !== profileHex.toLowerCase()) {
+          pubkeysToFetch.add(senderPubkey.toLowerCase());
+        }
+      });
 
-    const uniqueNewPubkeys = [...new Set(newFollowerPubkeys)];
-    if (uniqueNewPubkeys.length === 0) return;
+    // Filter out pubkeys we already have
+    const newPubkeys = [...pubkeysToFetch].filter((pk) => !userProfiles.has(pk));
 
-    // Fetch usernames for new followers
-    const fetchFollowerUsernames = async () => {
-      const newProfiles = new Map(followerProfiles);
+    if (newPubkeys.length === 0) return;
+
+    // Fetch usernames
+    const fetchUsernames = async () => {
+      const newProfiles = new Map(userProfiles);
 
       await Promise.all(
-        uniqueNewPubkeys.map(async (hexPubkey) => {
+        newPubkeys.map(async (hexPubkey) => {
           try {
             const npub = nip19.npubEncode(hexPubkey);
             const response = await fetch(`/api/profile/${npub}`);
@@ -640,18 +651,69 @@ export default function PublicProfilePage() {
               newProfiles.set(hexPubkey, data.profile.username);
             }
           } catch (err) {
-            console.error("Failed to fetch follower profile:", err);
+            console.error("Failed to fetch user profile:", err);
           }
         })
       );
 
-      if (newProfiles.size > followerProfiles.size) {
-        setFollowerProfiles(newProfiles);
+      if (newProfiles.size > userProfiles.size) {
+        setUserProfiles(newProfiles);
       }
     };
 
-    fetchFollowerUsernames();
-  }, [nostrEvents, profile?.npub, followerProfiles]);
+    fetchUsernames();
+  }, [nostrEvents, profile?.npub, userProfiles]);
+
+  // Fetch offer titles for RSVP payment events (kind 1735 with context=rsvp)
+  useEffect(() => {
+    if (!profile?.npub || nostrEvents.length === 0) return;
+
+    // Get offer IDs from kind 1735 events with context "rsvp"
+    const offerIdsToFetch = new Set<string>();
+
+    nostrEvents
+      .filter((e) => e.kind === 1735)
+      .forEach((e) => {
+        const context = e.tags.find((t) => t[0] === "context")?.[1];
+        if (context === "rsvp") {
+          // The related event ID is the offer ID
+          const relatedTag = e.tags.find((t) => t[0] === "e" && t[3] === "related");
+          if (relatedTag?.[1]) {
+            offerIdsToFetch.add(relatedTag[1]);
+          }
+        }
+      });
+
+    // Filter out offer IDs we already have
+    const newOfferIds = [...offerIdsToFetch].filter((id) => !offerTitles.has(id));
+
+    if (newOfferIds.length === 0) return;
+
+    // Fetch offer titles
+    const fetchOfferTitles = async () => {
+      const newTitles = new Map(offerTitles);
+
+      await Promise.all(
+        newOfferIds.map(async (offerId) => {
+          try {
+            const response = await fetch(`/api/offers?id=${offerId}`);
+            const data = await response.json();
+            if (data.success && data.offer?.title) {
+              newTitles.set(offerId, data.offer.title);
+            }
+          } catch (err) {
+            console.error("Failed to fetch offer:", err);
+          }
+        })
+      );
+
+      if (newTitles.size > offerTitles.size) {
+        setOfferTitles(newTitles);
+      }
+    };
+
+    fetchOfferTitles();
+  }, [nostrEvents, profile?.npub, offerTitles]);
 
   // Process kind 0 events from NOSTR subscription to update profile data
   useEffect(() => {
@@ -1645,14 +1707,58 @@ export default function PublicProfilePage() {
                               <>
                                 Followed by{" "}
                                 <a
-                                  href={`/profile/${followerProfiles.get(event.pubkey.toLowerCase()) || nip19.npubEncode(event.pubkey)}`}
+                                  href={`/profile/${userProfiles.get(event.pubkey.toLowerCase()) || nip19.npubEncode(event.pubkey)}`}
                                   className="text-blue-600 hover:underline"
                                   onClick={(e) => e.stopPropagation()}
                                 >
-                                  @{followerProfiles.get(event.pubkey.toLowerCase()) || `${nip19.npubEncode(event.pubkey).substring(0, 12)}...`}
+                                  @{userProfiles.get(event.pubkey.toLowerCase()) || `${nip19.npubEncode(event.pubkey).substring(0, 12)}...`}
                                 </a>
                               </>
-                            ) : (
+                            ) : event.kind === 1735 && (() => {
+                              // Check if this is an RSVP payment receipt where the profile user received tokens
+                              const context = event.tags.find((t) => t[0] === "context")?.[1];
+                              const status = event.tags.find((t) => t[0] === "status")?.[1];
+                              const recipientPubkey = event.tags.find((t) => t[0] === "p")?.[1];
+                              const senderPubkey = event.tags.find((t) => t[0] === "P")?.[1];
+                              const amount = event.tags.find((t) => t[0] === "amount")?.[1];
+                              const relatedEventId = event.tags.find((t) => t[0] === "e" && t[3] === "related")?.[1];
+
+                              const isRecipient = profileHex && recipientPubkey?.toLowerCase() === profileHex.toLowerCase();
+
+                              if (context === "rsvp" && status === "success" && isRecipient && senderPubkey) {
+                                const amountNum = amount ? Number(amount) / 1e6 : 0;
+                                const tokenLabel = amountNum === 1 ? "token" : "tokens";
+                                const senderUsername = userProfiles.get(senderPubkey.toLowerCase());
+                                const workshopTitle = relatedEventId ? offerTitles.get(relatedEventId) : null;
+
+                                return (
+                                  <>
+                                    Received {amountNum} {tokenLabel} from{" "}
+                                    <a
+                                      href={`/profile/${senderUsername || nip19.npubEncode(senderPubkey)}`}
+                                      className="text-blue-600 hover:underline"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      @{senderUsername || `${nip19.npubEncode(senderPubkey).substring(0, 12)}...`}
+                                    </a>
+                                    {" "}for their RSVP
+                                    {workshopTitle && (
+                                      <>
+                                        {" "}to{" "}
+                                        <a
+                                          href={`/offers/${relatedEventId}`}
+                                          className="text-blue-600 hover:underline"
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          {workshopTitle}
+                                        </a>
+                                      </>
+                                    )}
+                                  </>
+                                );
+                              }
+                              return null;
+                            })() || (
                               summary
                             )}
                           </p>
