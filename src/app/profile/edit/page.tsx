@@ -184,6 +184,9 @@ export default function ProfileEditPage() {
       if (name.trim()) profileContent.name = name.trim();
       if (shortbio.trim()) profileContent.about = shortbio.trim();
 
+      // Include username so it can be looked up from kind 0 events
+      if (credentials?.username) profileContent.username = credentials.username;
+
       // Custom fields for OSV
       if (talkAbout.trim()) profileContent.talkAbout = talkAbout.trim();
       if (helpWith.trim()) profileContent.helpWith = helpWith.trim();

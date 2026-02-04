@@ -133,10 +133,13 @@ export function npubToHex(npubOrPubkey: string): string {
 export function createProfileEvent(
   secretKey: Uint8Array,
   profile: {
-    name: string;
+    name?: string;
+    username?: string;
     about?: string;
     picture?: string;
     relays?: string[];
+    // Allow additional custom fields (talkAbout, helpWith, links, etc.)
+    [key: string]: unknown;
   }
 ): NostrEvent {
   console.log('[NOSTR] Creating profile event (kind 0)...');
